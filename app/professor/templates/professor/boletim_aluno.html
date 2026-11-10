@@ -1,0 +1,170 @@
+{% extends 'professor/base.html' %}
+{% load custom_tags %}
+
+{% block breadcrumb %}
+  <a href="{% url 'professor:resultados_anuais' %}">Pauta Anual</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Boletim de Notas</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-file-earmark-person-fill"></i>{% endblock %}
+{% block title %}Boletim de Notas{% endblock %}
+{% block sub_title %}{{ matricula.aluno.nome_completo }} — {{ matricula.turma.designacao }} — {{ matricula.ano_lectivo.designacao }}{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" style="padding:8px 16px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--text-sub);">
+  <i class="bi bi-printer"></i> Imprimir Boletim
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cabeçalho do Boletim -->
+<div style="background:linear-gradient(135deg,#0f1f3d,#1e40af);border-radius:14px;padding:26px 30px;color:#fff;margin-bottom:22px;position:relative;overflow:hidden;" class="boletim-header">
+  <div style="position:absolute;top:-30px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(59,130,246,.1);"></div>
+  <div style="position:absolute;bottom:-50px;right:60px;width:120px;height:120px;border-radius:50%;background:rgba(124,58,237,.08);"></div>
+  <div style="display:flex;align-items:flex-start;gap:20px;position:relative;">
+    <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:#fff;flex-shrink:0;border:3px solid rgba(255,255,255,.2);">
+      {{ matricula.aluno.nome_completo|slice:":1"|upper }}
+    </div>
+    <div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Boletim de Notas — IIº Ciclo</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:8px;">{{ matricula.aluno.nome_completo }}</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:.78rem;"><i class="bi bi-mortarboard-fill" style="opacity:.6;margin-right:5px;"></i>{{ matricula.turma.designacao }}</div>
+        <div style="font-size:.78rem;"><i class="bi bi-book-fill" style="opacity:.6;margin-right:5px;"></i>{{ matricula.turma.curso.nome }}</div>
+        <div style="font-size:.78rem;"><i class="bi bi-calendar3" style="opacity:.6;margin-right:5px;"></i>{{ matricula.ano_lectivo.designacao }}</div>
+        <div style="font-size:.78rem;"><i class="bi bi-person-badge-fill" style="opacity:.6;margin-right:5px;"></i>Nº {{ matricula.aluno.numero_processo|default:"—" }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Boletim -->
+<div class="table-card fade-up" style="overflow-x:auto;">
+  <div class="card-hdr">
+    <div class="section-title">Notas por Disciplina</div>
+    <div style="display:flex;gap:10px;font-size:.75rem;">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#d1fae5;border-radius:50%;display:inline-block;"></span>Aprovado</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#fee2e2;border-radius:50%;display:inline-block;"></span>Reprovado</span>
+    </div>
+  </div>
+
+  {% if boletim %}
+  <table class="dt">
+    <thead>
+      <tr>
+        <th>Disciplina</th>
+        {% for t in trimestres %}
+        <th style="text-align:center;min-width:90px;">{{ t.designacao }}<br><small style="color:var(--text-muted);font-weight:400;">MAC</small></th>
+        {% endfor %}
+        <th style="text-align:center;min-width:90px;background:#e0f2fe;">MAC Anual</th>
+        <th style="text-align:center;min-width:75px;background:#fef3c7;">Exame</th>
+        <th style="text-align:center;min-width:90px;background:#d1fae5;">Nota Final</th>
+        <th style="text-align:center;min-width:110px;">Situação</th>
+      </tr>
+    </thead>
+    <tbody style="font-size: 8pt;">
+      {% for linha in boletim %}
+      {% with ra=linha.resultado_anual %}
+      <tr style="{% if ra %}{% if ra.situacao == 'Aprovado' or ra.situacao == 'Aprovado por Exame' %}background:rgba(5,150,105,.02){% elif ra.situacao == 'Admitido a Exame' %}background:rgba(217,119,6,.02){% elif ra.situacao == 'Reprovado' or ra.situacao == 'Reprovado em Exame' %}background:rgba(220,38,38,.02){% endif %}{% endif %}">
+        <td>
+          <div style="font-weight:600;">{{ linha.disciplina.nome }}</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">{{ linha.disciplina.nome_abreviado }}</div>
+        </td>
+        {% for t in trimestres %}
+        {% with rt=linha.trimestrais|get_item:t.pk %}
+        <td style="text-align:center;">
+          {% if rt %}
+          <strong style="color:{% if rt.mac >= 10 %}#059669{% elif rt.mac >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+            {{ rt.mac|floatformat:1 }}
+          </strong>
+          {% else %}
+          <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+        {% endwith %}
+        {% endfor %}
+        <!-- MAC Anual -->
+        <td style="text-align:center;background:#f0f9ff;">
+          {% if ra.mac_anual %}
+          <strong style="color:{% if ra.mac_anual >= 10 %}#059669{% elif ra.mac_anual >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+            {{ ra.mac_anual|floatformat:2 }}
+          </strong>
+          {% else %}—{% endif %}
+        </td>
+        <!-- Nota Exame -->
+        <td style="text-align:center;background:#fffdf0;">
+          {% if ra.nota_exame %}
+          <strong style="color:#d97706;">{{ ra.nota_exame|floatformat:2 }}</strong>
+          {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+        </td>
+        <!-- Nota Final -->
+        <td style="text-align:center;background:#f0fdf4;">
+          {% if ra and ra.nota_final %}
+          <strong style="font-weight:800;color:{% if ra.nota_final >= 10 %}#059669{% else %}#dc2626{% endif %};">
+            {{ ra.nota_final|floatformat:2 }}
+          </strong>
+          {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+        </td>
+        <!-- Situação -->
+        <td style="text-align:center;">
+          {% if ra %}
+            {% if ra.situacao == 'Aprovado' %}
+              <span class="tag tag-green">Aprovado</span>
+            {% elif ra.situacao == 'Aprovado por Exame' %}
+              <span class="tag tag-green">Aprov. Exame</span>
+            {% elif ra.situacao == 'Admitido a Exame' %}
+              <span class="tag tag-yellow">Adm. Exame</span>
+            {% elif ra.situacao == 'Reprovado em Exame' %}
+              <span class="tag tag-red">Reprov. Exame</span>
+            {% elif ra.situacao == 'Reprovado' %}
+              <span class="tag tag-red">Reprovado</span>
+            {% else %}
+              <span class="tag tag-gray">{{ ra.situacao }}</span>
+            {% endif %}
+          {% else %}
+          <span class="tag tag-gray">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Rodapé do Boletim -->
+  <div style="padding:18px 20px;border-top:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div>
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Critérios</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:.75rem;">
+        <span><strong style="color:#059669;">≥ 10</strong> → Aprovado</span>
+        <span><strong style="color:#dc2626;">&lt; 10</strong> → Reprovado</span>
+        <span style="color:var(--text-muted);">Nota Final (c/ exame): (MAC * 2 + Exame) ÷ 3</span>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:.72rem;color:var(--text-muted);">Emitido em: {{ request.now|default:"hoje" }}</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px;">{{ request.user.escola.nome|default:"" }}</div>
+    </div>
+  </div>
+
+  {% else %}
+  <div style="padding:50px;text-align:center;">
+    <i class="bi bi-journal-x" style="font-size:2.5rem;color:var(--text-muted);display:block;margin-bottom:12px;"></i>
+    <div style="color:var(--text-muted);">Nenhuma disciplina ou nota registada para este aluno.</div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+@media print {
+  .sidebar,.topbar,.breadcrumb-bar,.page-header button,button { display:none!important; }
+  .main-content { margin-left:0!important;padding-top:0!important; }
+  body { background:white;font-size:11pt; }
+  .table-card { box-shadow:none!important;border:1px solid #ccc; }
+  .boletim-header { print-color-adjust:exact;-webkit-print-color-adjust:exact; }
+  .fade-up { animation:none!important; }
+}
+</style>
+{% endblock %}

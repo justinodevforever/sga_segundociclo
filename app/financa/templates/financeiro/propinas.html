@@ -1,0 +1,305 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="{% url 'conta_list' %}">Contas</a>
+  <i class="bi bi-chevron-right"></i>
+  <a href="{% url 'conta_detail' conta.pk %}">{{ conta.aluno.nome_completo }}</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Propinas</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-calendar2-check"></i>{% endblock %}
+{% block title %}Propinas Mensais{% endblock %}
+{% block sub_title %}{{ conta.aluno.nome_completo }} — {{ conta.ano_lectivo }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'conta_detail' conta.pk %}" class="btn-action btn-secondary">
+    <i class="bi bi-arrow-left"></i> Voltar à Conta
+  </a>
+  <a href="{% url 'pagamento_create_conta' conta.pk %}" class="btn-action btn-primary">
+    <i class="bi bi-plus-lg"></i> Registar Pagamento
+  </a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .btn-action {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 10px;
+    font-size: .82rem; font-weight: 600; cursor: pointer;
+    border: none; text-decoration: none; transition: all .18s;
+  }
+  .btn-primary  { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(29,78,216,.25); }
+  .btn-primary:hover  { background: #1749c2; color: #fff; transform: translateY(-1px); }
+  .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+
+  /* ── RESUMO CARDS ── */
+  .resumo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+  .resumo-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .resumo-card::after {
+    content:''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px; border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .rc-blue::after   { background: linear-gradient(90deg,#1d4ed8,#3b82f6); }
+  .rc-green::after  { background: linear-gradient(90deg,#059669,#34d399); }
+  .rc-yellow::after { background: linear-gradient(90deg,#d97706,#fbbf24); }
+  .rc-red::after    { background: linear-gradient(90deg,#dc2626,#f87171); }
+  .resumo-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; margin-bottom: 12px;
+  }
+  .rc-blue  .resumo-icon { background: #dbeafe; color: #1d4ed8; }
+  .rc-green .resumo-icon { background: #d1fae5; color: #059669; }
+  .rc-yellow .resumo-icon { background: #fef3c7; color: #d97706; }
+  .rc-red .resumo-icon   { background: #fee2e2; color: #dc2626; }
+  .resumo-valor { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+  .resumo-label { font-size: .75rem; color: var(--text-sub); margin-top: 4px; font-weight: 500; }
+
+  /* ── PROGRESSO GERAL ── */
+  .prog-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px;
+    box-shadow: var(--shadow); margin-bottom: 26px;
+  }
+  .prog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .prog-title  { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; }
+  .prog-pct    { font-size: .82rem; font-weight: 700; color: var(--accent); }
+  .prog-track  { height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+  .prog-fill-bar {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, #059669, #34d399);
+    transition: width .8s cubic-bezier(.4,0,.2,1);
+  }
+  .prog-legenda {
+    display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .prog-leg-item { display: flex; align-items: center; gap: 6px; font-size: .74rem; color: var(--text-sub); }
+  .prog-leg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── PROPINAS GRID ── */
+  .propinas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .propina-card {
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+    box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .propina-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .propina-card.pago     { border-color: #a7f3d0; }
+  .propina-card.atrasado { border-color: #fca5a5; }
+  .propina-card.pendente { border-color: #fde68a; }
+  .propina-card.isento   { border-color: #c7d2fe; }
+
+  .pc-corner {
+    position: absolute; top: 0; right: 0;
+    width: 56px; height: 56px;
+    border-radius: 0 var(--radius) 0 100%;
+  }
+  .pago .pc-corner     { background: rgba(16,185,129,.08); }
+  .atrasado .pc-corner { background: rgba(239,68,68,.08); }
+  .pendente .pc-corner { background: rgba(245,158,11,.08); }
+  .isento .pc-corner   { background: rgba(99,102,241,.08); }
+
+  .pc-corner-icon {
+    position: absolute; top: 8px; right: 10px; font-size: .85rem;
+  }
+  .pago .pc-corner-icon     { color: #059669; }
+  .atrasado .pc-corner-icon { color: #dc2626; }
+  .pendente .pc-corner-icon { color: #d97706; }
+  .isento .pc-corner-icon   { color: #6366f1; }
+
+  .pc-mes {
+    font-size: .68rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .pc-valor {
+    font-family: 'Playfair Display', serif; font-size: 1.3rem;
+    font-weight: 800; color: var(--text-main); margin-bottom: 10px;
+  }
+  .pc-footer { display: flex; align-items: center; justify-content: space-between; }
+  .pc-venc   { font-size: .7rem; color: var(--text-muted); }
+  .pc-venc i { font-size: .68rem; margin-right: 3px; }
+
+  /* ── STATUS BADGES ── */
+  .badge-status {
+    font-size: .63rem; padding: 3px 9px; border-radius: 99px;
+    font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .bs-pago     { background: #d1fae5; color: #065f46; }
+  .bs-atrasado { background: #fee2e2; color: #991b1b; }
+  .bs-pendente { background: #fef3c7; color: #92400e; }
+  .bs-isento   { background: #e0e7ff; color: #3730a3; }
+  .bs-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* ── ALUNO BANNER ── */
+  .aluno-banner {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow); margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .aluno-av {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem; color: #fff; flex-shrink: 0;
+  }
+  .aluno-nome  { font-size: .95rem; font-weight: 700; color: var(--text-main); }
+  .aluno-meta  { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+  .aluno-right { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .aluno-pill  {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 5px 12px; font-size: .74rem; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; color: var(--text-sub);
+  }
+  .aluno-pill i { font-size: .78rem; }
+</style>
+
+<!-- Banner do aluno -->
+<div class="aluno-banner fade-up">
+  <div class="aluno-av">{{ conta.aluno.nome_completo|slice:":2"|upper }}</div>
+  <div>
+    <div class="aluno-nome">{{ conta.aluno.nome_completo }}</div>
+    <div class="aluno-meta">
+      <i class="bi bi-hash"></i> {{ conta.aluno.numero_estudante|default:"-" }}
+      &nbsp;·&nbsp;
+      <i class="bi bi-calendar3"></i> {{ conta.ano_lectivo }}
+    </div>
+  </div>
+  <div class="aluno-right">
+    {% with s=conta.status %}
+    <div class="aluno-pill">
+      <i class="bi bi-circle-fill"
+         style="font-size:.5rem;color:{% if s == 'em_dia' %}#059669{% elif s == 'atrasado' %}#d97706{% elif s == 'bloqueado' %}#dc2626{% else %}#6366f1{% endif %}"></i>
+      {{ conta.get_status_display }}
+    </div>
+    {% endwith %}
+    <div class="aluno-pill"><i class="bi bi-wallet2"></i> Saldo: {{ conta.saldo_devedor|floatformat:2 }} Kz</div>
+  </div>
+</div>
+
+<!-- Cards de resumo -->
+<div class="resumo-grid fade-up delay-1">
+  {% with total=propinas.count %}
+  {% with pagas=propinas|dictsort:"status"|length %}
+  <div class="resumo-card rc-blue">
+    <div class="resumo-icon"><i class="bi bi-calendar2-week"></i></div>
+    <div class="resumo-valor">{{ total }}</div>
+    <div class="resumo-label">Propinas no ano</div>
+  </div>
+  <div class="resumo-card rc-green">
+    <div class="resumo-icon"><i class="bi bi-check-circle-fill"></i></div>
+    <div class="resumo-valor">{{ propinas|dictsortreversed:"status"|length }}</div>
+    <div class="resumo-label">Pagas</div>
+  </div>
+  {% endwith %}{% endwith %}
+  <div class="resumo-card rc-yellow">
+    <div class="resumo-icon"><i class="bi bi-clock-history"></i></div>
+    <div class="resumo-valor">
+      {% with count=0 %}
+        {% for p in propinas %} {% if p.status == 'atrasado' %}{% with count=count|add:1 %}{% endwith %}{% endif %}{% endfor %}
+        {{ count}}
+      {% endwith %}
+    </div>
+    <div class="resumo-label">Em atraso</div>
+  </div>
+  <div class="resumo-card rc-red">
+    <div class="resumo-icon"><i class="bi bi-currency-exchange"></i></div>
+    <div class="resumo-valor">{{ conta.saldo_devedor|floatformat:0 }}</div>
+    <div class="resumo-label">Saldo devedor (Kz)</div>
+  </div>
+</div>
+
+<!-- Barra de progresso -->
+{% if propinas %}
+<div class="prog-card fade-up delay-2">
+  <div class="prog-header">
+    <div class="prog-title">Progresso de pagamentos</div>
+    <div class="prog-pct" id="progPct">—</div>
+  </div>
+  <div class="prog-track">
+    <div class="prog-fill-bar" id="progBar" style="width:0%"></div>
+  </div>
+  <div class="prog-legenda">
+    <div class="prog-leg-item"><div class="prog-leg-dot" style="background:#059669"></div> Pago</div>
+    <div class="prog-leg-item"><div class="prog-leg-dot" style="background:#d97706"></div> Pendente</div>
+    <div class="prog-leg-item"><div class="prog-leg-dot" style="background:#dc2626"></div> Atrasado</div>
+    <div class="prog-leg-item"><div class="prog-leg-dot" style="background:#6366f1"></div> Isento</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Grid de propinas -->
+<div class="section-header fade-up delay-2">
+  <div class="section-title">Propinas mensais — {{ conta.ano_lectivo }}</div>
+  <span class="tag tag-blue">{{ propinas.count }} mês{% if propinas.count != 1 %}es{% endif %}</span>
+</div>
+
+<div class="propinas-grid fade-up delay-3">
+  {% for propina in propinas %}
+  <div class="propina-card {{ propina.status }}">
+    <div class="pc-corner"></div>
+    <div class="pc-corner-icon">
+      {% if propina.status == 'pago' %}<i class="bi bi-check-circle-fill"></i>
+      {% elif propina.status == 'atrasado' %}<i class="bi bi-exclamation-circle-fill"></i>
+      {% elif propina.status == 'pendente' %}<i class="bi bi-clock-fill"></i>
+      {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+    </div>
+
+    <div class="pc-mes">{{ propina.get_mes_display }}</div>
+    <div class="pc-valor">{{ propina.valor|floatformat:2 }} <small style="font-size:.7rem;font-weight:500;color:var(--text-muted)">Kz</small></div>
+
+    <div class="pc-footer">
+      <div class="pc-venc">
+        <i class="bi bi-calendar-event"></i>
+        Venc. {{ propina.data_vencimento|date:"d/m/Y" }}
+      </div>
+      <span class="badge-status bs-{{ propina.status }}">
+        <span class="bs-dot"></span>
+        {{ propina.get_status_display }}
+      </span>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1; text-align:center; padding:48px 20px;">
+    <div style="font-size:2.5rem;color:var(--text-muted);margin-bottom:12px;">
+      <i class="bi bi-calendar-x"></i>
+    </div>
+    <div style="font-size:.9rem;font-weight:600;color:var(--text-sub)">Nenhuma propina registada</div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">As propinas serão geradas automaticamente ao criar a conta.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+(function(){
+  const propinas = [
+    {% for p in propinas %}
+    "{{ p.status }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+  const total = propinas.length;
+  const pagas = propinas.filter(s => s === 'pago' || s === 'isento').length;
+  const pct   = total > 0 ? Math.round((pagas / total) * 100) : 0;
+  document.getElementById('progBar').style.width = pct + '%';
+  document.getElementById('progPct').textContent  = pct + '% pago';
+})();
+</script>
+{% endblock %}

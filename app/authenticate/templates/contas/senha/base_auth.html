@@ -1,0 +1,37 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{% endblock %} · O Meu Sistema</title>
+  <style>
+    :root { --cor: #2563eb; --cor-escura: #1d4ed8; --borda: #d1d5db; --texto: #111827; --suave: #6b7280; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f3f4f6;
+           font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--texto); }
+    .cartao { width: 100%; max-width: 420px; margin: 1rem; padding: 2rem; background: #fff;
+              border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,.08); }
+    h1 { font-size: 1.4rem; margin: 0 0 .5rem; }
+    p { color: var(--suave); line-height: 1.5; margin: 0 0 1.25rem; }
+    label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .35rem; }
+    .campo { width: 100%; padding: .7rem .8rem; border: 1px solid var(--borda); border-radius: 8px; font-size: 1rem; }
+    .campo:focus { outline: 2px solid var(--cor); border-color: transparent; }
+    .grupo { margin-bottom: 1rem; }
+    .ajuda, .ajuda ul { font-size: .8rem; color: var(--suave); padding-left: 1.1rem; margin: .35rem 0 0; }
+    .erro { color: #b91c1c; font-size: .85rem; margin-top: .3rem; }
+    .alerta { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: .75rem; border-radius: 8px; margin-bottom: 1rem; font-size: .9rem; }
+    .btn { display: block; width: 100%; padding: .8rem; border: 0; border-radius: 8px; background: var(--cor);
+           color: #fff; font-size: 1rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
+    .btn:hover { background: var(--cor-escura); }
+    .links { text-align: center; margin-top: 1.25rem; font-size: .9rem; }
+    .links a { color: var(--cor); text-decoration: none; }
+    .icone { font-size: 2.5rem; text-align: center; margin-bottom: .5rem; }
+  </style>
+</head>
+<body>
+  <main class="cartao">
+    {% block conteudo %}{% endblock %}
+  </main>
+</body>
+</html>

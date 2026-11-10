@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+<style>
+    
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+   
+    
+</style>
+<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
+     justify-content: center;">
+    <div class="col-md-8" style="width: 100%;">
+        
+        <div class="card" style="width: 97%;">
+            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Pauta Geral do Ano Letivo {{turma.ano_letivo.ano}} Turma 
+                    {{turma.turma}} Classe {{turma.classe.denominacao}}
+                </h5>
+                <a href="/listar_notas/" class="btn" 
+                style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            </div>
+
+            <div class="card-body">
+
+                <h3>Lista de disciplina</h3>
+                <table class="table table-striped table-inverse table-responsive">
+                    <thead class="thead-inverse">
+                        <tr>
+                            <th>Disciplina</th>
+                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                            {% for disciplina in  disciplinas %}
+                                <tr>
+                                    <td scope="row"><a href="/pauta_turma/{{id_turma}}?disPL={{disciplina.id}}">{{disciplina.nome}}</a></td>
+
+                                </tr>
+                            {% empty %}
+
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <br>Nenhum registro encontrado.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                </table>
+
+                <hr>
+
+                <h3>Pauta Geral</h3>
+
+                <table class="table table-striped table-inverse table-responsive">
+                    <thead class="thead-inverse">
+                        <tr>
+                            <th>Nome Completo</th>
+                            <th>N. Aval. 1</th>
+                            <th>N. Aval. 2</th>
+                            <th>N. Aval. 3</th>
+                            <th>N. prova 1</th>
+                            <th>N. prova 2</th>
+                            <th>N. prova 3</th>
+                            <th>N. Exame </th>
+                            <th> Média Final </th>
+                            <th> Resultado </th>
+                        </tr>
+                        </thead>
+                        <tbody >
+                             
+                            {% for d in disciplinas_notas %}
+                                <tr >
+                                
+                                    <td scope="row">{{d.estudante.nome_completo}}</td>
+
+                                    <td>{{d.not_Ev_Sist1|default:"0"}}</td>
+                                    <td>{{d.not_Ev_Sist2|default:"0"}}</td>
+                                    <td>{{d.not_Ev_Sist3|default:"0"}}</td>
+
+                                    <td>{{d.not_Prov1|default:"0"}}</td>
+                                    <td>{{d.not_Prov2|default:"0"}}</td>
+                                    <td>{{d.not_Prov3|default:"0"}}</td>
+
+                                    <td>{{d.not_examen|default:"0"}}</td>
+
+                                    {% if d.media < 10 %}
+                                        <td  class="text-danger">{{d.media}}</td>
+                                    {% else %}
+                                        <td>{{d.media}}</td>
+                                    {% endif %}
+
+                                    {% if d.status == 'Apto'%}
+                                    
+                                        <td>{{d.status}}</td>
+                                    {% else %}
+                                        <td class="text-danger">{{d.status}}</td>
+                                    {% endif %}
+
+                                </tr>
+
+                            {% empty %}
+
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <br>Nenhum registro encontrado.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            
+                        </tbody>
+                </table>
+                
+            </div>
+        </div>
+    </div>
+   
+</div>
+{% endblock %}
+

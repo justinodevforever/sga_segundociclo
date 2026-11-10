@@ -1,0 +1,7 @@
+{% extends "director/base.html" %}
+{% block content %}
+<h2>As minhas turmas</h2>
+{% for t in turmas %}
+<div class="card"><a href="{% url 'avaliacao:turma_detalhe' t.id %}"><b>{{ t }}</b></a> - {{ t.escola }}</div>
+{% empty %}<p>Não tem turmas atribuídas.</p>{% endfor %}
+{% endblock %}

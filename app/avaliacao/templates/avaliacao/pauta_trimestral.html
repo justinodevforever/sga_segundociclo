@@ -1,0 +1,50 @@
+{% extends "professor/base.html" %}
+
+{% block breadcrumb %}
+    <a href="{% url "avaliacao:turma_detalhe" turma.id %}">Minha turma</a>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Pauta do {{ trimestre.designacao }}.º Trimestre - {{ turma }}
+{% endblock title %}
+
+{% block topbar_actions %}
+    <button class="btn btn-primary" onclick="window.print()">
+       <i class="fa fa-print" aria-hidden="true"></i> Imprimir
+    </button>
+{% endblock topbar_actions %}
+
+{% block content %}
+    
+    
+    <div class="card-body" style="border-radius: 4px;">
+        <div class="table-responsive">
+            <table class="table table-hover" style="font-size: 10pt;">
+                <thead class="table-light">
+                    <tr>
+                        <th>N.º</th>
+                        <th>Nome</th>
+                        {% for d in disciplinas %}
+                            <th>{{ d.nome_abreviado }}</th>
+                        {% endfor %}
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    {% for l in linhas %}
+                        <tr>
+                            <td>{{ l.m.numero_na_turma|default:forloop.counter }}</td>
+                            <td class="nome">{{ l.m.aluno.nome_completo }}</td>
+                            {% for r in l.notas %}
+                                <td>{{ r.mt|default_if_none:"-"|default:"-" }}</td>
+                            {% endfor %}
+                            <td class="{% if l.negativas %}N/Apto{% endif %}">Apto</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}

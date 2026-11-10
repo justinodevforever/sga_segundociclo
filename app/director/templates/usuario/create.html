@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+</head>
+<body>
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" >Lista de usuários</h1>
+
+            <form action="/listar_usuario/" method="get" 
+                class="btn-group btn-group-sm">
+
+                <input type="search" name="nome_filter" style="border-radius: 4px 0px 0px 4px;"
+                class="form-control" placeholder="Nome do usuário">
+
+                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+
+            </form>
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" class="text-warning"></h1>
+            
+        </div>
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+                <h1 style="margin-left: 20px;" class="text-warning"></h1>
+
+                {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                <a href="/criar_usuario/" class="btn btn-success" style="display:flex; height: 40px; gap: 10px;">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i></i>Novo
+                </a>
+                {%endif%}
+            
+            </div>
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number" 
+                    id="per_page" 
+                    name="per_page" 
+                    class="form-control form-control-sm" 
+                    min="1" 
+                    max="200" 
+                    value="{{ per_page|default:20 }}" 
+                    onchange="this.form.submit()"
+                    
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome Completo
+                                   
+                                </th>
+                                
+                                <th>Função</th>
+                                <th>E-mail</th>
+                            
+                                <th>Opções</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>{{ usuario.nome_completo }}</td>
+                                <td>{{ usuario.role.get_nome_display }}</td>
+                                <td>{{ usuario.email|default:"Sem email" }}</td>
+                                
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url "visualizar_usuario" usuario.id %}" 
+                                            class="btn btn-outline-primary" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        
+                                        {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                                        <a href="{% url "editar_usuario" usuario.id %}" 
+                                            class="btn btn-outline-warning" title="Editar">
+                                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                                        </a>
+                                        {%endif%}
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if estudantes.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                        {% if estudantes.has_previous %}
+                            <li class="page-item">
+                                
+                                <a class="page-link" href="?page={{ estudantes.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Anterior</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in estudantes.paginator.page_range %}
+                            {% if estudantes.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% if estudantes.has_next %}
+                        
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ estudantes.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">Próximo</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
+            <h3>confirmar exclusão</h3>
+            <p id="mensagemconfirmacao">Tem certeza que deseja deletar este estudante?</p>
+
+            <input type="password" class="form-control" autocomplete="new-password"
+                id="password" placeholder="Confirme sua senha" name="password" required>
+                
+            <div id="sms" style="color: red;"></div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="fecharmodal()" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
+                    sair
+                </button>
+                <button onclick="deletarItem()" class="btn btn-danger">
+                    confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemparadeletar = null;
+        
+        function confirmardelecao(itemid) {
+            itemparadeletar = itemid;
+            document.getElementById('modalconfirmacao').style.display = 'block';
+        }
+        
+        function fecharmodal() {
+            document.getElementById('modalconfirmacao').style.display = 'none';
+            itemparadeletar = null;
+            location.reload()
+        }
+        
+        async function deletarItem() {
+            const passwordInput = document.getElementById('password');
+            const sms = document.getElementById('sms');
+
+            if (!passwordInput || passwordInput.value.trim() === '') {
+            alert('O campo senha é obrigatório!');
+            return;
+            }
+
+            const password = passwordInput.value;
+
+            try {
+            const response = await fetch(`/delete_estudante/${itemparadeletar}/`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                password: password
+                })
+            });
+
+            if (response.ok) {
+                sms.innerText = "Estudante eliminado com sucesso!";
+                sms.style.color = "green";
+              
+            } else {
+                const data = await response.json();
+                sms.innerText = data.error || "Erro ao deletar o item!";
+                sms.style.color = "red";
+            }
+
+            } catch (error) {
+            console.log(error);
+            sms.innerText = "Erro de conexão com o servidor.";
+            sms.style.color = "red";
+            }
+        }
+        
+        
+        document.getElementById('modalconfirmacao').onclick = (e)=>{
+            if (e.target === this) {
+                fecharmodal();
+            }
+        }
+    </script>
+</body>
+</html>
+{% endblock  %}

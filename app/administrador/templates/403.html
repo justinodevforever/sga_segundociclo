@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Acesso Negado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{% static 'css/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome/css/all.min.css' %}">
+
+    <style>
+        body {
+            background: #f4f6f9;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .card-403 {
+            max-width: 500px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            background: white;
+        }
+
+        .code {
+            font-size: 90px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .icon {
+            font-size: 60px;
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .btn-custom {
+            min-width: 140px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card-403">
+
+    <div class="icon">
+        <i class="fas fa-lock"></i>
+    </div>
+
+    <div class="code">403</div>
+
+    <h3>Acesso Negado</h3>
+
+    <p class="text-muted">
+        Você não tem permissão para acessar esta página.
+    </p>
+
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary btn-custom">
+            <i class="fas fa-home"></i> Página Inicial
+        </a>
+
+        <button onclick="history.back()" class="btn btn-outline-secondary btn-custom">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </button>
+    </div>
+
+</div>
+
+</body>
+</html>

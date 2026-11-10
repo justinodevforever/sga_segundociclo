@@ -1,0 +1,245 @@
+{% extends 'director/base.html' %}
+{% load custom_tags %}
+
+{% block breadcrumb %}
+    <a href="{% url 'avaliacao_list' %}">Avaliações</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="current">Pauta Trimestral</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-table"></i>{% endblock %}
+{% block title %}Pauta Trimestral — MAC{% endblock %}
+{% block sub_title %}Médias de Aptidão e Conhecimento por disciplina e trimestre{% endblock %}
+
+{% block topbar_actions %}
+    {% if pauta %}
+        <button onclick="window.print()" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sub);display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-printer"></i> Imprimir Pauta
+        </button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="table-card" style="padding:20px;margin-bottom:18px;">
+    <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;color:var(--text-main);">
+    <i class="bi bi-funnel-fill" style="color:var(--accent);"></i> Seleccionar Pauta
+    </div>
+          <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+                <div style="flex:1;min-width:180px;">
+                      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Turma <span style="color:#dc2626;">*</span></label>
+                      <select name="turma" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+                            <option value="">-- Seleccione --</option>
+                            {% for t in turmas %}
+                                <option value="{{ t.pk }}" {% if turma_sel == t.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ t.designacao }} — {{ t.classe.designacao }}
+                                </option>
+                            {% endfor %}
+                      </select>
+                </div>
+                <div style="flex:1;min-width:160px;">
+                      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Trimestre <span style="color:#dc2626;">*</span></label>
+                      <select name="trimestre" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+                            <option value="">-- Seleccione --</option>
+                            {% for t in trimestres %}
+                                <option value="{{ t.pk }}" {% if trimestre_sel == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.designacao }}</option>
+                            {% endfor %}
+                      </select>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Disciplina <span style="color:#dc2626;">*</span></label>
+                      <select name="disciplina" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+                            <option value="">-- Seleccione --</option>
+                            {% for d in disciplinas %}
+                                <option value="{{ d.pk }}" {% if disciplina_sel == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
+                            {% endfor %}
+                      </select>
+                </div>
+                <div>
+                      <button type="submit" style="padding:10px 20px;border-radius:9px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:.83rem;font-weight:600;display:flex;align-items:center;gap:7px;">
+                        <i class="bi bi-search"></i> Gerar Pauta
+                      </button>
+                </div>
+          </form>
+</div>
+
+{% if pauta %}
+
+<!-- Cabeçalho da Pauta -->
+<div style="background:linear-gradient(135deg,#0f1f3d,#1e40af);border-radius:12px;padding:20px 24px;color:#fff;margin-bottom:16px;" class="print-header">
+  <div style="font-size:.75rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Pauta de Avaliação Trimestral — IIº Ciclo</div>
+  <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;margin-bottom:8px;">
+    {{ turma.designacao }} &nbsp;|&nbsp; {{ disciplina.nome }} &nbsp;|&nbsp; {{ trimestre.designacao }}
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;">
+    <div style="font-size:.78rem;"><i class="bi bi-people-fill" style="margin-right:5px;opacity:.6;"></i>{{ pauta|length }} alunos</div>
+    <div style="font-size:.78rem;"><i class="bi bi-journal-check" style="margin-right:5px;opacity:.6;"></i>
+      {% with av_count=avaliacoes|length %}{{ av_count }} avaliação(ões){% endwith %}
+    </div>
+    {% with aprovados=pauta|length %}
+    <div style="font-size:.78rem;"><i class="bi bi-calendar3" style="margin-right:5px;opacity:.6;"></i>Ano Lectivo: {{ turma.ano_lectivo.designacao }}</div>
+    {% endwith %}
+  </div>
+</div>
+
+<!-- Legenda das Avaliações -->
+{% if avaliacoes %}
+<div class="table-card" style="padding:14px 18px;margin-bottom:14px;">
+  <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Avaliações neste trimestre</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+    {% for av in avaliacoes %}
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:.75rem;">
+      <strong>A{{ forloop.counter }}</strong> — {{ av.get_designacao_display }}
+      <span style="color:var(--text-muted);">({{ av.tipo_avaliacao.designacao }}, peso: {{ av.tipo_avaliacao.peso }}%, máx: {{ av.nota_maxima }})</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Tabela da Pauta -->
+<div class="table-card fade-up" style="overflow-x:auto;">
+  <table class="dt" id="pauta-table">
+    <thead>
+      <tr>
+        <th style="width:40px;">#</th>
+        <th>Nome do Aluno</th>
+        <th>Nº Processo</th>
+        {% for av in avaliacoes %}
+        <th style="text-align:center;min-width:70px;" title="{{ av.get_designacao_display }}">A{{ forloop.counter }}</th>
+        {% endfor %}
+        <th style="text-align:center;min-width:80px;background:#f0f9ff;">MAC</th>
+        <th style="text-align:center;min-width:90px;">Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for linha in pauta %}
+      <tr>
+        <td style="color:var(--text-muted);font-size:.78rem;">{{ linha.numero }}</td>
+        <td>
+          <div style="font-weight:600;font-size:.84rem;">{{ linha.matricula.aluno.nome_completo }}</div>
+        </td>
+        <td style="font-size:.78rem;color:var(--text-muted);">{{ linha.matricula.aluno.numero_processo|default:"—" }}</td>
+        {% for av in avaliacoes %}
+        <td style="text-align:center;">
+          {% with nota=linha.notas|get_item:av.pk %}
+          {% if nota %}
+            {% if nota.faltou %}
+              <span style="font-size:.78rem;color:var(--text-muted);">F</span>
+            {% else %}
+              <span style="font-size:.85rem;font-weight:{% if nota.nota >= 10 %}700{% else %}400{% endif %};color:{% if nota.nota >= 10 %}#059669{% else %}#dc2626{% endif %};">
+                {{ nota.nota|floatformat:1 }}
+              </span>
+            {% endif %}
+          {% else %}
+            <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+          {% endwith %}
+        </td>
+        {% endfor %}
+        <td style="text-align:center;background:#f0f9ff;">
+          <strong style="font-size:.92rem;color:{% if linha.mac >= 10 %}#059669{% elif linha.mac >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+            {{ linha.mac|floatformat:2 }}
+          </strong>
+        </td>
+        <td style="text-align:center;">
+          {% if linha.mac >= 10 %}
+            <span class="tag tag-green"><i class="bi bi-check-circle-fill"></i> Aprovado</span>
+          {% else %}
+            <span class="tag tag-red"><i class="bi bi-x-circle-fill"></i> Reprovado</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:#f8fafc;border-top:2px solid var(--border);">
+        <td colspan="3" style="padding:10px 14px;font-size:.78rem;font-weight:700;color:var(--text-sub);">Totais / Médias</td>
+        {% for av in avaliacoes %}<td></td>{% endfor %}
+        <td style="text-align:center;background:#e0f2fe;">
+          <strong style="font-size:.85rem;">
+            {{ pauta|length }} alunos
+          </strong>
+        </td>
+        <td style="text-align:center;">
+          <span style="font-size:.78rem;color:#059669;font-weight:600;">
+            {% with aprovados=0%}
+            {% for l in pauta %}
+              {% if l.mac >= 10 %}
+                {% with aprovados=aprovados|add:1 %}
+                {% endwith %}
+              {% endif %}
+            {% endfor %}
+            {% endwith %}
+          </span>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- Resumo -->
+<div class="row g-3 mt-2">
+  <div class="col-12 col-md-4">
+    <div class="table-card" style="padding:16px 20px;">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:12px;"><i class="bi bi-bar-chart-fill" style="color:var(--accent);"></i> Resumo da Pauta</div>
+      {% with total=pauta|length %}
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:.8rem;">
+        <div style="display:flex;justify-content:space-between;">
+          <span>Total de Alunos</span><strong>{{ total }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:#059669;">
+          <span>Aprovados (MAC ≥ 10)</span>
+          <strong>{% for l in pauta %}{% if l.mac >= 10 %}{% with x=forloop.counter %}{% endwith %}{% endif %}{% endfor %}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:#dc2626;">
+          <span>Reprovados (MAC &lt; 10)</span>
+          <strong>—</strong>
+        </div>
+      </div>
+      {% endwith %}
+    </div>
+  </div>
+  <div class="col-12 col-md-8">
+    <div class="table-card" style="padding:16px 20px;">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:10px;"><i class="bi bi-info-circle" style="color:#d97706;"></i> Critérios de Avaliação — IIº Ciclo</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:120px;background:#d1fae5;border-radius:8px;padding:10px 14px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:800;color:#059669;">≥ 10</div>
+          <div style="font-size:.72rem;color:#065f46;">Aprovado<br>sem exame</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:#fee2e2;border-radius:8px;padding:10px 14px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:800;color:#dc2626;">&lt; 10</div>
+          <div style="font-size:.72rem;color:#991b1b;">Reprovado<br>sem exame</div>
+        </div>
+        <div style="flex:1;min-width:180px;background:#ede9fe;border-radius:8px;padding:10px 14px;text-align:center;">
+          <div style="font-size:.8rem;font-weight:700;color:#7c3aed;">Com Exame</div>
+          <div style="font-size:.72rem;color:#5b21b6;">(MAC + Exame) ÷ 3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- Estado vazio -->
+<div class="table-card" style="padding:60px;text-align:center;">
+  <i class="bi bi-table" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+  <div style="font-weight:600;font-size:1rem;margin-bottom:8px;">Seleccione os filtros para gerar a pauta</div>
+  <div style="font-size:.82rem;color:var(--text-muted);">
+    Escolha a turma, trimestre e disciplina para visualizar a pauta trimestral com os MACs calculados.
+  </div>
+</div>
+{% endif %}
+
+<style>
+@media print {
+  .sidebar, .topbar, .breadcrumb-bar, .page-header form, button, a.btn { display: none !important; }
+  .main-content { margin-left: 0 !important; padding-top: 0 !important; }
+  body { background: white; }
+  .table-card { box-shadow: none !important; border: 1px solid #ccc; }
+  .print-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+{% endblock %}

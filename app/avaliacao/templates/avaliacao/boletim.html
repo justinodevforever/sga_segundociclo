@@ -1,0 +1,59 @@
+{% extends "director/base.html" %}
+
+{% block title %}
+    Boletim de Notas - {{ m.ano_lectivo }}
+{% endblock title %}
+
+{% block topbar_actions %}
+    <button class="btn btn-primary" onclick="window.print()">
+       <i class="fa fa-print" aria-hidden="true"></i> Imprimir
+    </button>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+    <div class="card-info form-field" style="display: flex; flex-direction: column; padding: 20px; gap: 10px;">
+        <b>{{ m.aluno.nome_completo }} (Proc. {{ m.aluno.numero_processo }})</b>
+        {{ m.turma }}<br>Faltas injustificadas: {{ faltas_pct }}%
+    </div>
+
+    <div class="card-body" style="border-radius: 4px; margin-top: 20px;">
+        <div class="table-responsive">
+            <table class="table table-hover" style="font-size: 10pt;">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2">Disciplina</th>
+                        <th>1.º T</th><th>2.º T</th>
+                        <th>3.º T</th>
+                        <th rowspan="2">MFD</th>
+                        <th rowspan="2">Exame</th>
+                        <th rowspan="2">Nota final</th>
+                    </tr>
+                    <tr>
+                        <th>MT</th>
+                        <th>MT</th>
+                        <th>MT</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    {% for l in linhas %}
+                        <tr>
+                            <td class="nome">{{ l.d.nome }}</td>
+                            <td>{{ l.t1.mt|default:"-" }}</td>
+                            <td>{{ l.t2.mt|default:"-" }}</td>
+                            <td>{{ l.t3.mt|default:"-" }}</td>
+                            <td>{{ l.anual.mfd|default:"-" }}</td>
+                            <td>{{ l.anual.nota_exame|default:"-" }}</td>
+                            <td class="{% if l.anual.situacao == 'NEG' %}neg{% endif %}">
+                                <b>{{ l.anual.nota_final|default:"-" }}</b>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <h3 class="card p-20" style="width: auto;">Resultado: {{ m.get_situacao_final_display }}</h3>
+
+{% endblock %}

@@ -1,0 +1,452 @@
+{% extends 'director/base.html' %}
+{% comment %}
+  Ajuste o {% extends %} ao nome real do template base (o ficheiro com sidebar/topbar).
+  Colocar em: templates/director/configuracoes/configuracoes_escola.html
+{% endcomment %}
+
+{% block breadcrumb %}<span class="current">Configurações da Escola</span>{% endblock %}
+{% block icon %}<i class="bi bi-sliders"></i>{% endblock %}
+{% block title %}Configurações do Sistema{% endblock %}
+{% block sub_title %}Configure o ano lectivo, avaliação e finanças em 6 passos{% endblock %}
+
+{% block content %}
+<style>
+  .cfg-msg { border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:.84rem; display:flex; gap:10px; align-items:flex-start; border-left:4px solid; }
+  .cfg-msg.success { background:#ecfdf5; border-color:#10b981; color:#065f46; }
+  .cfg-msg.error   { background:#fef2f2; border-color:#ef4444; color:#991b1b; }
+  .cfg-msg.warning { background:#fffbeb; border-color:#f59e0b; color:#92400e; }
+  .cfg-msg.info    { background:#eff6ff; border-color:#3b82f6; color:#1e40af; }
+
+  /* ── Stepper ── */
+  .cfg-stepper { display:grid; grid-template-columns:repeat(6,1fr); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:8px; gap:4px; margin-bottom:20px; box-shadow:var(--shadow); }
+  .cfg-step { border:0; background:transparent; border-radius:10px; padding:12px 8px; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; font-family:inherit; transition:background .15s; }
+  .cfg-step:hover { background:#f1f5f9; }
+  .cfg-step:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .cfg-step-dot { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; background:#e2e8f0; color:#64748b; transition:all .2s; }
+  .cfg-step-name { font-size:.74rem; font-weight:600; color:var(--text-sub); text-align:center; line-height:1.25; }
+  .cfg-step.done .cfg-step-dot { background:#d1fae5; color:#059669; }
+  .cfg-step.active { background:#eff6ff; }
+  .cfg-step.active .cfg-step-dot { background:var(--accent); color:#fff; box-shadow:0 0 0 4px rgba(37,99,235,.18); }
+  .cfg-step.active .cfg-step-name { color:var(--accent); }
+
+  /* ── Painéis ── */
+  .cfg-panel { display:none; }
+  .cfg-panel.active { display:block; animation:cfgIn .25s ease both; }
+  @keyframes cfgIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  @media (prefers-reduced-motion: reduce) { .cfg-panel.active { animation:none; } }
+
+  .cfg-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:18px; overflow:hidden; }
+  .cfg-card-h { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .cfg-card-h h5 { font-size:1rem; font-weight:700; margin:0; }
+  .cfg-card-h p { font-size:.78rem; color:var(--text-muted); margin:3px 0 0; }
+  .cfg-card-b { padding:22px; }
+  .cfg-card-f { padding:14px 22px; background:#f8fafc; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+
+  .cfg-guide { display:flex; gap:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px; font-size:.8rem; color:#1e3a8a; margin-bottom:18px; }
+  .cfg-guide i { font-size:1.05rem; margin-top:1px; }
+
+  /* ── Campos ── */
+  .cfg-field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .cfg-field label { font-size:.78rem; font-weight:600; color:var(--text-sub); }
+  .cfg-input { width:100%; background:#fff; border:1.5px solid var(--border); border-radius:9px; padding:9px 13px; font-size:.86rem; color:var(--text-main); outline:none; font-family:inherit; transition:border-color .15s, box-shadow .15s; }
+  .cfg-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+  .cfg-help { font-size:.72rem; color:var(--text-muted); }
+  .cfg-err { font-size:.72rem; color:var(--accent-danger); }
+
+  /* ── Switches ── */
+  .cfg-switch { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:1px solid var(--border); border-radius:12px; background:#fff; height:100%; transition:border-color .15s, background .15s; }
+  .cfg-switch:has(input:checked) { border-color:#93c5fd; background:#f5f9ff; }
+  .cfg-switch .form-check-input { width:2.4em; height:1.3em; margin:2px 0 0; flex-shrink:0; cursor:pointer; }
+  .cfg-switch-t { font-size:.84rem; font-weight:600; }
+  .cfg-switch-d { font-size:.73rem; color:var(--text-muted); margin-top:2px; }
+  .cfg-group-t { font-size:.82rem; font-weight:700; color:var(--text-sub); margin:6px 0 10px; }
+
+  /* ── Botões ── */
+  .cfg-btn { border:0; border-radius:9px; padding:9px 18px; font-size:.83rem; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:background .15s, transform .1s; text-decoration:none; }
+  .cfg-btn:active { transform:scale(.98); }
+  .cfg-btn-primary { background:var(--accent); color:#fff; }
+  .cfg-btn-primary:hover { background:#1d4ed8; color:#fff; }
+  .cfg-btn-ghost { background:#fff; color:var(--text-sub); border:1px solid var(--border); }
+  .cfg-btn-ghost:hover { background:#f1f5f9; }
+  .cfg-btn-sm { padding:5px 11px; font-size:.75rem; }
+  .cfg-btn-ok { background:#d1fae5; color:#065f46; }
+  .cfg-btn-ok:hover { background:#a7f3d0; }
+
+  /* ── Tabelas ── */
+  .cfg-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+  .cfg-table th { padding:10px 14px; font-size:.7rem; color:var(--text-muted); font-weight:700; background:#f8fafc; border-bottom:1px solid var(--border); text-align:left; }
+  .cfg-table td { padding:11px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+  .cfg-table tr:last-child td { border-bottom:0; }
+  .cfg-table form { display:inline; }
+  .cfg-empty { text-align:center; padding:34px 20px; color:var(--text-muted); font-size:.85rem; }
+  .cfg-empty i { font-size:1.8rem; display:block; margin-bottom:8px; opacity:.5; }
+
+  /* ── Acordeão de classes ── */
+  .cfg-acc { border:1px solid var(--border); border-radius:12px; margin-bottom:10px; overflow:hidden; background:#fff; }
+  .cfg-acc > summary { list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; gap:12px; font-weight:600; font-size:.9rem; }
+  .cfg-acc > summary::-webkit-details-marker { display:none; }
+  .cfg-acc > summary .chev { margin-left:auto; transition:transform .2s; color:var(--text-muted); }
+  .cfg-acc[open] > summary .chev { transform:rotate(180deg); }
+  .cfg-acc[open] > summary { border-bottom:1px solid var(--border); background:#f8fafc; }
+  .cfg-acc-b { padding:18px; }
+
+  /* ── Checklist lateral ── */
+  .cfg-side { position:sticky; top:82px; }
+  .cfg-ring { --p:0; width:92px; height:92px; border-radius:50%; background:conic-gradient(var(--accent-4) calc(var(--p)*1%), #e2e8f0 0); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+  .cfg-ring span { width:70px; height:70px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.15rem; }
+  .cfg-check { display:flex; align-items:center; gap:10px; padding:9px 4px; font-size:.8rem; border-bottom:1px solid #f1f5f9; background:none; border-left:0; border-right:0; border-top:0; width:100%; text-align:left; cursor:pointer; font-family:inherit; color:var(--text-main); }
+  .cfg-check:last-child { border-bottom:0; }
+  .cfg-check i { font-size:1rem; }
+  .cfg-check.ok i { color:var(--accent-4); }
+  .cfg-check.pend i { color:#cbd5e1; }
+
+  @media (max-width:991px) { .cfg-side { position:static; } }
+  @media (max-width:640px) {
+    .cfg-stepper { grid-template-columns:repeat(6,minmax(64px,1fr)); overflow-x:auto; }
+    .cfg-step-name { font-size:.66rem; }
+  }
+</style>
+
+{# ── Mensagens ── #}
+{% for m in messages %}
+  <div class="cfg-msg {% if m.tags == 'error' %}error{% elif m.tags == 'success' %}success{% elif m.tags == 'warning' %}warning{% else %}info{% endif %}" role="alert">
+    <i class="bi {% if m.tags == 'success' %}bi-check-circle-fill{% elif m.tags == 'error' %}bi-x-octagon-fill{% elif m.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+    <div>{{ m }}</div>
+  </div>
+{% endfor %}
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    {# ── Stepper ── #}
+    <div class="cfg-stepper" role="tablist" aria-label="Passos de configuração">
+      <button type="button" class="cfg-step {% if steps_ok.1 %}done{% endif %}" data-go="1" role="tab"><span class="cfg-step-dot">{% if steps_ok.1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</span><span class="cfg-step-name">Ano Lectivo</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.2 %}done{% endif %}" data-go="2" role="tab"><span class="cfg-step-dot">{% if steps_ok.2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</span><span class="cfg-step-name">Trimestres</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.3 %}done{% endif %}" data-go="3" role="tab"><span class="cfg-step-dot">{% if steps_ok.3 %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}</span><span class="cfg-step-name">Calendário</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.4 %}done{% endif %}" data-go="4" role="tab"><span class="cfg-step-dot">{% if steps_ok.4 %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}</span><span class="cfg-step-name">Avaliação</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.5 %}done{% endif %}" data-go="5" role="tab"><span class="cfg-step-dot">{% if steps_ok.5 %}<i class="bi bi-check-lg"></i>{% else %}5{% endif %}</span><span class="cfg-step-name">Financeiro</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.6 %}done{% endif %}" data-go="6" role="tab"><span class="cfg-step-dot">{% if steps_ok.6 %}<i class="bi bi-check-lg"></i>{% else %}6{% endif %}</span><span class="cfg-step-name">Integrações</span></button>
+    </div>
+
+    {# ═════════ PASSO 1 — ANO LECTIVO ═════════ #}
+    <section class="cfg-panel" data-panel="1">
+      <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Comece aqui.</strong> O ano lectivo actual é a base de tudo: turmas, matrículas, notas e propinas ficam associados a ele. Só um ano pode estar activo de cada vez.</div></div>
+
+      <div class="cfg-card">
+        <div class="cfg-card-h"><div><h5>Anos lectivos</h5><p>Seleccione o ano actual ou edite um existente.</p></div></div>
+        {% if anos %}
+        <div style="overflow-x:auto">
+        <table class="cfg-table">
+          <thead><tr><th>Designação</th><th>Início</th><th>Fim</th><th>Semanas</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+          {% for a in anos %}
+            <tr>
+              <td><strong>{{ a.designacao }}</strong></td>
+              <td>{{ a.data_inicio|date:"d/m/Y" }}</td>
+              <td>{{ a.data_fim|date:"d/m/Y" }}</td>
+              <td>{{ a.semanas_lectivas }}</td>
+              <td>{% if a.e_atual %}<span class="tag tag-green">Actual</span>{% else %}<span class="tag tag-gray">Inactivo</span>{% endif %}</td>
+              <td style="text-align:right;white-space:nowrap">
+                <button type="button" class="cfg-btn cfg-btn-ghost cfg-btn-sm js-edit-ano"
+                  data-id="{{ a.pk }}" data-designacao="{{ a.designacao }}"
+                  data-inicio="{{ a.data_inicio|date:'Y-m-d' }}" data-fim="{{ a.data_fim|date:'Y-m-d' }}"
+                  data-semanas="{{ a.semanas_lectivas }}"><i class="bi bi-pencil"></i> Editar</button>
+                {% if not a.e_atual %}
+                <form method="post" onsubmit="return confirm('Definir {{ a.designacao|escapejs }} como ano lectivo actual?')">
+                  {% csrf_token %}<input type="hidden" name="acao" value="ano_activar"><input type="hidden" name="ano_id" value="{{ a.pk }}">
+                  <button class="cfg-btn cfg-btn-ok cfg-btn-sm"><i class="bi bi-check2-circle"></i> Tornar actual</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="cfg-empty"><i class="bi bi-calendar-plus"></i>Ainda não existe nenhum ano lectivo. Crie o primeiro abaixo.</div>
+        {% endif %}
+      </div>
+
+      <form method="post" class="cfg-card" id="formAno">
+        {% csrf_token %}<input type="hidden" name="acao" value="ano_salvar"><input type="hidden" name="ano_id" id="anoId">
+        <div class="cfg-card-h"><div><h5 id="anoFormTitulo">Novo ano lectivo</h5><p>Datas de início e fim definem o intervalo permitido para os trimestres.</p></div></div>
+        <div class="cfg-card-b"><div class="row">
+          {% for f in form_ano %}
+          <div class="col-md-6"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}</div></div>
+          {% endfor %}
+        </div></div>
+        <div class="cfg-card-f">
+          <button type="button" class="cfg-btn cfg-btn-ghost" id="anoCancelar" style="visibility:hidden">Cancelar edição</button>
+          <button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar ano lectivo</button>
+        </div>
+      </form>
+    </section>
+
+    {# ═════════ PASSO 2 — TRIMESTRES ═════════ #}
+    <section class="cfg-panel" data-panel="2">
+      {% if not ano %}
+        <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
+      {% else %}
+      <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Recomendado:</strong> use “Gerar automaticamente” para dividir o ano <strong>{{ ano.designacao }}</strong> em 3 trimestres iguais e depois ajuste as datas. O trimestre <em>activo</em> é o que recebe as notas; fechar o lançamento bloqueia alterações às notas desse trimestre.</div></div>
+
+      <div class="cfg-card">
+        <div class="cfg-card-h">
+          <div><h5>Trimestres de {{ ano.designacao }}</h5><p>{{ ano.data_inicio|date:"d/m/Y" }} a {{ ano.data_fim|date:"d/m/Y" }}</p></div>
+          <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="trimestre_gerar"><button class="cfg-btn cfg-btn-ghost cfg-btn-sm"><i class="bi bi-magic"></i> Gerar automaticamente</button></form>
+        </div>
+        {% if trimestres %}
+        <div style="overflow-x:auto"><table class="cfg-table">
+          <thead><tr><th>Trimestre</th><th>Início</th><th>Fim</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+          <tbody>
+          {% for t in trimestres %}
+            <tr>
+              <td><strong>{{ t.designacao }}.º</strong></td>
+              <td>{{ t.data_inicio|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ t.data_fim|date:"d/m/Y"|default:"—" }}</td>
+              <td>{% if t.activo %}<span class="tag tag-green">Activo</span>{% else %}<span class="tag tag-gray">Inactivo</span>{% endif %}</td>
+              <td>{% if t.lancamento_aberto %}<span class="tag tag-blue">Lançamento aberto</span>{% else %}<span class="tag tag-red">Fechado</span>{% endif %}</td>
+              <td style="text-align:right;white-space:nowrap">
+                <button type="button" class="cfg-btn cfg-btn-ghost cfg-btn-sm js-edit-tri" data-n="{{ t.designacao }}" data-inicio="{{ t.data_inicio|date:'Y-m-d' }}" data-fim="{{ t.data_fim|date:'Y-m-d' }}" data-aberto="{{ t.lancamento_aberto|yesno:'1,0' }}"><i class="bi bi-pencil"></i></button>
+                {% if not t.activo %}<form method="post">{% csrf_token %}<input type="hidden" name="acao" value="trimestre_activar"><input type="hidden" name="trimestre_id" value="{{ t.pk }}"><button class="cfg-btn cfg-btn-ok cfg-btn-sm">Activar</button></form>{% endif %}
+                <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="trimestre_lancamento"><input type="hidden" name="trimestre_id" value="{{ t.pk }}"><button class="cfg-btn cfg-btn-ghost cfg-btn-sm">{% if t.lancamento_aberto %}<i class="bi bi-lock"></i> Fechar notas{% else %}<i class="bi bi-unlock"></i> Abrir notas{% endif %}</button></form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}
+        <div class="cfg-empty"><i class="bi bi-calendar3-range"></i>Sem trimestres. Gere-os automaticamente ou adicione manualmente.</div>
+        {% endif %}
+      </div>
+
+      <form method="post" class="cfg-card" id="formTri">
+        {% csrf_token %}<input type="hidden" name="acao" value="trimestre_salvar">
+        <div class="cfg-card-h"><div><h5>Adicionar ou editar trimestre</h5><p>Escolher um trimestre já existente actualiza as suas datas.</p></div></div>
+        <div class="cfg-card-b"><div class="row">
+          {% for f in form_tri %}
+            {% if f.widget_type == 'checkbox' %}
+            <div class="col-12"><label class="cfg-switch" style="height:auto">{{ f }}<span><span class="cfg-switch-t">{{ f.label }}</span><span class="cfg-switch-d d-block">Permite aos professores lançar e alterar notas.</span></span></label></div>
+            {% else %}
+            <div class="col-md-4"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}</div></div>
+            {% endif %}
+          {% endfor %}
+        </div></div>
+        <div class="cfg-card-f"><span></span><button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar trimestre</button></div>
+      </form>
+      {% endif %}
+    </section>
+
+    {# ═════════ PASSO 3 — CALENDÁRIO ═════════ #}
+    <section class="cfg-panel" data-panel="3">
+      <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Abra apenas o que está em curso.</strong> Estas janelas controlam o que a secretaria e os professores podem fazer agora. Feche inscrições quando as vagas terminarem e abra exames só no período próprio.</div></div>
+      <form method="post" class="cfg-card">
+        {% csrf_token %}<input type="hidden" name="acao" value="calendario_salvar">
+        <div class="cfg-card-h"><div><h5>Janelas do sistema</h5><p>Active ou desactive cada período.</p></div></div>
+        <div class="cfg-card-b">
+          <div class="cfg-group-t">Admissão de alunos</div>
+          <div class="row g-3 mb-4">
+            {% for f in form_cal %}{% if forloop.counter <= 3 %}
+            <div class="col-md-4"><label class="cfg-switch">{{ f }}<span><span class="cfg-switch-t">{{ f.label }}</span><span class="cfg-switch-d d-block">{{ f.help_text }}</span></span></label></div>
+            {% endif %}{% endfor %}
+          </div>
+          <div class="cfg-group-t">Provas e exames</div>
+          <div class="row g-3">
+            {% for f in form_cal %}{% if forloop.counter > 3 %}
+            <div class="col-md-6"><label class="cfg-switch">{{ f }}<span><span class="cfg-switch-t">{{ f.label }}</span><span class="cfg-switch-d d-block">{{ f.help_text }}</span></span></label></div>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+        <div class="cfg-card-f"><span></span><button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar calendário</button></div>
+      </form>
+    </section>
+
+    {# ═════════ PASSO 4 — AVALIAÇÃO ═════════ #}
+    <section class="cfg-panel" data-panel="4">
+      {% if not ano %}
+        <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
+      {% else %}
+      <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div>
+        <strong>Fórmula:</strong> MT = (MAC×peso + PP×peso + PT×peso) ÷ soma dos pesos. Nas classes com exame: Nota final = MFD×(1 − peso do exame) + Exame×peso do exame. <strong>Dica:</strong> crie as regras padrão para todas as classes e ajuste só o que for diferente.</div></div>
+
+      <div class="cfg-card">
+        <div class="cfg-card-h">
+          <div><h5>Regras de avaliação — {{ ano.designacao }}</h5><p>Uma configuração por classe.</p></div>
+          <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="regra_padrao"><button class="cfg-btn cfg-btn-ghost cfg-btn-sm"><i class="bi bi-magic"></i> Criar regras padrão</button></form>
+        </div>
+        <div class="cfg-card-b">
+          {% for item in regras_lista %}
+          <details class="cfg-acc" {% if not item.existe and forloop.first %}open{% endif %}>
+            <summary><i class="bi bi-journal-text"></i> {{ item.classe.designacao }}.ª Classe
+              {% if item.existe %}<span class="tag tag-green">Configurada</span>{% else %}<span class="tag tag-yellow">Por configurar</span>{% endif %}
+              <i class="bi bi-chevron-down chev"></i></summary>
+            <form method="post" class="cfg-acc-b">
+              {% csrf_token %}<input type="hidden" name="acao" value="regra_salvar"><input type="hidden" name="classe_id" value="{{ item.classe.pk }}">
+              <div class="row">
+                {% for f in item.form %}
+                  {% if f.widget_type == 'checkbox' %}
+                  <div class="col-md-6 mb-3"><label class="cfg-switch">{{ f }}<span><span class="cfg-switch-t">{{ f.label }}</span></span></label></div>
+                  {% else %}
+                  <div class="col-md-4"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="cfg-help">{{ f.help_text }}</span>{% endif %}</div></div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <div style="text-align:right"><button class="cfg-btn cfg-btn-primary cfg-btn-sm"><i class="bi bi-save"></i> Guardar {{ item.classe.designacao }}.ª Classe</button></div>
+            </form>
+          </details>
+          {% empty %}
+          <div class="cfg-empty"><i class="bi bi-diagram-3"></i>Não há classes registadas. Crie-as em Estrutura Escolar → Classes.</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    {# ═════════ PASSO 5 — FINANCEIRO ═════════ #}
+    <section class="cfg-panel" data-panel="5">
+      {% if not ano %}
+        <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
+      {% else %}
+      <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Valores por defeito do ano {{ ano.designacao }}.</strong> Cada turma pode ter o seu próprio preço; use “Aplicar às turmas” para preencher apenas as turmas que ainda não têm valor. O bloqueio impede exames e matrículas quando a dívida atinge o limite.</div></div>
+
+      <form method="post" class="cfg-card">
+        {% csrf_token %}<input type="hidden" name="acao" value="financeiro_salvar">
+        <div class="cfg-card-h"><div><h5>Propinas e matrícula</h5><p>Valores em Kwanzas (Kz).</p></div></div>
+        <div class="cfg-card-b"><div class="row">
+          {% for f in form_fin %}
+          <div class="col-md-6"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="cfg-help">{{ f.help_text }}</span>{% endif %}{% for e in f.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}</div></div>
+          {% endfor %}
+        </div></div>
+        <div class="cfg-card-f"><span></span><button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar configuração</button></div>
+      </form>
+
+      {% if cfg_fin %}
+      <div class="cfg-card">
+        <div class="cfg-card-h">
+          <div><h5>Aplicar às turmas</h5>
+            <p>{% if n_turmas_sem_preco %}{{ n_turmas_sem_preco }} turma(s) activa(s) sem preço de propina.{% else %}Todas as turmas activas já têm preço de propina.{% endif %}</p></div>
+          {% if n_turmas_sem_preco %}
+          <form method="post" onsubmit="return confirm('Aplicar os valores padrão às turmas sem preço? Turmas com preço definido não serão alteradas.')">
+            {% csrf_token %}<input type="hidden" name="acao" value="financeiro_aplicar_turmas"><button class="cfg-btn cfg-btn-ghost"><i class="bi bi-arrow-down-up"></i> Aplicar às turmas</button></form>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+    </section>
+
+    {# ═════════ PASSO 6 — INTEGRAÇÕES ═════════ #}
+    <section class="cfg-panel" data-panel="6">
+      <div class="cfg-guide"><i class="bi bi-shield-lock"></i><div><strong>As chaves de API ficam protegidas:</strong> nunca são mostradas depois de guardadas. Deixe o campo em branco para manter a chave actual.</div></div>
+      <form method="post" class="cfg-card">
+        {% csrf_token %}<input type="hidden" name="acao" value="integracoes_salvar">
+        <div class="cfg-card-b">
+          <div class="cfg-group-t"><i class="bi bi-envelope"></i> E-mail (SMTP)</div>
+          <div class="row">
+            {% for f in form_int %}{% if forloop.counter <= 3 %}
+            <div class="col-md-4"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}</div></div>
+            {% endif %}{% endfor %}
+          </div>
+          <div class="cfg-group-t mt-2"><i class="bi bi-chat-dots"></i> SMS</div>
+          <div class="row">
+            {% for f in form_int %}{% if forloop.counter > 3 and forloop.counter <= 5 %}
+            <div class="col-md-6"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="cfg-help">{{ f.help_text }}</span>{% endif %}</div></div>
+            {% endif %}{% endfor %}
+          </div>
+          <div class="cfg-group-t mt-2"><i class="bi bi-credit-card"></i> Multicaixa</div>
+          <div class="row">
+            {% for f in form_int %}{% if forloop.counter > 5 %}
+            <div class="col-md-6"><div class="cfg-field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="cfg-help">{{ f.help_text }}</span>{% endif %}</div></div>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+        <div class="cfg-card-f"><span></span><button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar integrações</button></div>
+      </form>
+    </section>
+
+    {# ── Navegação entre passos ── #}
+    <div class="d-flex justify-content-between mb-4">
+      <button type="button" class="cfg-btn cfg-btn-ghost" id="btnPrev"><i class="bi bi-arrow-left"></i> Anterior</button>
+      <button type="button" class="cfg-btn cfg-btn-primary" id="btnNext">Seguinte <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </div>
+
+  {# ── Lateral: progresso ── #}
+  <div class="col-lg-4">
+    <aside class="cfg-card cfg-side">
+      <div class="cfg-card-b">
+        <div class="cfg-ring" style="--p:{{ progresso }}"><span>{{ progresso }}%</span></div>
+        <div style="text-align:center;font-size:.82rem;color:var(--text-sub);margin-bottom:12px">
+          {% if progresso == 100 %}Tudo pronto para o ano {{ ano.designacao }}.{% else %}Complete os itens essenciais.{% endif %}
+        </div>
+        {% for c in checklist %}
+          <button type="button" class="cfg-check {% if c.ok %}ok{% else %}pend{% endif %}" data-go="{{ c.step }}">
+            <i class="bi {% if c.ok %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>{{ c.txt }}
+          </button>
+        {% endfor %}
+        {% if ano %}
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:.75rem;color:var(--text-muted)">
+          Ano actual: <strong style="color:var(--text-main)">{{ ano.designacao }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  const TOTAL = 6;
+  let atual = {{ step }};
+  const panels = document.querySelectorAll('.cfg-panel');
+  const steps  = document.querySelectorAll('.cfg-step');
+
+  function ir(n) {
+    atual = Math.min(Math.max(n, 1), TOTAL);
+    panels.forEach(p => p.classList.toggle('active', +p.dataset.panel === atual));
+    steps.forEach(s => {
+      const on = +s.dataset.go === atual;
+      s.classList.toggle('active', on);
+      s.setAttribute('aria-selected', on);
+    });
+    document.getElementById('btnPrev').style.visibility = atual === 1 ? 'hidden' : 'visible';
+    document.getElementById('btnNext').style.visibility = atual === TOTAL ? 'hidden' : 'visible';
+    const url = new URL(location); url.searchParams.set('step', atual);
+    history.replaceState(null, '', url);
+  }
+  document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { ir(+b.dataset.go); window.scrollTo({top: 0, behavior: 'smooth'}); }));
+  document.getElementById('btnPrev').addEventListener('click', () => ir(atual - 1));
+  document.getElementById('btnNext').addEventListener('click', () => ir(atual + 1));
+  ir(atual);
+
+  /* Editar ano lectivo */
+  const f = document.getElementById('formAno');
+  const cancelar = document.getElementById('anoCancelar');
+  document.querySelectorAll('.js-edit-ano').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('anoId').value = b.dataset.id;
+    f.querySelector('[name="ano-designacao"]').value = b.dataset.designacao;
+    f.querySelector('[name="ano-data_inicio"]').value = b.dataset.inicio;
+    f.querySelector('[name="ano-data_fim"]').value = b.dataset.fim;
+    f.querySelector('[name="ano-semanas_lectivas"]').value = b.dataset.semanas;
+    document.getElementById('anoFormTitulo').textContent = 'Editar ano lectivo';
+    cancelar.style.visibility = 'visible';
+    f.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }));
+  cancelar?.addEventListener('click', () => {
+    f.reset(); document.getElementById('anoId').value = '';
+    document.getElementById('anoFormTitulo').textContent = 'Novo ano lectivo';
+    cancelar.style.visibility = 'hidden';
+  });
+
+  /* Editar trimestre */
+  const ft = document.getElementById('formTri');
+  document.querySelectorAll('.js-edit-tri').forEach(b => b.addEventListener('click', () => {
+    ft.querySelector('[name="tri-designacao"]').value = b.dataset.n;
+    ft.querySelector('[name="tri-data_inicio"]').value = b.dataset.inicio;
+    ft.querySelector('[name="tri-data_fim"]').value = b.dataset.fim;
+    ft.querySelector('[name="tri-lancamento_aberto"]').checked = b.dataset.aberto === '1';
+    ft.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }));
+})();
+</script>
+{% endblock content %}

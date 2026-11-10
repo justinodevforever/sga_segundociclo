@@ -1,0 +1,75 @@
+{% extends "director/base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-pautas</title>
+<style>
+  :root { --tinta:#1b1f2a; --fundo:#eef0f5; --acento:#1f3a6e; --linha:#c9cedb; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fundo); color:var(--tinta); font:14px/1.5 "Segoe UI", Arial, sans-serif; }
+  main { max-width: 860px; margin: 32px auto; padding: 0 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 20px; color:#50566a; }
+  .painel { background:#fff; border:1px solid var(--linha); border-radius:6px; padding:16px 18px; margin-bottom:16px; }
+  label { font-weight:600; display:block; margin-bottom:4px; }
+  select, button { font:inherit; padding:7px 10px; border:1px solid var(--linha); border-radius:4px; background:#fff; }
+  button { background:var(--acento); color:#fff; border-color:var(--acento); cursor:pointer; }
+  button:focus-visible, select:focus-visible, a:focus-visible { outline:2px solid var(--acento); outline-offset:2px; }
+  form { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:8px; }
+  li a { display:block; padding:10px 12px; border:1px solid var(--linha); border-radius:4px; text-decoration:none; color:var(--tinta); background:#fafbfd; }
+  li a:hover { border-color:var(--acento); background:#eef2fb; }
+  .vazio { color:#6a7083; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mini-pautas</h1>
+  <p class="sub">Escolha o ano lectivo e a turma, depois a disciplina.</p>
+
+  <section class="painel">
+    <form method="get">
+      <div>
+        <label for="ano">Ano lectivo</label>
+        <select id="ano" name="ano" onchange="this.form.turma.value='';this.form.submit()">
+          {% for a in anos %}<option value="{{ a.pk }}" {% if a.pk == ano.pk %}selected{% endif %}>{{ a.designacao }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="turma">Turma</label>
+        <select id="turma" name="turma">
+          <option value="">Seleccione…</option>
+          {% for t in turmas %}
+            <option value="{{ t.pk }}" {% if turma and t.pk == turma.pk %}selected{% endif %}>
+              {{ t.classe.designacao }}.ª {{ t.designacao }} · {{ t.curso.nome }} · {{ t.get_periodo_display }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit">Ver disciplinas</button>
+    </form>
+    {% if not turmas %}<p class="vazio">Não há turmas disponíveis para este ano lectivo.</p>{% endif %}
+  </section>
+
+  {% if turma %}
+  <section class="painel">
+    <h2 style="font-size:16px;margin:0 0 10px">{{ turma.classe.designacao }}.ª {{ turma.designacao }} — {{ turma.curso.nome }}</h2>
+    {% if disciplinas %}
+      <ul>
+        {% for d in disciplinas %}
+          <li><a href="{% url 'mini_pauta' turma.pk d.pk %}">{{ d.nome }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="vazio">Sem disciplinas no plano curricular desta turma.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>
+{% endblock  %}

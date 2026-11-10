@@ -1,0 +1,56 @@
+{% extends "director/base.html" %}
+{% block breadcrumb %}<a href="{% url 'index' %}">Relatórios</a> <i class="bi bi-chevron-right"></i>
+  <span class="current">{{ doc.titulo }}</span>{% endblock %}
+{% block icon %}<i class="bi {{ doc.icone }}"></i>{% endblock %}
+{% block title %}{{ doc.titulo }}{% endblock %}
+{% block sub_title %}{{ doc.desc }}{% endblock %}
+
+{% block content %}
+{% if erro %}<div class="alert-strip as-danger"><i class="bi bi-exclamation-octagon as-icon"></i>
+  <div><div class="as-title">Não foi possível gerar o documento</div><div class="as-sub">{{ erro }}</div></div></div>{% endif %}
+
+<form method="get" target="_blank" class="table-card" style="max-width:760px">
+  <div class="card-hdr"><span class="section-title">Seleccione os dados</span></div>
+  <div class="p-3">
+    <div class="row g-3">
+      {% if form.aluno %}
+      <div class="col-12">
+        <div class="form-field">
+          <label class="form-label" for="aluno_busca">Aluno <span class="req">*</span></label>
+          <div class="input-icon-wrap"><i class="bi bi-search prefix"></i>
+            <input type="text" id="aluno_busca" class="form-control-custom" value="{{ aluno_nome }}"
+                   placeholder="Escreva o nome, nº de processo ou B.I. (mín. 2 letras)" autocomplete="off"></div>
+          {{ form.aluno }}
+          {% for e in form.aluno.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-hint"><i class="bi bi-info-circle"></i> Escolha o aluno na lista que aparece ao escrever.</div>
+        </div>
+      </div>
+      {% endif %}
+      {% for field in form %}{% if not field.is_hidden %}
+      <div class="col-md-6">
+        <div class="form-field">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="req">*</span>{% endif %}</label>
+          {{ field }}
+          {% for e in field.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Ver PDF</button>
+      <button type="submit" name="download" value="1" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Descarregar</button>
+    </div>
+  </div>
+</form>
+
+<script>
+  $(function () {
+    $('#aluno_busca').autocomplete({
+      minLength: 2,
+      source: "{% url 'api_alunos' %}",
+      select: function (e, ui) { $('#id_aluno').val(ui.item.id); },
+      change: function () { if (!this.value) $('#id_aluno').val(''); }
+    });
+  });
+</script>
+{% endblock %}

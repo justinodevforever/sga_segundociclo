@@ -1,0 +1,262 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'usuario_list' %}">Usuários</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{usuario.nome_completo}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Usuário {{usuario.nome_completo}}
+{% endblock title %}
+
+{% block sub_title %}
+    Informações mais detalhadas do usuário
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 10px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+
+    .modal-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 2000; display: none;
+        align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px; max-width: 420px; width: 90%;
+    text-align: center;
+    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.9) translateY(20px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
+  .modal-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 20px;
+  }
+  .modal-icon.danger {
+    background: rgba(239,68,68,.15); color: var(--accent-danger);
+  }
+  .modal-icon.success{
+      background: rgba(98, 227, 17, 0.15);
+  }
+  .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+  .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Nome Completo:</strong></div>
+                <div class="col-sm-9">{{ usuario.nome_completo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Email:</strong></div>
+                <div class="col-sm-9">{{ usuario.email }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Estado:</strong></div>
+                <div class="col-sm-9">
+                    {% if usuario.is_active %}
+                    	<span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inativo</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Duas últimas entradas:</strong></div>
+                <div class="col-sm-9">
+                    {{ usuario.last_login|default:'--' }} & {{ usuario.penultima_entrada|default:'--'  }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Última saída:</strong></div>
+                <div class="col-sm-9">{{ usuario.ultimo_logout|default:'--' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Criado por:</strong></div>
+                <div class="col-sm-9">{{ usuario.criado_por|default:'Super usuário'}}</div>
+            </div>
+
+        </div>
+    </div>
+
+
+    {% if usuario.usuario_roles %}
+
+        <div class="card mt-2">
+
+            <h6>Funções do usuário</h6>
+            <hr>
+
+            {% for role_user in usuario.usuario_roles.all %}
+                <div class="row mb-3">
+                    <div class="col-sm-9" style="display: flex; flex-direction: column">
+                        {{ role_user.role}}
+                        <small class="text-muted">
+                            Atribuido por: {{ role_user.atribuido_por.nome_completo }} aos {{ role_user.atribuido_em }}
+                        </small>
+                    </div>
+
+                </div>
+            {%empty%}
+                    <div colspan="6" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <br>Nenhuma disciplina vinculada a este professor.
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+</div>
+
+<div class="modal-backdrop" id="acessModal">
+  <div class="modal-box" >
+
+    {% csrf_token %}
+
+    <div class="modal-icon success">
+      <i class="bi bi-check2"></i>
+    </div>
+    <h3 class="modal-title">Confirmar Atribuição de Acesso</h3>
+    <p class="modal-body-text">
+      Ceder o acesso ao professor <strong>{{ funcionario.nome_completo }}</strong>
+    </p>
+
+    <div id="sms" style="color: red;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline-secondary" onclick="closeModal()">Cancelar</button>
+      <button  class="btn btn-outline-success" id="confirmaAcesso">
+        <i class="bi bi-check"></i> Atribuir
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+    // modal
+    let itemparadeletar = null
+    let escola = null
+
+    function confirmarAcesso(id) {
+
+        itemparadeletar = id
+        document.getElementById('acessModal').classList.add('open');
+
+    }
+
+    function closeModal() {
+        const sms = document.getElementById('sms');
+        sms.innerText = ''
+        document.getElementById('acessModal').classList.remove('open');
+        window.location.reload()
+    }
+
+    document.getElementById('acessModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal()
+            window.location.reload()
+        };
+    });
+
+    document.getElementById('confirmaAcesso').addEventListener('click', async(e)=>{
+    e.preventDefault()
+
+    const sms = document.getElementById('sms');
+
+
+    try {
+    const response = await fetch(`/director/api/atribuir-acesso-professor/${itemparadeletar}/`, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+        },
+    });
+
+    if (response.ok) {
+        sms.innerText = `Acesso concedido ao professor!`;
+        sms.style.color = "green";
+        const info = await response.json()
+        console.log(info)
+
+    } else {
+        const data = await response.json();
+        sms.innerText = data.error || "Erro ao conceder acesso!";
+        sms.style.color = "red";
+    }
+
+    } catch (error) {
+      console.log(error);
+      sms.innerText = "Erro de conexão com o servidor.";
+      sms.style.color = "red";
+    }
+    })
+</script>
+
+{% endblock %}
+

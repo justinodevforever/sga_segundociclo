@@ -1,0 +1,196 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <a href="{% url 'pagamento_list' %}">Pagamentos</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Registar Pagamento</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-cash-coin"></i>{% endblock %}
+{% block title %}Registar Pagamento{% endblock %}
+{% block sub_title %}
+  {% if conta %}Pagamento para {{ conta.aluno.nome }}{% else %}Seleccione a conta do aluno{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="chart-card fade-up">
+      {% if conta %}
+      <!-- INFO DA CONTA -->
+      <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:18px 20px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="width:46px;height:46px;border-radius:12px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;">
+            {{ conta.aluno.nome|slice:":2"|upper }}
+          </div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;">{{ conta.aluno.nome }}</div>
+            <div style="font-size:.76rem;color:var(--text-muted);">{{ conta.ano_lectivo }}</div>
+          </div>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);">Saldo Devedor</div>
+            <div style="font-size:1.3rem;font-weight:800;color:{% if conta.saldo_devedor > 0 %}#dc2626{% else %}#059669{% endif %};">
+              {{ conta.saldo_devedor|floatformat:2 }} Kz
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        {{ form.conta_aluno }}
+
+        <div class="row g-3">
+          {% if not conta %}
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Conta do Aluno <span class="req">*</span></label>
+              {{ form.conta_aluno }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Valor a Pagar (Kz) <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-cash prefix"></i>
+                {{ form.valor }}
+              </div>
+              {% if conta and conta.saldo_devedor > 0 %}
+              <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                <button type="button" onclick="setValor({{ conta.saldo_devedor }})" class="valor-btn">
+                  Valor Total ({{ conta.saldo_devedor|floatformat:2 }} Kz)
+                </button>
+                <button type="button" onclick="setValor({{ conta.valor_propina_mensal }})" class="valor-btn">
+                  1 Propina ({{ conta.valor_propina_mensal|floatformat:2 }} Kz)
+                </button>
+              </div>
+              {% endif %}
+              {% if form.valor.errors %}
+              <div class="invalid-feedback">{{ form.valor.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Data do Pagamento <span class="req">*</span></label>
+              {{ form.data_pagamento }}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Método de Pagamento <span class="req">*</span></label>
+              {{ form.metodo_pagamento }}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Referência <span class="opt">opcional</span></label>
+              {{ form.referencia }}
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Observações <span class="opt">opcional</span></label>
+              {{ form.observacoes }}
+            </div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert-strip as-danger" style="margin-top:16px;">
+          <i class="bi bi-exclamation-circle-fill as-icon"></i>
+          <div><div class="as-sub">{{ form.non_field_errors|join:" " }}</div></div>
+        </div>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--border);padding-top:20px;">
+          <a href="{% if conta %}{% url 'conta_detail' conta.pk %}{% else %}{% url 'conta_list' %}{% endif %}"
+             style="background:var(--bg);color:var(--text-sub);border:1px solid var(--border);border-radius:9px;padding:10px 20px;font-size:.84rem;font-weight:600;text-decoration:none;">
+            Cancelar
+          </a>
+          <button type="submit"
+                  style="background:#059669;color:#fff;border:none;border-radius:9px;padding:10px 24px;font-size:.84rem;font-weight:600;cursor:pointer;">
+            <i class="bi bi-check-lg"></i> Confirmar Pagamento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SIDE INFO -->
+  <div class="col-12 col-lg-5 fade-up delay-2">
+    <div class="chart-card mb-3">
+      <div class="section-title" style="margin-bottom:14px;">Como funciona?</div>
+      <div class="alert-strip as-info" style="margin-bottom:10px;">
+        <i class="bi bi-arrow-right-circle-fill as-icon"></i>
+        <div>
+          <div class="as-title">Distribuição Automática</div>
+          <div class="as-sub">O valor pago é distribuído automaticamente pelas propinas pendentes, começando pela mais antiga.</div>
+        </div>
+      </div>
+      <div class="alert-strip as-info" style="margin-bottom:10px;">
+        <i class="bi bi-receipt as-icon"></i>
+        <div>
+          <div class="as-title">Recibo Gerado</div>
+          <div class="as-sub">Após o pagamento, o sistema gera automaticamente um recibo com número único e QR Code.</div>
+        </div>
+      </div>
+      <div class="alert-strip as-info">
+        <i class="bi bi-shield-check as-icon"></i>
+        <div>
+          <div class="as-title">Auditoria</div>
+          <div class="as-sub">Todos os pagamentos ficam registados com data, hora e responsável pelo lançamento.</div>
+        </div>
+      </div>
+    </div>
+
+    {% if conta %}
+    <!-- PROPINAS PENDENTES -->
+    <div class="table-card">
+      <div class="card-hdr">
+        <span class="section-title">Propinas Pendentes</span>
+      </div>
+      {% for p in conta.propinas.all %}
+        {% if p.status != 'pago' %}
+        <div class="mli">
+          <div>
+            <div style="font-size:.82rem;font-weight:600;">{{ p.get_mes_display }}</div>
+            <div style="font-size:.7rem;color:var(--text-muted);">Vence: {{ p.data_vencimento|date:"d/m/Y" }}</div>
+          </div>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="font-size:.83rem;font-weight:700;">{{ p.saldo_propina|floatformat:2 }} Kz</div>
+            {% if p.status == 'atrasado' %}
+            <span class="tag tag-red" style="font-size:.62rem;">Atrasado</span>
+            {% else %}
+            <span class="tag tag-yellow" style="font-size:.62rem;">Pendente</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.valor-btn {
+  background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:7px;
+  padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.valor-btn:hover { background:#dbeafe; }
+</style>
+<script>
+function setValor(v) {
+  document.querySelector('[name="valor"]').value = parseFloat(v).toFixed(2);
+}
+</script>
+{% endblock %}

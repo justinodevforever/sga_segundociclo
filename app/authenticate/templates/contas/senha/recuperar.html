@@ -1,0 +1,19 @@
+{% extends "contas/senha/base_auth.html" %}
+{% block titulo %}Recuperar senha{% endblock %}
+
+{% block conteudo %}
+  <h1>Esqueceu a sua senha?</h1>
+  <p>Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.</p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="grupo">
+      <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+      {% for erro in form.email.errors %}<div class="erro">{{ erro }}</div>{% endfor %}
+    </div>
+    <button type="submit" class="btn">Enviar link de recuperação</button>
+  </form>
+
+  <div class="links"><a href="{% url 'login' %}">← Voltar ao login</a></div>
+{% endblock %}

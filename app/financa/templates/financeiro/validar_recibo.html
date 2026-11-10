@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validação de Recibo — {{ pagamento.numero_recibo }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f1f3d, #1e40af);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      max-width: 500px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,.3);
+    }
+    .card-header {
+      background: linear-gradient(135deg, #059669, #10b981);
+      padding: 28px 30px;
+      text-align: center;
+      color: #fff;
+    }
+    .check-icon {
+      width: 64px; height: 64px;
+      background: rgba(255,255,255,.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 12px;
+    }
+    .card-header h1 { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .card-header p { font-size: .82rem; opacity: .8; }
+    .card-body { padding: 28px 30px; }
+    .recibo-num {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #059669;
+      margin-bottom: 24px;
+      padding: 12px;
+      background: #f0fdf4;
+      border-radius: 10px;
+      border: 2px solid #bbf7d0;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: .85rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #64748b; }
+    .info-value { font-weight: 700; color: #0f172a; }
+    .valor-pago {
+      font-size: 1.4rem;
+      color: #059669;
+    }
+    .card-footer {
+      background: #f8fafc;
+      padding: 16px 30px;
+      text-align: center;
+      font-size: .75rem;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="check-icon">✅</div>
+      <h1>Recibo Válido</h1>
+      <p>Este recibo é autêntico e foi emitido pelo sistema.</p>
+    </div>
+    <div class="card-body">
+      <div class="recibo-num">{{ pagamento.numero_recibo }}</div>
+      <div class="info-row">
+        <span class="info-label">Aluno</span>
+        <span class="info-value">{{ pagamento.conta_aluno.aluno.nome }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Ano Lectivo</span>
+        <span class="info-value">{{ pagamento.conta_aluno.ano_lectivo }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Valor Pago</span>
+        <span class="info-value valor-pago">{{ pagamento.valor|floatformat:2 }} Kz</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Data do Pagamento</span>
+        <span class="info-value">{{ pagamento.data_pagamento|date:"d/m/Y" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Método</span>
+        <span class="info-value">{{ pagamento.get_metodo_pagamento_display }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Emitido em</span>
+        <span class="info-value">{{ pagamento.data_criacao|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      UUID: {{ pagamento.uuid_validacao }}<br>
+      Validado em {{ "now"|date:"d/m/Y H:i" }}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+    td, th{
+        align-items: start;
+        text-align: start;
+    }
+</style>
+<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
+     justify-content: center;">
+    <div class="col-md-8" style="width: 100%;">
+        
+        <div class="card" style="width: 97%;">
+            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Desempenho do estudante {{estudante.nome_completo}}
+                </h5>
+                <a href="{% url "listar_turma_estudantes" id_turma%}" class="btn" 
+                style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Nome do estudante:</strong></div>
+                    <div class="col-sm-9">{{ estudante.nome_completo }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>B.I:</strong></div>
+                    <div class="col-sm-9">{{ estudante.bi }}</div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Data de nascimento:</strong></div>
+                    <div class="col-sm-9">{{ estudante.data_nascimento }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Idade:</strong></div>
+                    <div class="col-sm-9">{{ estudante.idade }} Anos</div>
+                </div>
+
+
+                <hr>
+
+                <h3>Avaliações Continua</h3>
+                <table class="table table-striped table-inverse table-responsive">
+                    <thead class="thead-inverse">
+                        <tr>
+                            <th>Disciplina</th>
+                            <th>N. Aval. 1</th>
+                            <th>N. Aval. 2</th>
+                            <th>N. Aval. 3</th>
+                            <th> Média Final </th>
+                            <th> Resultado </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in  dados %}
+                                <tr>
+                                    <td scope="row">{{res.disciplina.nome}}</td>
+
+                                    {% for d in res.resultados %}
+                                    
+                                        <td>{{d.not_Ev_Sist1|default:"0"}}</td>
+                                        <td>{{d.not_Ev_Sist2|default:"0"}}</td>
+                                        <td>{{d.not_Ev_Sist3|default:"0"}}</td>
+
+                                        {% if d.media_avaliacao < 10 %}
+                                            <td  class="text-danger">{{d.media_avaliacao|default:"0"}}</td>
+                                        {% else %}
+                                            <td>{{d.media_avaliacao}}</td>
+                                        {% endif %}
+
+                                        {% if d.status_avaliacao == 'Apto'%}
+                                        
+                                            <td>{{d.status_avaliacao}}</td>
+                                        {% else %}
+                                            <td class="text-danger">{{d.status_avaliacao}}</td>
+                                        {% endif %}
+
+                                    {%empty%}
+
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td class="text-danger">N/Apto</td>
+
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                </table>
+
+                <hr>
+
+                <h3>Prova Trimestral</h3>
+
+                <table class="table table-striped table-inverse table-responsive">
+                    <thead class="thead-inverse">
+                        <tr>
+                            <th>Disciplina</th>
+                            <th>N. prova 1</th>
+                            <th>N. prova 2</th>
+                            <th>N. prova 3</th>
+                            <th>N. Exame </th>
+                            <th> Média Final </th>
+                            <th> Resultado </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                             
+                            {% for res in  dados %}
+                                <tr>
+                                    <td scope="row">{{res.disciplina.nome}}</td>
+                                    
+                                    {% for d in res.resultados %}
+                                        <td>{{d.not_Prov1|default:"0"}}</td>
+                                        <td>{{d.not_Prov2|default:"0"}}</td>
+                                        <td>{{d.not_Prov3|default:"0"}}</td>
+                                        <td>{{d.not_examen|default:"0"}}</td>
+
+                                        {% if d.media_prova < 10 %}
+                                            <td  class="text-danger">{{d.media_prova|default:"0"}}</td>
+                                        {% else %}
+                                            <td>{{d.media_prova}}</td>
+                                        {% endif %}
+
+                                        {% if d.status_prova == 'Apto'%}
+                                        
+                                            <td>{{d.status_prova}}</td>
+                                        {% else %}
+                                            <td class="text-danger">{{d.status_prova}}</td>
+                                        {% endif %}
+
+                                    {%empty%}
+
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td class="text-danger">N/Apto</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                            
+                        </tbody>
+                </table>
+                
+            </div>
+        </div>
+    </div>
+   
+</div>
+{% endblock %}
+

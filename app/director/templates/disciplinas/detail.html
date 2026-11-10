@@ -1,0 +1,215 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'disciplina_list' %}">Disciplinas</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{disciplina.nome}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Disciplina 
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas da disciplina de {{disciplina.nome}}
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 20px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+
+    .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 2000; display: none;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px; max-width: 420px; width: 90%;
+    text-align: center;
+    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.9) translateY(20px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
+  .modal-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 20px;
+  }
+  .modal-icon.danger {
+    background: rgba(239,68,68,.15); color: var(--accent-danger);
+  }
+  .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+  .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+        
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Disciplina:</strong></div>
+                <div class="col-sm-9">{{ disciplina.nome}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Abreviatura:</strong></div>
+                <div class="col-sm-9">{{ disciplina.nome_abreviado}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Tipo:</strong></div>
+                <div class="col-sm-9">{{ disciplina.get_componente_display}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Total de turmas:</strong></div>
+                <div class="col-sm-9">{{ disciplina.turma_disciplinas.all|length }}</div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-body" style="border-radius: 4px; margin-top: 20px; font-size: 10pt;">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>
+                            Professor
+                        </th>
+                        
+                        <th>
+                            Turma
+                        </th>
+                        <th>Carga horária</th>
+                        <th>Opção</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turma in turmas %}
+                    <tr>
+                        <td><a href="{% url "funcionario_detail" turma.professor.id%}">{{ turma.professor.nome_completo }}</a></td>
+                        <td><a href="{% url "turma_detail" turma.turma.id%}">{{ turma.turma.designacao }}</a></td>
+                        <td>{{ turma.carga_horaria }}</td>
+
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button onclick="openModalEdit('{{turma.professor.nome_completo}}', '{{turma.id}}', '{{turma.professor.id}}', '{{turma.turma.designacao}}', '{{turma.turma.id}}', {{turma.carga_horaria}})" 
+                                    class="btn btn-outline-warning" title="Editar">
+                                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <br>Nenhum registro encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if turmas.has_other_pages %}
+            <ul class="pagination justify-content-center">
+                {% if turmas.has_previous %}
+                    <li class="page-item">
+
+                        <a class="page-link" href="?page={{ turmas.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Anterior</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in turmas.paginator.page_range %}
+                    {% if turmas.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if turmas.has_next %}
+
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ turmas.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Próximo</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+    </div>
+
+    
+   
+</div>
+
+
+{% endblock %}
+

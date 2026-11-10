@@ -1,0 +1,249 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <a href="{% url 'conta_list' %}">Contas dos Alunos</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">{{ conta.aluno.nome_completo|truncatechars:30 }}</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-person-badge"></i>{% endblock %}
+{% block title %}Conta do Aluno{% endblock %}
+{% block sub_title %}{{ conta.aluno.nome_completo }} — {{ conta.ano_lectivo }}{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display:flex;gap:10px;">
+    <a href="{% url 'pagamento_create_conta' conta.pk %}"
+       style="background:#059669;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;">
+      <i class="bi bi-cash-coin"></i> Registar Pagamento
+    </a>
+    <a href="{% url 'relatorio_financeiro' %}?aluno={{ conta.aluno.pk }}"
+       style="background:var(--bg);color:var(--text-sub);border:1px solid var(--border);border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;">
+      <i class="bi bi-printer"></i> Extrato
+    </a>
+  </div>
+{% endblock %}
+
+{% block content %}
+
+<!-- STATUS BANNER -->
+<div style="border-radius:14px;padding:20px 24px;margin-bottom:24px;
+  {% if conta.status == 'em_dia' %}background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1px solid #6ee7b7;
+  {% elif conta.status == 'bloqueado' %}background:linear-gradient(135deg,#fee2e2,#fecaca);border:1px solid #fca5a5;
+  {% elif conta.status == 'atrasado' %}background:linear-gradient(135deg,#ffedd5,#fed7aa);border:1px solid #fdba74;
+  {% else %}background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fbbf24;{% endif %}
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+  <div style="font-size:2.2rem;">
+    {% if conta.status == 'em_dia' %}✅
+    {% elif conta.status == 'bloqueado' %}🔴
+    {% elif conta.status == 'atrasado' %}⚠️
+    {% else %}🟡{% endif %}
+  </div>
+  <div style="flex:1;">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin-bottom:2px;">
+      Status Financeiro
+    </div>
+    <div style="font-size:1.25rem;font-weight:800;">{{ conta.get_status_display }}</div>
+    <div style="font-size:.78rem;opacity:.7;margin-top:2px;">
+      {% if conta.status == 'em_dia' %}Propinas em dia. Aluno sem restrições financeiras.
+      {% elif conta.status == 'bloqueado' %}ATENÇÃO: Aluno bloqueado. Impedido de fazer exames e novas matrículas.
+      {% elif conta.status == 'atrasado' %}Existem propinas em atraso. Regularize a situação.
+      {% else %}Existem propinas pendentes de pagamento.{% endif %}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="text-align:center;padding:10px 16px;background:rgba(255,255,255,.6);border-radius:10px;">
+      <div style="font-size:.65rem;opacity:.6;text-transform:uppercase;font-weight:700;">Exames</div>
+      <div style="font-size:.9rem;font-weight:700;color:{% if pode_exame %}#059669{% else %}#dc2626{% endif %};">
+        {% if pode_exame %}<i class="bi bi-check-circle-fill"></i> Permitido
+        {% else %}<i class="bi bi-x-circle-fill"></i> Bloqueado{% endif %}
+      </div>
+    </div>
+    <div style="text-align:center;padding:10px 16px;background:rgba(255,255,255,.6);border-radius:10px;">
+      <div style="font-size:.65rem;opacity:.6;text-transform:uppercase;font-weight:700;">Notas</div>
+      <div style="font-size:.9rem;font-weight:700;color:{% if pode_notas %}#059669{% else %}#dc2626{% endif %};">
+        {% if pode_notas %}<i class="bi bi-check-circle-fill"></i> Visível
+        {% else %}<i class="bi bi-x-circle-fill"></i> Bloqueado{% endif %}
+      </div>
+    </div>
+    <div style="text-align:center;padding:10px 16px;background:rgba(255,255,255,.6);border-radius:10px;">
+      <div style="font-size:.65rem;opacity:.6;text-transform:uppercase;font-weight:700;">Matrícula</div>
+      <div style="font-size:.9rem;font-weight:700;color:{% if pode_matricula %}#059669{% else %}#dc2626{% endif %};">
+        {% if pode_matricula %}<i class="bi bi-check-circle-fill"></i> Permitida
+        {% else %}<i class="bi bi-x-circle-fill"></i> Impedida{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card sc-blue">
+      <div class="stat-icon"><i class="bi bi-calculator"></i></div>
+      <div class="stat-value" style="font-size:1.4rem;">{{ conta.total_devido|floatformat:2 }}</div>
+      <div class="stat-label">Total Devido (Kz)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card sc-green">
+      <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="stat-value" style="font-size:1.4rem;">{{ conta.total_pago|floatformat:2 }}</div>
+      <div class="stat-label">Total Pago (Kz)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card sc-warn">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="stat-value" style="font-size:1.4rem;">{{ conta.saldo_devedor|floatformat:2 }}</div>
+      <div class="stat-label">Saldo Devedor (Kz)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card sc-purple">
+      <div class="stat-icon"><i class="bi bi-percent"></i></div>
+      <div class="stat-value" style="font-size:1.4rem;">{{ conta.percentagem_pago }}%</div>
+      <div class="stat-label">Pago</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="chart-card mb-4">
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+    <span style="font-size:.82rem;font-weight:600;">Progresso de Pagamento</span>
+    <span style="font-size:.82rem;color:var(--text-muted);">{{ conta.percentagem_pago }}%</span>
+  </div>
+  <div class="prog-bar" style="height:10px;">
+    <div class="prog-fill"
+         style="width:{{ conta.percentagem_pago }}%;
+         background:{% if conta.percentagem_pago == 100 %}#059669{% elif conta.percentagem_pago >= 50 %}#d97706{% else %}#dc2626{% endif %};">
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:.72rem;color:var(--text-muted);">
+    <span>0 Kz</span>
+    <span>{{ conta.total_devido|floatformat:2 }} Kz</span>
+  </div>
+</div>
+
+<!-- PROPINAS + PAGAMENTOS -->
+<div class="row g-3">
+  <!-- Propinas Mensais -->
+  <div class="col-12 col-lg-6">
+    <div class="table-card">
+      <div class="card-hdr">
+        <span class="section-title"><i class="bi bi-calendar3"></i> Propinas Mensais</span>
+        <span style="font-size:.75rem;color:var(--text-muted);">{{ conta.ano_lectivo }}</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Valor</th>
+              <th>Pago</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in propinas %}
+            <tr>
+              <td style="font-weight:600;font-size:.82rem;">{{ p.get_mes_display }}</td>
+              <td style="font-size:.82rem;">{{ p.valor|floatformat:2 }} Kz</td>
+              <td style="font-size:.82rem;color:#059669;">{{ p.valor_pago|floatformat:2 }} Kz</td>
+              <td style="font-size:.76rem;color:var(--text-muted);">{{ p.data_vencimento|date:"d/m/Y" }}</td>
+              <td>
+                {% if p.status == 'pago' %}
+                  <span class="tag tag-green">Pago</span>
+                {% elif p.status == 'atrasado' %}
+                  <span class="tag tag-red">Atrasado</span>
+                {% else %}
+                  <span class="tag tag-yellow">Pendente</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">
+                Nenhuma propina gerada
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico de Pagamentos -->
+  <div class="col-12 col-lg-6">
+    <div class="table-card">
+      <div class="card-hdr">
+        <span class="section-title"><i class="bi bi-receipt"></i> Histórico de Pagamentos</span>
+        <a href="{% url 'pagamento_create_conta' conta.pk %}"
+           style="font-size:.75rem;color:#059669;text-decoration:none;font-weight:600;">
+          + Novo
+        </a>
+      </div>
+      {% for pag in pagamentos %}
+      <div class="mli">
+        <div class="mli-av" style="background:#d1fae5;color:#059669;font-size:.8rem;">
+          <i class="bi bi-cash"></i>
+        </div>
+        <div style="flex:1;">
+          <div class="mli-name" style="font-size:.82rem;">
+            <a href="{% url 'recibo_detalhe' pag.numero_recibo %}"
+               style="color:var(--accent);text-decoration:none;">
+              {{ pag.numero_recibo }}
+            </a>
+          </div>
+          <div class="mli-sub">{{ pag.get_metodo_pagamento_display }} · {{ pag.data_pagamento|date:"d/m/Y" }}</div>
+        </div>
+        <div class="mli-meta">
+          <div style="font-weight:700;color:#059669;font-size:.83rem;">{{ pag.valor|floatformat:2 }} Kz</div>
+          <a href="{% url 'recibo_pdf' pag.numero_recibo %}" style="font-size:.7rem;color:var(--text-muted);">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:32px;text-align:center;color:var(--text-muted);">
+        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+        Nenhum pagamento registado
+        <br>
+        <a href="{% url 'pagamento_create_conta' conta.pk %}"
+           style="font-size:.8rem;color:var(--accent);margin-top:8px;display:inline-block;">
+          Registar primeiro pagamento →
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- LOG FINANCEIRO -->
+{% if logs %}
+<div class="table-card mt-3">
+  <div class="card-hdr">
+    <span class="section-title"><i class="bi bi-clock-history"></i> Auditoria Financeira</span>
+  </div>
+  {% for log in logs %}
+  <div class="mli">
+    <div class="mli-av" style="background:#eff6ff;color:#1d4ed8;font-size:.75rem;">
+      <i class="bi bi-shield-check"></i>
+    </div>
+    <div>
+      <div class="mli-name" style="font-size:.81rem;">{{ log.get_acao_display }}</div>
+      <div class="mli-sub">{{ log.descricao|truncatechars:60 }}</div>
+    </div>
+    <div class="mli-meta">
+      <div class="mli-date">{{ log.data|date:"d/m/Y H:i" }}</div>
+      <div style="font-size:.7rem;color:var(--text-muted);">{{ log.usuario|default:"Sistema" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

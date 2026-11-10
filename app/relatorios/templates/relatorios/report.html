@@ -1,0 +1,92 @@
+{% extends "director/base.html" %}
+{% block breadcrumb %}<a href="{% url 'index' %}">Relatórios</a> <i class="bi bi-chevron-right"></i>
+  <span class="current">{{ meta.titulo }}</span>{% endblock %}
+{% block icon %}<i class="bi {{ meta.icone }}"></i>{% endblock %}
+{% block title %}{{ meta.titulo }}{% endblock %}
+{% block sub_title %}{{ meta.descricao }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if rel %}
+    <a class="btn btn-danger btn-sm" target="_blank" href="?{{ qs }}&formato=pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    {% if meta.excel %}<a class="btn btn-success btn-sm" href="?{{ qs }}&formato=xlsx"><i class="bi bi-file-earmark-excel"></i> Excel</a>{% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .neg{color:#dc2626;font-weight:700}
+  td.c,th.c{text-align:center}
+  tr.tot td{font-weight:700;background:#f1f5f9}
+  .rep-wrap{overflow-x:auto}
+</style>
+
+<form method="get" class="table-card mb-3">
+  <div class="card-hdr"><span class="section-title"><i class="bi bi-funnel"></i> Filtros</span></div>
+  <div class="p-3">
+    <div class="row g-3">
+      {% for field in form %}{% if not field.is_hidden %}
+      <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="form-field">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="req">*</span>{% endif %}</label>
+          {{ field }}
+          {% for e in field.errors %}<div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Gerar relatório</button>
+      <a href="{% url 'relatorio' meta.slug %}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+    </div>
+  </div>
+</form>
+
+{% if rel %}
+  {% if rel.subtitulo %}<p class="text-muted" style="font-size:.85rem">{{ rel.subtitulo }}</p>{% endif %}
+  {% if rel.resumo %}
+  <div class="row g-3 mb-3">
+    {% for k, v in rel.resumo_fmt %}
+    <div class="col-6 col-md-3 col-xl-2">
+      <div class="stat-card sc-blue" style="padding:14px 16px">
+        <div class="stat-value" style="font-size:1.25rem">{{ v }}</div>
+        <div class="stat-label">{{ k }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for t in rel.tabelas %}
+  <div class="table-card mb-3">
+    {% if t.titulo %}<div class="card-hdr"><span class="section-title">{{ t.titulo }}</span>
+      <span class="tag tag-gray">{{ t.linhas|length }} linhas</span></div>{% endif %}
+    <div class="rep-wrap">
+      <table class="dt">
+        <thead><tr>{% for c, w in t.cab %}<th{% if forloop.counter0 > 1 %} class="c"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for linha in t.linhas_fmt %}
+          <tr>{% for texto, cls in linha %}<td class="{{ cls }}">{{ texto }}</td>{% endfor %}</tr>
+          {% empty %}
+          <tr><td colspan="{{ t.colunas|length }}" class="text-center text-muted py-4">Sem dados para os filtros seleccionados.</td></tr>
+          {% endfor %}
+          {% if t.rodape_fmt %}<tr class="tot">{% for texto, cls in t.rodape_fmt %}<td class="{{ cls }}">{{ texto }}</td>{% endfor %}</tr>{% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+{% elif not form.errors %}
+  <div class="table-card p-4 text-center text-muted">
+    <i class="bi bi-funnel" style="font-size:1.6rem"></i>
+    <p class="mb-0 mt-2">Preencha os campos marcados com * e clique em <strong>Gerar relatório</strong>.</p>
+  </div>
+{% endif %}
+
+{% if form.turma %}
+<script>
+  /* ao mudar o ano lectivo, recarrega para actualizar a lista de turmas */
+  const _ano = document.getElementById('id_ano_lectivo');
+  if (_ano) _ano.addEventListener('change', function () { window.location = '?ano_lectivo=' + this.value; });
+</script>
+{% endif %}
+{% endblock %}

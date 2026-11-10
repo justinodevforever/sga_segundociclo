@@ -1,0 +1,214 @@
+{% extends "professor/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+	<span class="current">Dashboard</span>
+{% endblock %}
+
+{% block title %}Dashboard — Portal do Professor{% endblock %}
+{% block sub_title %}
+    Visão geral das suas actividades lectivas
+{% endblock %}
+
+{% block icon %}
+	<i class="bi bi-grid-1x2-fill"></i>
+{% endblock %}
+
+{% block content %}
+
+
+<!-- Welcome Banner -->
+<div class="welcome-banner fade-up d2">
+  <div class="wb-greeting">Bem-vindo de volta,</div>
+  <div class="wb-name">{{ professor.nome_completo }}</div>
+  <div class="wb-sub">{{ trimestre.designacao|default:"Ano Lectivo" }} · {{ ano_lectivo }}</div>
+  <div class="wb-badges">
+    <div class="wb-badge"><i class="bi bi-people"></i> {{ total_turmas }} Turma{{ total_turmas|pluralize:"s" }} activa{{ total_turmas|pluralize:"s" }}</div>
+    <div class="wb-badge"><i class="bi bi-clock"></i> {{ carga_horaria }}h/semana</div>
+    {% if trimestre %}
+      <div class="wb-badge"><i class="bi bi-calendar3"></i> {{ trimestre.designacao }}</div>
+    {% endif %}
+  </div>
+  <i class="bi bi-person-workspace wb-icon-lg"></i>
+</div>
+
+<!-- Alertas -->
+{% if alertas %}
+<div class="fade-up d2" style="margin-bottom:22px;">
+  {% for alerta in alertas %}
+    <div class="alert-strip as-{{ alerta.tipo }}">
+      <i class="bi {{ alerta.icone }} as-icon"></i>
+      <div>
+        <div class="as-title">{{ alerta.titulo }}</div>
+        {% if alerta.subtitulo %}
+          <div class="as-sub">{{ alerta.subtitulo }}</div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Stats -->
+<div class="row g-3 fade-up d3" style="margin-bottom:24px;">
+  <div class="col-6 col-md-4 col-xl-2-4">
+    <div class="stat-card sc-blue">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-value">{{ total_alunos }}</div>
+      <div class="stat-label">Total de Alunos</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2-4">
+    <div class="stat-card sc-green">
+      <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-value">{{ taxa_aprovacao }}%</div>
+      <div class="stat-label">Taxa de Aprovação</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2-4">
+    <div class="stat-card sc-purple">
+      <div class="stat-icon"><i class="fa fa-book"></i></div>
+      <div class="stat-value">{{ total_disciplinas }}</div>
+      <div class="stat-label">Total de Disciplinas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2-4">
+    <div class="stat-card sc-warn">
+      <div class="stat-icon"><i class="bi bi-exclamation-circle"></i></div>
+      <div class="stat-value">{{ notas_pendentes }}</div>
+      <div class="stat-label">Notas Pendentes</div>
+      {% if notas_pendentes > 0 %}
+        <span class="stat-trend trend-warn"><i class="bi bi-clock"></i> Urgente</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2-4">
+    <div class="stat-card sc-cyan">
+      <div class="stat-icon"><i class="bi bi-calendar3-week"></i></div>
+      <div class="stat-value">{{ carga_horaria }}h</div>
+      <div class="stat-label">Carga Horária</div>
+      <span class="stat-trend trend-blue"><i class="bi bi-clock"></i> Sem.</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Turmas activas -->
+  <div class="col-12 col-lg-7">
+    <div class="card fade-up d3">
+      <div class="card-hdr">
+        <span class="card-hdr-title">Turmas Activas</span>
+        <a href="{% url 'professor:minhas_turmas' %}" class="btn btn-outline btn-sm">Ver todas</a>
+      </div>
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>Turma</th>
+            <th>Disciplina</th>
+            <th>Alunos</th>
+            <th>Aprovação</th>
+            <th>Pendentes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in turmas_activas %}
+            <tr>
+              <td>
+                <strong>{{ t.turma_disciplina.turma.designacao }}</strong>
+                <span style="color:var(--text-muted);font-size:.72rem;">· {{ t.turma_disciplina.turma.periodo }}</span>
+              </td>
+              <td>{{ t.turma_disciplina.disciplina.nome }}</td>
+              <td>{{ t.total_alunos }}</td>
+              <td>
+                {% if t.taxa_aprovacao is not None %}
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="prog-bar" style="width:80px;">
+                      <div class="prog-fill" style="width:{{ t.taxa_aprovacao }}%;background:{% if t.taxa_aprovacao >= 80 %}#059669{% elif t.taxa_aprovacao >= 60 %}#d97706{% else %}#dc2626{% endif %};"></div>
+                    </div>
+                    <span style="font-size:.76rem;font-weight:600;color:{% if t.taxa_aprovacao >= 80 %}#059669{% elif t.taxa_aprovacao >= 60 %}#d97706{% else %}#dc2626{% endif %};">{{ t.taxa_aprovacao }}%</span>
+                  </div>
+                {% else %}
+                  <span style="color:var(--text-muted);font-size:.78rem;">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.pendentes > 0 %}
+                  <span class="tag tag-warn">{{ t.pendentes }}</span>
+                {% else %}
+                  <span class="tag tag-green"><i class="bi bi-check2"></i> OK</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">Sem turmas activas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Próximas avaliações -->
+  <div class="col-12 col-lg-5">
+    <div class="card fade-up d4">
+      <div class="card-hdr">
+        <span class="card-hdr-title">Próximas Avaliações</span>
+        <a href="{% url 'professor:avaliacoes' %}" class="btn btn-outline btn-sm">Ver todas</a>
+      </div>
+      <div>
+        {% for aval in proximas_avaliacoes %}
+          <div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:#1e40af;flex-shrink:0;text-align:center;line-height:1.2;">
+              {{ aval.data_realizacao|date:"d" }}<br><span style="font-size:.55rem;font-weight:500;">{{ aval.data_realizacao|date:"M" }}</span>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ aval.get_designacao_display }}</div>
+              <div style="font-size:.71rem;color:var(--text-muted);">{{ aval.tipo_avaliacao.nome }}</div>
+            </div>
+            <span class="tag tag-blue">{{ aval.data_realizacao|date:"d/m" }}</span>
+          </div>
+        {% empty %}
+          <div style="padding:32px;text-align:center;color:var(--text-muted);font-size:.84rem;">
+            <i class="bi bi-calendar-check" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+            Sem avaliações futuras agendadas.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+.welcome-banner {
+  background: linear-gradient(135deg, #0c1a35 0%, #0f2744 50%, #1d5fa6 100%);
+  border-radius: var(--radius); padding: 28px 32px;
+  color: #fff; position: relative; overflow: hidden;
+  margin-bottom: 26px; box-shadow: var(--shadow-lg);
+}
+.welcome-banner::before {
+  content:''; position:absolute; top:-50px; right:-30px;
+  width:220px; height:220px; border-radius:50%;
+  background:rgba(59,130,246,.12);
+}
+.welcome-banner::after {
+  content:''; position:absolute; bottom:-60px; right:100px;
+  width:160px; height:160px; border-radius:50%;
+  background:rgba(124,58,237,.1);
+}
+.wb-greeting { font-size:.82rem; color:rgba(255,255,255,.55); margin-bottom:4px; }
+.wb-name { font-family:'Playfair Display',serif; font-size:1.75rem; font-weight:700; margin-bottom:6px; }
+.wb-sub  { font-size:.8rem; color:rgba(255,255,255,.5); }
+.wb-badges { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+.wb-badge {
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.14);
+  border-radius:8px; padding:5px 12px; font-size:.74rem; font-weight:600;
+  display:flex; align-items:center; gap:6px;
+}
+.wb-badge i { font-size:.8rem; opacity:.8; }
+.wb-icon-lg {
+  position:absolute; right:32px; top:50%; transform:translateY(-50%);
+  font-size:5rem; opacity:.05;
+}
+@media(max-width:767px){ .wb-icon-lg { display:none; } .wb-name { font-size:1.3rem; } }
+{% endblock %}

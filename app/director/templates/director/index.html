@@ -1,0 +1,419 @@
+{% extends "director/base.html" %}
+
+{% block title %}
+ <h5>Dashboard do {{diretor.nome_completo}} </h5>
+ <small class="text-muted">Visualiza todos os funcionamentos importantes aqui!</small>
+{% endblock title %}
+
+{% block icon %}
+    
+{% endblock icon %}
+
+{% block content %}
+
+    <div class="page-body">
+
+    <div class="welcome-banner fade-up">
+        <i class="bi bi-building-fill wb-icon-lg"></i>
+        <div class="wb-greeting">Bem-vindo de volta,</div>
+        <div class="wb-name"><strong>{{ diretor.nome_completo|default:"Director" }}</strong></div>
+        <div class="wb-sub">
+        {{ escola.nome|default:"Escola" }} &nbsp;·&nbsp;
+        Ano Lectivo: <strong>{{ ano_lectivo.designacao|default:"2025/2026" }}</strong>
+        {% if periodo %}
+            &nbsp;·&nbsp; {{ periodo.designacao }}
+        {% endif %}
+        </div>
+        <div class="wb-badges">
+        <div class="wb-badge"><i class="bi bi-calendar-check"></i> <span id="dataAtual">{{hoje}}</span></div>
+        <div class="wb-badge"><i class="bi bi-geo-alt"></i> {{ escola.municipio|default:"Luanda" }}, {{ escola.provincia|default:"Angola" }}</div>
+        <div class="wb-badge"><i class="bi bi-patch-check-fill"></i> {{ escola.tipo_ensino|default:"Público" }}</div>
+        </div>
+    </div>
+
+    <!-- Periodo activo banner (se houver) -->
+    {% if periodo %}
+    <div class="periodo-banner fade-up delay-1">
+        <i class="bi bi-info-circle-fill"></i>
+        <div>
+        <strong>Período activo:</strong> {{ periodo.designacao }} &nbsp;—&nbsp;
+        {{ periodo.data_inicio|date:"d/m/Y" }} a {{ periodo.data_fim|date:"d/m/Y" }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── KPI CARDS ── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3 fade-up delay-1">
+        <div class="stat-card sc-blue">
+            <div class="stat-icon"><i class="bi bi-person-lines-fill"></i></div>
+            <div class="stat-value">{{ total_alunos}}</div>
+            <div class="stat-label">Alunos Matriculados</div>
+        </div>
+        </div>
+        <div class="col-6 col-xl-3 fade-up delay-2">
+        <div class="stat-card sc-purple">
+            <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+            <div class="stat-value">{{ total_professores }}</div>
+            <div class="stat-label">Professores Activos</div>
+        </div>
+        </div>
+        <div class="col-6 col-xl-3 fade-up delay-3">
+        <div class="stat-card sc-cyan">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-value">{{ total_turmas}}</div>
+            <div class="stat-label">Turmas Activas</div>
+        </div>
+        </div>
+        <div class="col-6 col-xl-3 fade-up delay-4">
+        <div class="stat-card sc-green">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-value">
+            {% if media_geral %}{{ media_geral|floatformat:1 }}{% else %}0{% endif %}
+            </div>
+            <div class="stat-label">Média Geral (Notas)</div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ── ALERTAS ── -->
+    {% if contas_atrasadas or contas_bloqueadas or inscricoes_pendentes %}
+        <div class="mb-4 fade-up">
+            {% if inscricoes_pendentes %}
+            <div class="alert-strip as-info">
+            <i class="bi bi-info-circle-fill as-icon"></i>
+            <div>
+                <div class="as-title">{{ inscricoes_pendentes }} inscrição(ões) aguardam processamento</div>
+                <div class="as-sub">Verifique o módulo de Matrículas para processar as inscrições pendentes.</div>
+            </div>
+            </div>
+            {% endif %}
+            {% if contas_atrasadas %}
+            <div class="alert-strip as-warn">
+            <i class="bi bi-exclamation-triangle-fill as-icon"></i>
+            <div>
+                <div class="as-title">{{ contas_atrasadas|default:"23" }} alunos com propinas em atraso</div>
+                <div class="as-sub">Acceda ao módulo Financeiro para ver o detalhe e contactar os encarregados.</div>
+            </div>
+            </div>
+            {% endif %}
+            {% if contas_bloqueadas %}
+            <div class="alert-strip as-danger">
+            <i class="bi bi-slash-circle-fill as-icon"></i>
+            <div>
+                <div class="as-title">{{ contas_bloqueadas|default:"7" }} contas bloqueadas por inadimplência</div>
+                <div class="as-sub">Acesso ao portal suspenso. Resolva com o departamento financeiro.</div>
+            </div>
+            </div>
+            {% endif %}
+        </div>
+
+    {% endif %}
+
+    <!-- ── ROW 2: Gráficos ── -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-7 fade-up delay-1">
+            <div class="chart-card h-100">
+                <div class="section-header">
+                <span class="section-title">Matrículas — Últimos 6 Meses</span>
+                <span style="font-size:.75rem;color:var(--text-muted)">{{ escola.nome_abreviado|default:"Escola" }}</span>
+                </div>
+                <canvas id="chartMatriculas"></canvas>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5 fade-up delay-2">
+            <div class="chart-card h-100">
+                <div class="section-header">
+                <span class="section-title">Alunos por Curso</span>
+                </div>
+                <canvas id="chartCurso"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ROW 3: Matrículas recentes  ── -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-12 fade-up delay-1">
+            <div class="table-card">
+                <div class="card-hdr">
+                <span class="section-title">Últimas Matrículas</span>
+                <a href="#" class="btn btn-sm" style="background:#eff6ff;color:var(--accent);border-radius:8px;font-size:.78rem;font-weight:600">
+                    Ver todas <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+                </div>
+                <div style="overflow-x:auto">
+                <table class="dt">
+                    <thead>
+                        {% if ultimas_matriculas %}
+                            <tr>
+                                <th>Aluno</th><th>Curso</th><th>Turma</th><th>Tipo</th><th>Data</th><th>Estado</th>
+                            </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                    {% for m in ultimas_matriculas %}
+                    <tr>
+                        <td>
+                        <div style="font-weight:600">{{ m.aluno.nome_completo }}</div>
+                        <div style="font-size:.72rem;color:var(--text-muted)">{{ m.numero_matricula|default:"—" }}</div>
+                        </td>
+                        <td>{{ m.turma.curso.nome_abreviado|default:"—" }}</td>
+                        <td>{{ m.turma.designacao|default:"—" }}</td>
+                        <td>
+                        <span class="tag {% if m.tipo_matricula == 'Nova' %}tag-blue{% elif m.tipo_matricula == 'Renovação' %}tag-green{% else %}tag-purple{% endif %}">
+                            {{ m.tipo_matricula }}
+                        </span>
+                        </td>
+                        <td style="color:var(--text-muted);font-size:.8rem">{{ m.data_matricula|date:"d/m/Y" }}</td>
+                        <td>
+                        <span class="tag {% if m.status == 'Activa' %}tag-green{% elif m.status == 'Cancelada' %}tag-red{% elif m.status == 'Transferida' %}tag-blue{% else %}tag-purple{% endif %}">
+                            {{ m.status }}
+                        </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                        <i class="fas fa-dolly-empty    "></i>
+                        <span>Sem informações de momento</span>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ROW 4: Finança + Professores recentes ── -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-5 fade-up delay-2">
+            <div class="stat-card sc-warn h-100">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <span class="section-title">Resumo Financeiro</span>
+                <a href="#" style="font-size:.78rem;color:var(--accent);font-weight:600;text-decoration:none">Ver detalhe</a>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+                <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px">
+                    <div style="font-size:.7rem;color:#059669;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total Recebido</div>
+                    <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:#065f46">
+                    {{ financeiro.total_pago|default:"0" }}
+                    </div>
+                    <div style="font-size:.7rem;color:var(--text-muted)">AOA</div>
+                </div>
+                <div style="background:#fef2f2;border-radius:10px;padding:14px 16px">
+                    <div style="font-size:.7rem;color:#dc2626;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Saldo Devedor</div>
+                    <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:#991b1b">
+                    {{ financeiro.saldo_devedor|default:"0" }}
+                    </div>
+                    <div style="font-size:.7rem;color:var(--text-muted)">AOA</div>
+                </div>
+                </div>
+
+                <div class="prog-row">
+                <div class="prog-hdr"><span class="prog-lbl">Em Dia</span><span class="prog-val">72%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:72%;background:#059669"></div></div>
+                </div>
+                <div class="prog-row">
+                <div class="prog-hdr"><span class="prog-lbl">Pendente</span><span class="prog-val">17%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:17%;background:#d97706"></div></div>
+                </div>
+                <div class="prog-row">
+                <div class="prog-hdr"><span class="prog-lbl">Atrasado</span><span class="prog-val">8%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:8%;background:#ef4444"></div></div>
+                </div>
+                <div class="prog-row">
+                <div class="prog-hdr"><span class="prog-lbl">Bloqueado</span><span class="prog-val">3%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:3%;background:#991b1b"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7 fade-up delay-2">
+        <div class="table-card">
+            <div class="card-hdr">
+            <span class="section-title">Quadro de Professores</span>
+            <a href="{% url 'funcionario_list' %}" style="font-size:.78rem;color:var(--accent);font-weight:600;text-decoration:none">Ver todos <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+            <div style="overflow-x:auto">
+            <table class="dt">
+                <thead>
+                <tr><th>Professor</th><th>Nível</th><th>Disciplinas</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    {% for prof in professores %}
+
+                        <tr>
+
+                            <td>
+                                <div style="display:flex;align-items:center;gap:9px">
+                                    <div style="width:32px;height:32px;border-radius:50%;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;flex-shrink:0">
+                                        {{ prof.nome_completo|slice:2|upper }}</div>
+                                    <div>
+                                    <div style="font-weight:600;font-size:.83rem">{{ prof.nome_completo }}</div>
+                                    <div style="font-size:.7rem;color:var(--text-muted)">{{ prof.numero_agente|default:'---' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="tag tag-purple">{{ prof.nivel_academico }}</span></td>
+                            <td>{{ prof.atribuicao.all|length }}</td>
+                            <td>
+                                {% if prof.status %}
+
+                                    <span class="tag tag-green">Activo</span>
+                                {% else %}
+                                    <span class="tag tag-red">Inactivo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ── ROW 5: Turmas e Desempenho ── -->
+    <div class="row g-3 mb-2">
+        <div class="col-12 col-lg-5 fade-up delay-1">
+            <div class="table-card">
+                <div class="card-hdr">
+                    <span class="section-title">Turmas — Ocupação</span>
+                    <a href="{% url 'turma_list' %}" style="font-size:.78rem;color:var(--accent);font-weight:600;text-decoration:none">Gerir <i class="bi bi-arrow-right ms-1"></i></a>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="dt">
+                        <thead><tr><th>Turma</th><th>Alunos</th><th>Capacidade</th><th>Turno</th></tr></thead>
+                        <tbody>
+                            {% for turma in turmas %}
+                                <tr>
+                                    <td><strong>{{ turma.designacao}}</strong></td><td>{{ turma.matriculas.all|length }}</td>
+                                    <td>
+                                        <div class="prog-bar" style="width:90px">
+                                            <div class="prog-fill" style="width: calc(({{ turma.matriculas.all|length }}/{{ turma.capacidade_maxima }}) * 100%);
+                                                    background:#059669"></div>
+                                        </div>
+                                    </td>
+                                    <td><span class="tag tag-blue">Manhã</span></td>
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7 fade-up delay-2">
+        <div class="chart-card h-100">
+            <div class="section-header">
+            <span class="section-title">Média por Disciplina</span>
+            <span class="tag tag-blue">Ano Lectivo Actual</span>
+            </div>
+            <canvas id="chartDisciplinas"></canvas>
+        </div>
+        </div>
+    </div>
+
+    </div>
+
+<script>
+    // ── Matrículas mensais ─────────────────────────
+    const v = {
+        'home': 'jsk'
+    }
+      const ctx = document.getElementById('chartMatriculas').getContext('2d');
+      const meses = JSON.parse('{{ matriculas_mensal|escapejs }}')
+      new Chart( ctx, {
+        type:'bar',
+        data:{
+          labels: meses.map(m=>m.mes),
+          datasets:[{
+            label:'Matrículas',
+            data: meses.map(m=>m.qtd),
+            backgroundColor: '#1d4ed8',
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            borderRadius: 8,
+            hoverBackgroundColor:'rgba(29,78,216,.25)',
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{grid:{color:'#ffffff'}, ticks:{color:'#0891b2',font:{size:11,family:'Plus Jakarta Sans'}}},
+            y:{grid:{color:'#0891b2'}, ticks:{color:'#0891b2',font:{size:11,family:'Plus Jakarta Sans'}}},
+          }
+        }
+      });
+
+  // ── Alunos por curso (doughnut) ────────────────
+  const cursos = JSON.parse('{{ alunos_por_curso|escapejs }}');
+  new Chart(document.getElementById('chartCurso'),{
+    type:'doughnut',
+    data:{
+      labels: cursos.map(c=>c['turma__curso__nome']||c.nome||'—'),
+      datasets:[{
+        data: cursos.map(c=>c.total),
+        backgroundColor:['#1d4ed8','#0891b2','#7c3aed','#059669','#d97706'],
+        borderColor:'#ffffff',
+        borderWidth:3,
+        hoverOffset:6,
+      }]
+    },
+    options:{
+      responsive:true,
+      cutout:'65%',
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{color:'#475569',font:{size:11,family:'Plus Jakarta Sans'},padding:14,usePointStyle:true}
+        }
+      }
+    }
+  });
+
+  // ── Média por disciplina (horizontal bar) ──────
+  const disciplinas = [
+    {d:'Matemática',m:12.4},{d:'Português',m:14.8},{d:'Física',m:11.9},
+    {d:'Informática',m:15.3},{d:'Gestão',m:13.7},{d:'Inglês',m:14.1},
+    {d:'Biologia',m:13.2},{d:'Economia',m:13.9},
+  ];
+  new Chart(document.getElementById('chartDisciplinas'),{
+    type:'bar',
+    data:{
+      labels: disciplinas.map(d=>d.d),
+      datasets:[{
+        label:'Média',
+        data: disciplinas.map(d=>d.m),
+        backgroundColor: disciplinas.map(d=>
+          d.m>=14 ? 'rgba(5,150,105,.2)' :
+          d.m>=12 ? 'rgba(29,78,216,.15)' :
+                    'rgba(220,38,38,.15)'
+        ),
+        borderColor: disciplinas.map(d=>
+          d.m>=14 ? '#059669' : d.m>=12 ? '#1d4ed8' : '#dc2626'
+        ),
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{
+          min:0, max:20,
+          grid:{color:'#e2e2e4'},
+          ticks:{color:'#ffffff',font:{size:11}},
+        },
+        y:{grid:{display:false}, ticks:{color:'#0f172a',font:{size:11,weight:'500'}}},
+      }
+    }
+  });
+</script>
+
+{% endblock content %}

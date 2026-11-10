@@ -1,0 +1,174 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <a href="{% url 'financeiro_dashboard' %}">Financeiro</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Relatório Financeiro</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-bar-chart-line"></i>{% endblock %}
+{% block title %}Relatório Financeiro{% endblock %}
+{% block sub_title %}Situação geral das contas e propinas{% endblock %}
+
+{% block topbar_actions %}
+  <a href="?exportar=pdf{% if request.GET.ano_lectivo %}&ano_lectivo={{ request.GET.ano_lectivo }}{% endif %}"
+     style="background:#dc2626;color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;">
+    <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- TOTAIS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3 fade-up delay-1">
+    <div class="stat-card sc-blue">
+      <div class="stat-icon"><i class="bi bi-people"></i></div>
+      <div class="stat-value">{{ totais.total_contas|default:0 }}</div>
+      <div class="stat-label">Total de Contas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 fade-up delay-2">
+    <div class="stat-card sc-cyan">
+      <div class="stat-icon"><i class="bi bi-calculator"></i></div>
+      <div class="stat-value" style="font-size:1.2rem;">{{ totais.total_devido|floatformat:0|default:"0" }}</div>
+      <div class="stat-label">Total Devido (Kz)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 fade-up delay-3">
+    <div class="stat-card sc-green">
+      <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="stat-value" style="font-size:1.2rem;">{{ totais.total_pago|floatformat:0|default:"0" }}</div>
+      <div class="stat-label">Total Pago (Kz)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 fade-up delay-4">
+    <div class="stat-card sc-warn">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="stat-value" style="font-size:1.2rem;">{{ totais.total_saldo|floatformat:0|default:"0" }}</div>
+      <div class="stat-label">Saldo Total (Kz)</div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BREAKDOWN -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 fade-up delay-1">
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:16px;">Por Status</div>
+      {% for s in por_status %}
+      <div class="prog-row">
+        <div class="prog-hdr">
+          <span class="prog-lbl">
+            {% if s.status == 'em_dia' %}Em Dia
+            {% elif s.status == 'bloqueado' %}Bloqueado
+            {% elif s.status == 'atrasado' %}Atrasado
+            {% else %}Pendente{% endif %}
+            ({{ s.n }} conta(s))
+          </span>
+          <span class="prog-val">{{ s.total|floatformat:0|default:"0" }} Kz</span>
+        </div>
+        <div class="prog-bar">
+          <div class="prog-fill"
+               style="width:{% if totais.total_contas %}{% widthratio s.n totais.total_contas 100 %}{% else %}0{% endif %}%;
+               background:{% if s.status == 'em_dia' %}#059669{% elif s.status == 'bloqueado' %}#dc2626{% elif s.status == 'atrasado' %}#f97316{% else %}#d97706{% endif %};">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 fade-up delay-2">
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:16px;">Indicadores</div>
+      {% if totais.total_devido and totais.total_devido > 0 %}
+      {% with pct=totais.total_pago|default:0 %}
+      <div class="prog-row">
+        <div class="prog-hdr">
+          <span class="prog-lbl">Taxa de Cobrança</span>
+          <span class="prog-val">
+            {% if totais.total_devido %}
+              {% widthratio totais.total_pago totais.total_devido 100 %}%
+            {% else %}0%{% endif %}
+          </span>
+        </div>
+        <div class="prog-bar">
+          <div class="prog-fill"
+               style="width:{% if totais.total_devido %}{% widthratio totais.total_pago totais.total_devido 100 %}{% else %}0{% endif %}%;background:#059669;">
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+      {% endif %}
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;">
+        {% for s in por_status %}
+        <div style="flex:1;min-width:100px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:800;
+            color:{% if s.status == 'em_dia' %}#059669{% elif s.status == 'bloqueado' %}#dc2626{% elif s.status == 'atrasado' %}#f97316{% else %}#d97706{% endif %};">
+            {{ s.n }}
+          </div>
+          <div style="font-size:.7rem;color:var(--text-muted);">
+            {% if s.status == 'em_dia' %}Em Dia
+            {% elif s.status == 'bloqueado' %}Bloqueado
+            {% elif s.status == 'atrasado' %}Atrasado
+            {% else %}Pendente{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABELA DETALHADA -->
+<div class="table-card fade-up delay-3">
+  <div class="card-hdr">
+    <span class="section-title">Contas com Maior Dívida</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Aluno</th>
+          <th>Ano Lectivo</th>
+          <th>Total Devido</th>
+          <th>Total Pago</th>
+          <th>Saldo Devedor</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for conta in contas %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:.78rem;">{{ forloop.counter }}</td>
+          <td style="font-size:.83rem;font-weight:600;">{{ conta.aluno.nome|truncatechars:25 }}</td>
+          <td style="font-size:.8rem;">{{ conta.ano_lectivo }}</td>
+          <td style="font-size:.82rem;">{{ conta.total_devido|floatformat:2 }} Kz</td>
+          <td style="font-size:.82rem;color:#059669;">{{ conta.total_pago|floatformat:2 }} Kz</td>
+          <td style="font-size:.83rem;font-weight:700;color:{% if conta.saldo_devedor > 0 %}#dc2626{% else %}#059669{% endif %};">
+            {{ conta.saldo_devedor|floatformat:2 }} Kz
+          </td>
+          <td>
+            {% if conta.status == 'em_dia' %}<span class="tag tag-green">Em Dia</span>
+            {% elif conta.status == 'bloqueado' %}<span class="tag tag-red">Bloqueado</span>
+            {% elif conta.status == 'atrasado' %}<span class="tag" style="background:#ffedd5;color:#9a3412;">Atrasado</span>
+            {% else %}<span class="tag tag-yellow">Pendente</span>{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'conta_detail' conta.pk %}"
+               style="font-size:.75rem;color:var(--accent);text-decoration:none;">Ver →</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum dado disponível</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

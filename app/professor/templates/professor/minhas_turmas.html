@@ -1,0 +1,137 @@
+{% extends "professor/base.html" %}
+{% load static %}
+
+{% block title %}Minhas Turmas — Portal do Professor{% endblock %}
+{% block sub_title %}
+	Turmas atribuídas no Ano Lectivo {{ ano_lectivo }}
+{% endblock %}
+
+{% block content %}
+
+<div class="card-body" style="border-radius: 4px;">
+  <div class="table-responsive">
+      <table class="table table-hover" style="font-size: 10pt;">
+          <thead class="table-light">
+              <tr>
+                  <th>
+                      Turma
+                      
+                      <a href="?order_by=nome_completo{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                      >
+                      <i class="bi bi-chevron-expand sort-icon"></i>
+                      </a>
+                  </th>
+                  
+                  <th>Opções</th>
+              
+              </tr>
+          </thead>
+          <tbody>
+              {% for t in turma_disciplinas %}
+              <tr>
+                  <td>{{ t.turma }}</td>
+                  <td><a href="{% url "avaliacao:turma_detalhe" t.turma.id %}" class="btn btn-primary">Lançar Nota</a></td>
+              </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="6" class="text-center text-muted py-4">
+                      <i class="fas fa-inbox fa-2x mb-2"></i>
+                      <br>Nenhum registro encontrado.
+                  </td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
+
+  {% if funcionarios.has_other_pages %}
+      <nav aria-label="Page navigation">
+  <ul class="pagination justify-content-center">
+          {% if funcionarios.has_previous %}
+              <li class="page-item">
+                  
+                  <a class="page-link" href="?page={{ funcionarios.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                      <span class="sr-only">Anterior</span>
+                  </a>
+              </li>
+          {% endif %}
+
+          {% for num in funcionarios.paginator.page_range %}
+              {% if funcionarios.number == num %}
+                  <li class="page-item active">
+                      <span class="page-link">{{ num }}</span>
+                  </li>
+              {% else %}
+                  <li class="page-item">
+                      <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                  </li>
+              {% endif %}
+          {% endfor %}
+      {% if funcionarios.has_next %}
+          
+          <li class="page-item">
+              <a class="page-link" href="?page={{ funcionarios.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Próximo</span>
+              </a>
+          </li>
+      {% endif %}
+  </ul>
+  {% endif %}
+</div>
+{% comment %} <div class="container-fluid">
+  <form action="{% url "avaliacao:lancar_notas" %}" method="get" >
+
+    {% csrf_token %}
+
+    <div class="form-layout">
+      <div class="section-card fade-up d2" id="sec-1">
+
+        <div class="section-card-header">
+          <div class="sch-icon sch-cyan"><i class="fas fa-list    "></i></div>
+          <span class="section-card-title">Escolha as opções para lançamento de nota</span>
+        </div>
+
+        <div class="section-card-body">
+
+          <div class="fg-3" style="margin-bottom:16px;">
+
+            <div class="form-field">
+              <label for="turma" class="form-label">Turma</label>
+              <select type="text" class="form-control-custom" name="turma" id="turma">
+                <option value="">Selecione a turma</option>
+                {% for t in turma_disciplinas %}
+                  <option value="{{t.turma.id}}"> {{t.turma}} </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="trimestre" class="form-label">Trimestre</label>
+              <select type="text" class="form-control-custom" name="trimestre" id="trimestre">
+                <option value="">Selecione o Trimestre</option>
+                {% for t in trimestres %}
+                  <option value="{{t.id}}"> {{t}} </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="disciplina" class="form-label">Disciplina</label>
+              <select type="text" class="form-control-custom" name="disciplina" id="disciplina">
+                <option value="">Selecione a Disciplina</option>
+                {% for d in turma_disciplinas %}
+                  <option value="{{d.disciplina.id}}"> {{d.disciplina}} </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Lançar notas</button>
+        </div>
+      </div>
+    </div>
+  </form> {% endcomment %}
+</div>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% extends "director/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .preview-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  .painel-info {
+    background: #f8f9fb;
+    border-right: 2px solid #dde3ed;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .info-secao h3 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.3rem;
+  }
+  .info-linha {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.83rem;
+    margin-bottom: 0.35rem;
+    gap: 0.5rem;
+  }
+  .info-linha span:first-child { color: #666; flex-shrink: 0; }
+  .info-linha strong { color: #1a1a1a; text-align: right; }
+
+  .badge-resultado {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .badge-aprovado { background: #d4edda; color: #155724; }
+  .badge-reprovado { background: #f8d7da; color: #721c24; }
+  .badge-exame { background: #fff3cd; color: #856404; }
+
+  .btn-emitir {
+    background: #1a3a5c;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+  .btn-emitir:hover { background: #2e6da4; }
+  .btn-emitir:disabled { background: #999; cursor: not-allowed; }
+
+  .btn-voltar {
+    display: block;
+    text-align: center;
+    padding: 0.5rem;
+    color: #666;
+    font-size: 0.83rem;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+  }
+  .btn-voltar:hover { background: #f5f5f5; }
+
+  .aviso-cuidado {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 5px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    color: #856404;
+  }
+  .aviso-cuidado strong { display: block; margin-bottom: 0.2rem; }
+
+  .painel-preview-doc {
+    overflow: hidden;
+    background: #dde3ed;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-doc-topo {
+    background: #2e6da4;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #doc-iframe {
+    flex: 1;
+    border: none;
+    background: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preview-layout">
+
+  <!-- ── Painel de informações ── -->
+  <div class="painel-info">
+    <div class="info-secao">
+      <h3>📄 Documento</h3>
+      <div class="info-linha">
+        <span>Tipo:</span>
+        <strong>{{ template.get_tipo_display }}</strong>
+      </div>
+      <div class="info-linha">
+        <span>Template:</span>
+        <strong>{{ template.nome }}</strong>
+      </div>
+      <div class="info-linha">
+        <span>Próx. número:</span>
+        <strong>{{ template.prefixo_numeracao }}-{{ template.data_criacao.year }}-{{ template.contador_atual|add:1|stringformat:"04d" }}</strong>
+      </div>
+    </div>
+
+    <div class="info-secao">
+      <h3>👤 Aluno</h3>
+      <div class="info-linha">
+        <span>Nome:</span>
+        <strong>{{ aluno.nome_completo }}</strong>
+      </div>
+      {% if aluno.numero_processo %}
+      <div class="info-linha">
+        <span>N.º Processo:</span>
+        <strong>{{ aluno.numero_processo }}</strong>
+      </div>
+      {% endif %}
+      <div class="info-linha">
+        <span>BI:</span>
+        <strong>{{ aluno.bi }}</strong>
+      </div>
+    </div>
+
+    {% if matricula %}
+    <div class="info-secao">
+      <h3>📚 Matrícula</h3>
+      <div class="info-linha">
+        <span>Ano Lectivo:</span>
+        <strong>{{ ano_lectivo.designacao }}</strong>
+      </div>
+      {% if matricula.turma %}
+      <div class="info-linha">
+        <span>Turma:</span>
+        <strong>{{ matricula.turma }}</strong>
+      </div>
+      <div class="info-linha">
+        <span>Classe:</span>
+        <strong>{{ matricula.turma.classe.designacao }}</strong>
+      </div>
+      <div class="info-linha">
+        <span>Curso:</span>
+        <strong>{{ matricula.turma.curso.nome }}</strong>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="aviso-cuidado">
+      <strong>⚠️ Sem matrícula</strong>
+      O aluno não tem matrícula neste ano lectivo. Alguns dados podem estar em falta.
+    </div>
+    {% endif %}
+
+    {% if resultados %}
+    <div class="info-secao">
+      <h3>📊 Resultados</h3>
+      {% for res in resultados %}
+      <div class="info-linha">
+        <span style="font-size:0.78rem;">{{ res.disciplina.nome|truncatechars:20 }}</span>
+        <span>
+          {% if res.nota_final %}<strong>{{ res.nota_final }}</strong>{% endif %}
+          {% if "Aprovado" in res.situacao %}<span class="badge-resultado badge-aprovado">A</span>{% elif "Admitido" in res.situacao %}<span class="badge-resultado badge-exame">E</span>{% else %}<span class="badge-resultado badge-reprovado">R</span>{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="aviso-cuidado">
+      <strong>⚠️ Atenção</strong>
+      Após emissão, o documento fica registado e não pode ser alterado. Verifique os dados antes de emitir.
+    </div>
+
+    <!-- Formulário de emissão -->
+    <form method="post" action="{% url 'documentos:emitir_documento' %}">
+      {% csrf_token %}
+      <input type="hidden" name="aluno_id" value="{{ aluno.id }}">
+      <input type="hidden" name="template_id" value="{{ template.id }}">
+      <input type="hidden" name="ano_lectivo_id" value="{{ ano_lectivo.id }}">
+      <button type="submit" class="btn-emitir"
+              onclick="return confirm('Confirma a emissão deste documento? Esta acção não pode ser revertida.')">
+        ✅ Emitir e Imprimir
+      </button>
+    </form>
+
+    <a href="{% url 'documentos:selecionar_aluno_documento' %}" class="btn-voltar">← Voltar</a>
+  </div>
+
+  <!-- ── Pré-visualização ── -->
+  <div class="painel-preview-doc">
+    <div class="preview-doc-topo">
+      <span>🔍 Pré-visualização — Dados reais do aluno</span>
+      <span style="font-size:0.75rem;opacity:0.8;">PRÉ-VISUALIZAÇÃO (sem número definitivo)</span>
+    </div>
+    <iframe id="doc-iframe"
+            srcdoc="{{ html_documento|escapejs }}"
+            title="Pré-visualização do documento">
+    </iframe>
+  </div>
+
+</div>
+
+<script>
+  // Injeta o HTML no iframe sem escapar
+  (function() {
+    const iframe = document.getElementById('doc-iframe');
+    const html = {{ html_documento|json_script:"doc-html" }};
+    // Usa json_script para segurança
+    const rawHtml = document.getElementById('doc-html');
+    if (rawHtml) {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(JSON.parse(rawHtml.textContent));
+      doc.close();
+    }
+  })();
+</script>
+{% endblock %}

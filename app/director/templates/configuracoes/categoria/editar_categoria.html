@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {% load static %}
+        <script src="{% static 'js/jquery.inputmask.min.js' %}"></script>
+        <style>
+     
+            :root {
+            --primary-blue: #1E3A8A;
+            --medium-blue: #3B82F6;
+            --light-blue: #60A5FA;
+            --bg-gray: #F3F4F6;
+            --text-dark: #1F2937;
+            --text-gray: #6B7280;
+            --white: #FFFFFF;
+            --border-gray: #E5E7EB;
+            --hover-blue: #1E40AF;
+            --sidebar-width: 260px;
+            --topbar-height: 64px;
+        }
+
+
+            .container-criar_professor {
+                display: flex;
+                flex-direction: column;
+                width: 80%;
+                background: var(--branco);
+                border-radius: 10px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                margin-bottom: 10px;
+            }
+
+            .header {
+                display: flex;
+                width: 100%;
+                justify-content: space-between;
+                background: var(--primary-blue);
+                padding: 40px ;
+                text-align: center;
+                position: relative;
+                border-radius: 10px 10px 0px 0px;
+            }
+
+            .header h1 {
+                color: var(--white);
+                font-size: 2em;
+                margin-bottom: 10px;
+            }
+
+            .header p {
+                color: var(--primary-blue);
+                font-size: 0.95em;
+            }
+
+            .profile-picture-section {
+                padding: 40px;
+                text-align: center;
+                background: var(--border-gray);
+                border-bottom: 3px solid var(--primary-blue);
+            }
+
+            .profile-picture-wrapper {
+                position: relative;
+                display: inline-block;
+            }
+
+            .profile-picture {
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                border: 5px solid var(--primary-blue);
+                object-fit: cover;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            }
+
+            .change-photo-btn {
+                position: absolute;
+                bottom: 5px;
+                right: 5px;
+                background: var(--primary-blue);
+                color: var(--medium-blue);
+                border: none;
+                width: 45px;
+                height: 45px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 1.2em;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                transition: all 0.3s ease;
+            }
+
+            .change-photo-btn:hover {
+                transform: scale(1.1);
+                background: var(--medium-blue);
+                color: var(--primary-blue);
+            }
+
+            .form-section {
+              
+                padding: 40px;
+            }
+
+            .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+                margin-bottom: 25px;
+            }
+
+            .form-group {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .form-group.full-width {
+                grid-column: 1 / -1;
+            }
+
+            .form-group label {
+                color: var(--text-gray);
+                font-weight: 600;
+                margin-bottom: 8px;
+                font-size: 0.95em;
+            }
+
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                padding: 12px 15px;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                font-size: 1em;
+                transition: all 0.3s ease;
+                font-family: inherit;
+            }
+
+            .form-group input:focus,
+            .form-group textarea:focus,
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--medium-blue);
+                box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+            }
+
+            .form-group textarea {
+                resize: vertical;
+                min-height: 100px;
+            }
+
+            .section-title {
+                color: var(--medium-blue);
+                font-size: 1.3em;
+                margin: 30px 0 20px 0;
+                padding-bottom: 10px;
+                border-bottom: 2px solid var(--primary-blue);
+                display: flex;
+                align-items: center;
+            }
+
+            .section-title::before {
+                content: '';
+                width: 4px;
+                height: 24px;
+                background: var(--primary-blue);
+                margin-right: 12px;
+            }
+        
+            .password-toggle {
+                display: flex;
+                align-items: center;
+                margin-top: 10px;
+                color: var(--azul-medio);
+                font-size: 0.9em;
+                cursor: pointer;
+            }
+
+            .password-toggle input[type="checkbox"] {
+                margin-right: 8px;
+            }
+
+            @media (max-width: 768px) {
+                .form-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .header h1 {
+                    font-size: 1.5em;
+                }
+
+                .form-section {
+                    padding: 30px 20px;
+                }
+
+                .button-group {
+                    flex-direction: column;
+                }
+            }
+
+            .alert {
+                padding: 15px 20px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .alert-info {
+                background: rgba(255, 193, 7, 0.1);
+                border-left: 4px solid var(--primary-blue);
+                color: var(--medium-blue);
+            }
+        </style>
+    </head>
+    <body >
+        <div style="display: flex; justify-content: center; width: 100%; height: 100%">
+
+            
+            <form action="{% url "editar_categoria" categoria.id %}" method="post" class="container-criar_professor">
+
+                <div class="header d-flex justify-content-between ">
+                    <h3 class="text-warning">Atualização de categoria</h3>
+                    
+                    <a href="/listar_categoria/" class="btn btn-primary" style="width: 100px;">Listar</a>
+                </div>
+
+                {% csrf_token %}
+
+                
+            
+                <div class="form-section" >
+
+                    <div class="alert alert-info">
+                        <span>ℹ️</span>
+                        <span>Preencha todos os campos obrigatórios para salvar as alterações</span>
+                    </div>
+                    
+                
+                    {% if sucesso %}
+                    
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong>{{sucesso}}</strong>
+                            <button type="button" class="btn-close"
+                            data-bs-dismiss="alert" aria-label="close"
+                            ></button>
+                        </div>
+                    {% elif erro %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong>{{erro}}</strong>
+                            <button type="button" class="btn-close"
+                            data-bs-dismiss="alert" aria-label="close"
+                            ></button>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label for="turma">
+                                
+                                <span >
+                                    Denominação de categoria
+                                    <span class="text-danger">*</span>
+                                </span>
+                            </label>
+
+                            <input type="text" name="categoria" placeholder="Denominação de categoria" value="{{categoria.categoria}}">
+                                
+                            {% if campo %}
+                                <div class="text-danger">
+                                    {{campo}}
+                                </div>
+                            {% endif %}
+                            
+                        </div>
+
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+
+                        <button type="submit" class="btn btn-success" style="width: 80%; ">
+                            Cadastrar
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+        </div>
+        <script>
+            function formatCurrency(input, min, max) {
+                // Remove tudo que não for número ou vírgula/ponto
+                let value = input.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                console.log(value)
+
+                // Se não for número válido
+                if (isNaN(value) || value === "") {
+                    input.value = "";
+                    return;
+                }
+
+                let num = parseFloat(value);
+
+                // Verifica limites
+                if (num < min || num > max) {
+                    alert(`Valor fora do intervalo permitido (${min} - ${max})`);
+                    input.value = "";
+                    return;
+                }
+
+
+
+                // Formata como moeda (pt-BR usa vírgula como decimal)
+                input.value = num.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 3
+                });
+
+
+            }
+
+            function formatDecimalPeso(input, min, max) {
+              let value = input.value.replace(',', '.');
+              if (isNaN(value)) {
+                input.value = "";
+                return;
+              }
+              let num = parseFloat(value).toFixed(3); 
+
+              if (num < min || num > max) {
+                alert("Valor fora do intervalo permitido");
+                input.value = "";
+              } else {
+                input.value = num;
+              }
+            }
+            
+            document.getElementById("la").addEventListener("blur", function(){
+                formatDecimalPeso(this, 1, 9999999);
+            });
+            
+            document.getElementById("valor").addEventListener("blur", function(){
+              formatCurrency(this, 0, 9999999999999999);
+            });
+            </script>
+            
+    </body>
+    </html>
+{% endblock content %}

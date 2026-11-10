@@ -1,0 +1,183 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'curso_list' %}">Trimestres</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{trimestre.designacao}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Trimestre
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas da trimestre {{trimestre.designacao}}
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 20px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+        
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Nome:</strong></div>
+                <div class="col-sm-9">{{ trimestre.designacao}}º Trimestre</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Em vigor:</strong></div>
+                <div class="col-sm-9">
+                    {% if trimestre.activo %}
+                        <span class="badge bg-success">Activo</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if not resultado or not avalicao  %}
+            <button class="btn btn-danger" style="width: 100px"
+                    onclick="confirmDelete('{{ trimestre.id }}','{{ trimestre.designacao }}')">
+                Elimina
+            </button>
+        {% endif %}
+
+    </div>
+</div>
+
+ <div class="modal-backdrop" id="deleteModal">
+      <div  class="modal-box" id="formDelete">
+
+            <div class="modal-icon danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h3 class="modal-title">Confirmar Eliminação</h3>
+            <p class="modal-body-text">
+                  Tem a certeza que deseja eliminar o trimestre <strong id="deleteTarget"></strong>?
+                  Esta acção não pode ser desfeita.
+            </p>
+
+            <div id="sms" style="color: red;"></div>
+
+            <div class="modal-actions">
+                  <button class="btn btn-outline-secondary" onclick="closeModal()">Cancelar</button>
+                  <button  class="btn btn-outline-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash-fill"></i> Eliminar
+                  </button>
+            </div>
+      </div>
+</div>
+
+<script>
+    // Delete modal
+      let itemparadeletar = null
+      let nome_item = null
+
+      function confirmDelete(id, name) {
+
+        itemparadeletar = id
+        nome_item = name
+
+        document.getElementById('deleteTarget').textContent = name;
+        document.getElementById('deleteModal').classList.add('open');
+      }
+      function closeModal() {
+        const sms = document.getElementById('sms');
+        sms.innerText = ''
+        document.getElementById('deleteModal').classList.remove('open');
+      }
+      document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+
+      document.getElementById('confirmDeleteBtn').addEventListener('click', async(e)=>{
+            e.preventDefault()
+
+            const sms = document.getElementById('sms');
+
+
+            try {
+                await fetch(`/director/trimestres/${itemparadeletar}/excluir/`, {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                }).then(async (response)=>{
+                        const data = await response.json()
+                        if (response.ok) {
+                            sms.innerText = `Trimestre ${nome_item} eliminado com sucesso!`;
+                            sms.style.color = "green";
+                            setInterval(()=>window.location.href = '/director/trimestres/', 1000)
+
+                        } else {
+                            sms.innerText = data.message || "Erro ao deletar o item!";
+                            sms.style.color = "red";
+                        }
+                    })
+
+
+
+            } catch (error) {
+              console.log(error);
+              sms.innerText = "Erro de conexão com o servidor.";
+              sms.style.color = "red";
+            }
+      })
+</script>
+{% endblock %}
+

@@ -1,0 +1,244 @@
+{% extends 'director/base.html' %}
+{% load custom_tags %}
+{% block breadcrumb %}
+  <a href="{% url 'avaliacao_list' %}">Avaliações</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Resultados Anuais</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-award-fill"></i>{% endblock %}
+{% block title %}Resultados Anuais{% endblock %}
+{% block sub_title %}Nota final e situação de cada aluno no ano lectivo{% endblock %}
+
+{% block topbar_actions %}
+<div style="display:flex;gap:8px;">
+  {% if pauta %}
+  <a href="{% url 'lancar_nota_exame' %}?turma={{ turma_sel }}&disciplina={{ disciplina_sel }}" class="btn btn-sm"
+    style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;display:flex;align-items:center;gap:6px;font-weight:600;">
+    <i class="bi bi-pencil-square"></i> Lançar Exames
+  </a>
+  <button onclick="window.print()" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sub);display:flex;align-items:center;gap:6px;">
+    <i class="bi bi-printer"></i> Imprimir
+  </button>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="table-card" style="padding:20px;margin-bottom:18px;">
+  <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+    <div style="flex:1;min-width:200px;">
+      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Turma</label>
+      <select name="turma" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+        <option value="">-- Seleccione --</option>
+        {% for t in turmas %}
+        <option value="{{ t.pk }}" {% if turma_sel == t.pk|stringformat:"s" %}selected{% endif %}>
+          {{ t.designacao }} — {{ t.classe.designacao }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:1;min-width:200px;">
+      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Disciplina</label>
+      <select name="disciplina" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+        <option value="">-- Seleccione --</option>
+        {% for d in disciplinas %}
+        <option value="{{ d.pk }}" {% if disciplina_sel == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" style="padding:10px 20px;border-radius:9px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:.83rem;font-weight:600;display:flex;align-items:center;gap:7px;">
+      <i class="bi bi-search"></i> Gerar Pauta Anual
+    </button>
+  </form>
+</div>
+
+{% if pauta %}
+
+<!-- Cabeçalho da Pauta Anual -->
+<div style="background:linear-gradient(135deg,#0f1f3d,#312e81);border-radius:12px;padding:20px 24px;color:#fff;margin-bottom:16px;">
+  <div style="font-size:.72rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">
+    Pauta de Resultados Anuais — IIº Ciclo
+  </div>
+  <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;margin-bottom:8px;">
+    {{ turma.designacao }} &nbsp;|&nbsp; {{ disciplina.nome }}
+  </div>
+  <div style="font-size:.78rem;color:rgba(255,255,255,.6);">
+    Ano Lectivo: <strong style="color:#fff;">{{ turma.ano_lectivo.designacao }}</strong>
+    &nbsp;•&nbsp; {{ pauta|length }} aluno(s)
+  </div>
+</div>
+
+<!-- Tabela de Resultados Anuais -->
+<div class="table-card fade-up" style="overflow-x:auto;">
+  <table class="dt">
+    <thead>
+      <tr>
+        <th style="width:40px;">#</th>
+        <th>Nome do Aluno</th>
+        <th style="text-align:center;width:80px;background:#f0f9ff;">MAC T1</th>
+        <th style="text-align:center;width:80px;background:#f0f9ff;">MAC T2</th>
+        <th style="text-align:center;width:80px;background:#f0f9ff;">MAC T3</th>
+        <th style="text-align:center;width:90px;background:#e0f2fe;">MAC Anual</th>
+        <th style="text-align:center;width:80px;background:#fef3c7;">Exame</th>
+        <th style="text-align:center;width:90px;background:#d1fae5;">Nota Final</th>
+        <th style="text-align:center;min-width:130px;">Situação Final</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for linha in pauta %}
+      {% with ra=linha.resultado_anual %}
+      <tr>
+        <td style="color:var(--text-muted);font-size:.78rem;">{{ linha.numero }}</td>
+        <td>
+          <div style="font-weight:600;font-size:.84rem;"><a href="{% url 'boletim_aluno' linha.matricula.id %}">{{ linha.matricula.aluno.nome_completo }}</a> </div>
+          <div style="font-size:.7rem;color:var(--text-muted);">{{ linha.matricula.aluno.numero_processo|default:"—" }}</div>
+        </td>
+
+        <!-- MACs Trimestrais -->
+        {% for t in linha.trimestres %}
+        {% with rt=linha.resultados_trim|get_item:t.pk%}
+        <td style="text-align:center;background:#f8fcff;">
+          {% if rt %}
+          <strong style="font-size:.88rem;color:{% if rt.mac >= 10 %}#059669{% elif rt.mac >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+            {{ rt.mac|floatformat:2 }}
+          </strong>
+          {% else %}
+          <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+        {% endwith %}
+        {% endfor %}
+
+        <!-- MAC Anual -->
+        <td style="text-align:center;background:#e8f4fd;">
+          {% if ra and ra.mac_anual %}
+          <strong style="font-size:.92rem;color:{% if ra.mac_anual >= 10 %}#059669{% elif ra.mac_anual >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+            {{ ra.mac_anual|floatformat:2 }}
+          </strong>
+          {% else %}
+          <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+
+        <!-- Nota de Exame -->
+        <td style="text-align:center;background:#fffbf0;">
+          {% if ra and ra.nota_exame %}
+          <strong style="font-size:.88rem;color:#d97706;">{{ ra.nota_exame|floatformat:2 }}</strong>
+          {% elif ra and ra.situacao == 'Admitido a Exame' %}
+          <span class="tag tag-yellow" style="font-size:.68rem;">Pendente</span>
+          {% else %}
+          <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+
+        <!-- Nota Final -->
+        <td style="text-align:center;background:#f0fdf4;">
+          {% if ra and ra.nota_final %}
+          <strong style="font-size:.96rem;font-weight:800;color:{% if ra.nota_final >= 10 %}#059669{% else %}#dc2626{% endif %};">
+            {{ ra.nota_final|floatformat:2 }}
+          </strong>
+          {% else %}
+          <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+
+        <!-- Situação Final -->
+        <td style="text-align:center;">
+          {% if ra %}
+            {% if ra.situacao == 'Aprovado' %}
+              <span class="tag tag-green"><i class="bi bi-check-circle-fill"></i> Aprovado</span>
+            {% elif ra.situacao == 'Aprovado por Exame' %}
+              <span class="tag tag-green"><i class="bi bi-check2-all"></i> Aprov. Exame</span>
+            {% elif ra.situacao == 'Aguardar Exame' %}
+              <span class="tag tag-yellow"><i class="bi bi-hourglass-split"></i> Aguardar Exame</span>
+            {% elif ra.situacao == 'Reprovado em Exame' %}
+              <span class="tag tag-red"><i class="bi bi-x-circle-fill"></i> Reprov. Exame</span>
+            {% elif ra.situacao == 'Reprovado' %}
+              <span class="tag tag-red"><i class="bi bi-x-circle-fill"></i> Reprovado</span>
+            {% elif ra.situacao == 'Transferido' %}
+              <span class="tag tag-blue"><i class="bi bi-arrow-left-right"></i> Transferido</span>
+            {% else %}
+              <span class="tag tag-gray">{{ ra.situacao }}</span>
+            {% endif %}
+          {% else %}
+          <span class="tag tag-gray">Sem dados</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Estatísticas finais -->
+<div class="row g-3 mt-2">
+  <div class="col-12">
+    <div class="table-card" style="padding:18px 24px;">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;">
+        <i class="bi bi-pie-chart-fill" style="color:var(--accent);"></i> Distribuição dos Resultados
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        {% for situacao, cor, icone in resultado_stats %}
+        <div style="flex:1;min-width:130px;background:{{ cor }};border-radius:10px;padding:14px 16px;text-align:center;">
+          <i class="bi {{ icone }}" style="font-size:1.2rem;margin-bottom:6px;display:block;"></i>
+          <div style="font-size:.78rem;font-weight:600;">{{ situacao }}</div>
+        </div>
+        {% empty %}
+        <!-- Totais calculados no template -->
+        {% with aprov=0 adm=0 rep=0 %}
+        {% for l in pauta %}
+          {% if l.resultado_anual %}
+            {% if l.resultado_anual.situacao == 'Aprovado' or l.resultado_anual.situacao == 'Aprovado por Exame' %}
+              {% with aprov=aprov|add:1 %}{% endwith %}
+            {% elif l.resultado_anual.situacao == 'Admitido a Exame' %}
+              {% with adm=adm|add:1 %}{% endwith %}
+            {% else %}
+              {% with rep=rep|add:1 %}{% endwith %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        <div style="flex:1;min-width:130px;background:#d1fae5;border-radius:10px;padding:14px 16px;text-align:center;">
+          <i class="bi bi-check-circle-fill" style="font-size:1.5rem;color:#059669;display:block;margin-bottom:6px;"></i>
+          <div style="font-size:1.2rem;font-weight:800;color:#059669;">—</div>
+          <div style="font-size:.75rem;color:#065f46;font-weight:600;">Aprovados</div>
+        </div>
+        <div style="flex:1;min-width:130px;background:#fef3c7;border-radius:10px;padding:14px 16px;text-align:center;">
+          <i class="bi bi-hourglass-split" style="font-size:1.5rem;color:#d97706;display:block;margin-bottom:6px;"></i>
+          <div style="font-size:1.2rem;font-weight:800;color:#d97706;">—</div>
+          <div style="font-size:.75rem;color:#92400e;font-weight:600;">Admitidos a Exame</div>
+        </div>
+        <div style="flex:1;min-width:130px;background:#fee2e2;border-radius:10px;padding:14px 16px;text-align:center;">
+          <i class="bi bi-x-circle-fill" style="font-size:1.5rem;color:#dc2626;display:block;margin-bottom:6px;"></i>
+          <div style="font-size:1.2rem;font-weight:800;color:#dc2626;">—</div>
+          <div style="font-size:.75rem;color:#991b1b;font-weight:600;">Reprovados</div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="table-card" style="padding:60px;text-align:center;">
+  <i class="bi bi-award" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+  <div style="font-weight:600;font-size:1rem;margin-bottom:8px;">Seleccione a turma e disciplina</div>
+  <div style="font-size:.82rem;color:var(--text-muted);">
+    Os resultados anuais são calculados automaticamente com base nos MACs dos três trimestres.
+  </div>
+</div>
+{% endif %}
+
+<style>
+@media print {
+  .sidebar,.topbar,.breadcrumb-bar,form,button,[class*="btn"],.page-header-icon { display:none!important; }
+  .main-content { margin-left:0!important;padding-top:0!important; }
+  body { background:white; }
+  .table-card { box-shadow:none!important;border:1px solid #ccc; }
+}
+</style>
+{% endblock %}

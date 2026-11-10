@@ -1,0 +1,200 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <a href="{% url 'pagamento_list' %}">Pagamentos</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Recibo {{ pagamento.numero_recibo }}</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-receipt"></i>{% endblock %}
+{% block title %}Recibo de Pagamento{% endblock %}
+{% block sub_title %}{{ pagamento.numero_recibo }}{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display:flex;gap:10px;">
+    <a href="{% url 'recibo_pdf' pagamento.numero_recibo %}" target="_blank"
+       style="background:#dc2626;color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;">
+      <i class="bi bi-file-earmark-pdf"></i> Baixar PDF
+    </a>
+    <button onclick="window.print()"
+            style="background:var(--bg);color:var(--text-sub);border:1px solid var(--border);border-radius:9px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-printer"></i> Imprimir
+    </button>
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9" id="recibo-print">
+    <!-- RECIBO CARD -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;box-shadow:0 8px 40px rgba(15,31,61,.1);" class="fade-up">
+
+      <!-- HEADER -->
+      <div style="background:linear-gradient(135deg,#0f1f3d 0%,#1d3f7a 60%,#1e40af 100%);padding:30px 36px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-30px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(59,130,246,.15);"></div>
+        <div style="position:absolute;bottom:-50px;right:80px;width:120px;height:120px;border-radius:50%;background:rgba(124,58,237,.12);"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1;">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+                🏫
+              </div>
+              <div>
+                <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;">
+                  {{ pagamento.conta_aluno.ano_lectivo }}
+                </div>
+                <div style="font-size:.72rem;opacity:.6;text-transform:uppercase;letter-spacing:.06em;">
+                  Sistema de Gestão Escolar
+                </div>
+              </div>
+            </div>
+            <div style="font-size:.72rem;opacity:.5;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Recibo de Pagamento</div>
+            <div style="font-size:1.8rem;font-weight:900;letter-spacing:.04em;">{{ pagamento.numero_recibo }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:14px 20px;">
+              <div style="font-size:.68rem;opacity:.6;text-transform:uppercase;margin-bottom:4px;">Valor Pago</div>
+              <div style="font-size:2rem;font-weight:900;color:#86efac;">
+                {{ pagamento.valor|floatformat:2 }} <span style="font-size:1rem;">Kz</span>
+              </div>
+              <div style="font-size:.72rem;opacity:.6;margin-top:4px;">{{ pagamento.data_pagamento|date:"d \d\e F \d\e Y" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:32px 36px;">
+        <div class="row g-4 mb-4">
+          <!-- Dados do Aluno -->
+          <div class="col-12 col-md-6">
+            <div style="font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.08em;color:var(--text-muted);margin-bottom:12px;">
+              Dados do Aluno
+            </div>
+            <table style="width:100%;font-size:.84rem;border-collapse:collapse;">
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);width:45%;">Nome</td>
+                <td style="padding:6px 0;font-weight:600;font-size:8pt;">{{ pagamento.conta_aluno.aluno.nome_completo }}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);">Nº Processo</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.conta_aluno.aluno.numero_processo|default:"—" }}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);">Ano Lectivo</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.conta_aluno.ano_lectivo }}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Dados do Pagamento -->
+          <div class="col-12 col-md-6">
+            <div style="font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.08em;color:var(--text-muted);margin-bottom:12px;">
+              Dados do Pagamento
+            </div>
+            <table style="width:100%;font-size:.84rem;border-collapse:collapse;">
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);width:45%;">Data</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.data_pagamento|date:"d/m/Y" }}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);">Método</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.get_metodo_pagamento_display }}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);">Referência</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.referencia|default:"—" }}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:var(--text-muted);">Registado por</td>
+                <td style="padding:6px 0;font-weight:600;">{{ pagamento.registado_por|default:"Sistema" }}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- SALDO -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+          <div class="row g-3 text-center">
+            <div class="col-4">
+              <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Total Devido</div>
+              <div style="font-size:1.1rem;font-weight:800;color:var(--text-main);">
+                {{ pagamento.conta_aluno.total_devido|floatformat:2 }} Kz
+              </div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Este Pagamento</div>
+              <div style="font-size:1.1rem;font-weight:800;color:#059669;">
+                +{{ pagamento.valor|floatformat:2 }} Kz
+              </div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Saldo Devedor</div>
+              <div style="font-size:1.1rem;font-weight:800;color:{% if pagamento.conta_aluno.saldo_devedor > 0 %}#dc2626{% else %}#059669{% endif %};">
+                {{ pagamento.conta_aluno.saldo_devedor|floatformat:2 }} Kz
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QR + FOOTER -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;padding-top:20px;border-top:2px dashed #e2e8f0;">
+          <div>
+            <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:6px;">
+              Validação do Recibo
+            </div>
+            {% if qr_base64 %}
+            <img src="data:image/png;base64,{{ qr_base64 }}"
+                 alt="QR Code de Validação"
+                 style="width:100px;height:100px;border-radius:8px;border:1px solid #e2e8f0;">
+            {% endif %}
+            <div style="font-size:.66rem;color:var(--text-muted);margin-top:6px;max-width:140px;">
+              Escaneie para validar este recibo
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:.68rem;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:8px;">
+              Situação da Conta
+            </div>
+            {% if pagamento.conta_aluno.status == 'em_dia' %}
+            <span class="tag tag-green" style="font-size:.8rem;padding:6px 16px;">✓ Em Dia</span>
+            {% elif pagamento.conta_aluno.status == 'bloqueado' %}
+            <span class="tag tag-red" style="font-size:.8rem;padding:6px 16px;">⚠ Bloqueado</span>
+            {% elif pagamento.conta_aluno.status == 'atrasado' %}
+            <span class="tag" style="background:#ffedd5;color:#9a3412;font-size:.8rem;padding:6px 16px;">⚠ Atrasado</span>
+            {% else %}
+            <span class="tag tag-yellow" style="font-size:.8rem;padding:6px 16px;">● Pendente</span>
+            {% endif %}
+            <div style="margin-top:12px;font-size:.7rem;color:var(--text-muted);">
+              Emitido em {{ pagamento.data_criacao|date:"d/m/Y \à\s H:i" }}
+            </div>
+            <div style="font-size:.68rem;color:var(--text-muted);">
+              UUID: {{ pagamento.uuid_validacao }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RODAPÉ -->
+      <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 36px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:.72rem;color:var(--text-muted);">
+          Este documento é válido como comprovativo de pagamento.
+        </div>
+        <a href="{% url 'validar_recibo' pagamento.numero_recibo %}"
+           style="font-size:.72rem;color:var(--accent);text-decoration:none;">
+          Validar online →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  .sidebar, .topbar, .breadcrumb-bar, .page-header, .topbar-actions { display: none !important; }
+  .main-content { margin-left: 0 !important; padding-top: 0 !important; }
+  #recibo-print { max-width: 100% !important; }
+}
+</style>
+{% endblock %}

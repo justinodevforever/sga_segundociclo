@@ -1,0 +1,35 @@
+{% extends 'director/base.html' %}
+{% comment %} Ajusta o nome do template base acima para o teu. {% endcomment %}
+
+{% block breadcrumb %}<span class="current">Relatórios Financeiros</span>{% endblock %}
+{% block icon %}<i class="bi bi-bar-chart-line"></i>{% endblock %}
+{% block title %}Relatórios Financeiros{% endblock %}
+{% block sub_title %}Todos os relatórios do módulo de finanças, com filtros e exportação CSV{% endblock %}
+
+{% block content %}
+<style>
+  .rel-grupo { margin-bottom:28px; }
+  .rel-grupo-titulo { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-family:'Playfair Display',serif; font-weight:700; font-size:1.05rem; }
+  .rel-grupo-titulo i { width:32px; height:32px; border-radius:9px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.95rem; }
+  .rel-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px; }
+  .rel-item { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; display:flex; gap:14px; align-items:flex-start; color:inherit; box-shadow:var(--shadow); transition:transform .18s, box-shadow .18s, border-color .18s; }
+  .rel-item:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); border-color:var(--accent); color:inherit; }
+  .rel-item .ic { width:40px; height:40px; border-radius:11px; background:#dbeafe; color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+  .rel-item h6 { margin:0 0 4px; font-size:.9rem; font-weight:700; }
+  .rel-item p { margin:0; font-size:.76rem; color:var(--text-sub); line-height:1.45; }
+</style>
+
+{% for titulo, icone, itens in grupos %}
+<section class="rel-grupo fade-up">
+  <div class="rel-grupo-titulo"><i class="bi {{ icone }}"></i> {{ titulo }}</div>
+  <div class="rel-grid">
+    {% for nome, url, desc, ic in itens %}
+    <a href="{% url url %}" class="rel-item">
+      <div class="ic"><i class="bi {{ ic }}"></i></div>
+      <div><h6>{{ nome }}</h6><p>{{ desc }}</p></div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

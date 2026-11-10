@@ -1,0 +1,118 @@
+{% extends 'administrador/baseadmin.html' %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    
+    <div class="page-body">
+
+        <!-- Page Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1 style="font-size:1.5rem;font-weight:800">Painel de Administração</h1>
+                <p style="color:var(--text-muted);font-size:.85rem;margin-top:4px">
+                Visão geral do sistema · <span id="dataAtual"></span>
+                </p>
+            </div>
+            <button class="btn btn-sm" style="background:var(--accent);color:#fff;border-radius:8px;font-weight:600;padding:8px 18px">
+                <i class="bi bi-download me-2"></i>Exportar Relatório
+            </button>
+        </div>
+
+        <!-- ── STAT CARDS ── -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card c-blue">
+                    <div class="stat-icon"><i class="bi bi-building-fill"></i></div>
+                    <div class="stat-value">{{ total_escolas|default:"24" }}</div>
+                    <div class="stat-label">Escolas Ativas</div>
+                    <div class="stat-trend up"><i class="bi bi-arrow-up-short"></i> +2 este mês</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ROW 5: Roles & Planos ── -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-10 col-lg-4">
+                <div class="table-card">
+                    <div class="card-header-custom">
+                        <span class="section-title">Roles do Sistema</span>
+                        <a href="#" style="color:var(--accent);font-size:.8rem">Gerir <i class="bi bi-arrow-right ms-1"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                        <thead>
+                            <tr><th>Role</th><th>Utilizadores</th><th>Estado</th></tr>
+                        </thead>
+                            <tbody>
+                                {% for role_usuario in role_usuarios %}
+
+                                <tr>
+                                    <td>{{ role_usuario.role.get_nome_display }}</td>
+                                    <td>{{ role_usuario.total_usuarios }}</td>
+                                    <td>
+                                        {% if role_usuario.role.is_active %}
+                                            <span class="badge bs-active">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        <div class="col-14 col-lg-8">
+            <div class="table-card">
+                <div class="card-header-custom">
+                    <span class="section-title">Planos de Subscrição</span>
+                    <a href="/administrator/plano/lista/" style="color:var(--accent);font-size:.8rem">Gerir <i class="bi bi-arrow-right ms-1"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Plano</th>
+                                <th>Escolas</th>
+                                <th>Preço/Mês</th>
+                                <th>Preço/Anual </th>
+                                <th>Total/Turma</th>
+                                <th>Total/Alunos</th>
+                                <th>Total/Professores</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            {% for plano in planos %}
+
+                                <tr>
+                                    <td><strong>{{ plano.get_nome_display }}</strong></td>
+                                    <td>{{ plano.total_escolas }}</td>
+                                    <td style="color:var(--accent-4)">{{ plano.preco_mensal }}</td>
+                                    <td style="color:var(--accent-4)">{{ plano.preco_anual }}</td>
+                                    <td>{{ plano.max_turmas }}</td>
+                                    <td>{{ plano.max_alunos }}</td>
+                                    <td>{{ plano.max_professores }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+  </div><!-- /page-body -->
+</body>
+</html>
+{% endblock %}

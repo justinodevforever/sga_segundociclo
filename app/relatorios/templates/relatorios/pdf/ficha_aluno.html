@@ -1,0 +1,54 @@
+{% extends "relatorios/pdf/_base.html" %}
+{% block estilo %}
+table.f { width: 100%; border: 0.6px solid #cbd5e1; margin-bottom: 8px; }
+table.f td { padding: 3px 5px; font-size: 8.5pt; border-bottom: 0.4px solid #e2e8f0; }
+td.r { background-color: #f1f5f9; font-weight: bold; width: 22%; }
+{% endblock %}
+{% block cabecalho %}
+<div class="titulo">FICHA INDIVIDUAL DO ALUNO</div><div class="linha"></div>
+{% endblock %}
+{% block corpo %}
+<table width="100%"><tr>
+  <td width="80%" valign="top">
+    <h3>Dados pessoais</h3>
+    <table class="f">
+      <tr><td class="r">Nome completo</td><td colspan="3">{{ aluno.nome_completo }}</td></tr>
+      <tr><td class="r">Nº processo</td><td>{{ aluno.numero_processo|default:"-" }}</td><td class="r">Nº matrícula</td><td>{{ aluno.numero_estudante|default:"-" }}</td></tr>
+      <tr><td class="r">Género</td><td>{{ aluno.get_genero_display|default:"-" }}</td><td class="r">Data nasc.</td><td>{{ aluno.data_nascimento|date:"d/m/Y"|default:"-" }} ({{ aluno.idade|default:"-" }} anos)</td></tr>
+      <tr><td class="r">B.I.</td><td>{{ aluno.bi }}</td><td class="r">Emitido em</td><td>{{ aluno.emitido_em }}</td></tr>
+      <tr><td class="r">Emissão do B.I.</td><td>{{ aluno.data_emissao_bi|date:"d/m/Y"|default:"-" }}</td><td class="r">Validade</td><td>{{ aluno.data_expiracao_bi|date:"d/m/Y"|default:"-" }}</td></tr>
+    </table>
+  </td>
+  <td width="20%" align="right" valign="top">{% if foto %}<img src="{{ foto }}" width="90" height="110"/>{% endif %}</td>
+</tr></table>
+
+<h3>Filiação e localização</h3>
+<table class="f">
+  <tr><td class="r">Pai</td><td>{{ aluno.nome_pai }}</td><td class="r">Mãe</td><td>{{ aluno.nome_mae }}</td></tr>
+  <tr><td class="r">Naturalidade</td><td>{{ aluno.naturalidade }}</td><td class="r">Província</td><td>{{ aluno.provincia }}</td></tr>
+  <tr><td class="r">Município</td><td>{{ aluno.municipio }}</td><td class="r">Bairro</td><td>{{ aluno.bairro|default:"-" }}</td></tr>
+  <tr><td class="r">Telefone</td><td>{{ aluno.telefone|default:"-" }}</td><td class="r">E-mail</td><td>{{ aluno.email|default:"-" }}</td></tr>
+  <tr><td class="r">Necessidades especiais</td><td colspan="3">{{ aluno.necessidades_especiais|default:"Nenhuma registada" }}</td></tr>
+</table>
+
+<h3>Percurso escolar</h3>
+<table class="tab">
+  <thead><tr><th>Ano lectivo</th><th>Classe</th><th>Turma</th><th>Curso</th><th>Tipo</th><th>Estado</th><th>Resultado</th></tr></thead>
+  <tbody>
+  {% for m in matriculas %}
+    <tr><td class="c">{{ m.ano_lectivo }}</td><td class="c">{% if m.turma %}{{ m.turma.classe.designacao }}.ª{% else %}-{% endif %}</td>
+      <td class="c">{{ m.turma.designacao|default:"-" }}</td><td>{{ m.turma.curso.nome|default:"-" }}</td>
+      <td class="c">{{ m.get_tipo_matricula_display }}</td><td class="c">{{ m.get_status_display }}</td><td class="c">{{ m.get_situacao_final_display }}</td></tr>
+  {% empty %}<tr><td colspan="7" align="center">Sem matrículas.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h3>Documentos entregues</h3>
+<table class="tab">
+  <thead><tr><th>Tipo</th><th>Título</th><th>Data</th></tr></thead>
+  <tbody>
+  {% for d in documentos %}<tr><td>{{ d.get_tipo_documento_display }}</td><td>{{ d.titulo }}</td><td class="c">{{ d.data_upload|date:"d/m/Y" }}</td></tr>
+  {% empty %}<tr><td colspan="3" align="center">Nenhum documento arquivado.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

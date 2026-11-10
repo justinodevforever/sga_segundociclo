@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Relatório de Estudantes{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Estudantes Matriculados</title>
+
+    <style>
+        .card-header {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: var(--primary-blue);
+            color: var(--white);
+        }
+
+        th, td {
+            padding: 12px 20px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-gray);
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-gray);
+        }
+
+        td {
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">Relatório de Estudantes Matriculados</h2>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Filtros</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="ano_letivo" class="form-label">Ano Letivo</label>
+                        <select name="ano_letivo" id="ano_letivo" class="form-select">
+                            <option value="">Todos</option>
+                            {% for ano in anos_letivos %}
+                            <option value="{{ ano.id }}" 
+                                {% if request.GET.ano_letivo == ano.id|stringformat:"s" %}selected{% endif %}>
+                                {{ ano.ano }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="turma" class="form-label">Turma</label>
+                        <select name="turma" id="turma" class="form-select">
+                            <option value="">Todas</option>
+                            {% for turma in turmas %}
+                            <option value="{{ turma.id }}"
+                                {% if request.GET.turma == turma.id|stringformat:"s" %}selected{% endif %}>
+                                {{ turma }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="ativa" {% if request.GET.status == 'ativa' %}selected{% endif %}>Ativa</option>
+                            <option value="finalizada" {% if request.GET.status == 'finalizada' %}selected{% endif %}>Finalizada</option>
+                            <option value="cancelada" {% if request.GET.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                            <option value="desistente" {% if request.GET.status == 'desistente' %}selected{% endif %}>Desistente</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                        <a href="{% url 'relatorio_estudantes' %}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Limpar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Botões de Exportação -->
+        <div class="mb-3">
+            <a href="{% url 'estudantes_excel' %}?{{ request.GET.urlencode }}" 
+            class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+            <a href="{% url 'estudantes_pdf' %}?{{ request.GET.urlencode }}" target="_blank"
+            class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </a>
+            <span class="ms-3 text-muted">Total: <strong>{{ total }}</strong> estudantes</span>
+        </div>
+
+        <!-- Tabela de Resultados -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table >
+                        <thead >
+                            <tr>
+                                <th>#</th>
+                                <th>Nome Completo</th>
+                                <th>Idade</th>
+                                <th>Gênero</th>
+                                <th>BI</th>
+                                <th>Telefone</th>
+                                <th>Turma</th>
+                                <th>Ano Letivo</th>
+                                <th>Status</th>
+                                <th>Data Matrícula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for matricula in matriculas %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ matricula.estudante.nome_completo }}</td>
+                                <td>{{ matricula.estudante.idade }}</td>
+                                <td>{{ matricula.estudante.get_genero_display }}</td>
+                                <td>{{ matricula.estudante.bi|default:"N/A" }}</td>
+                                <td>{{ matricula.estudante.telefone|default:"N/A" }}</td>
+                                <td>{{ matricula.turma }}</td>
+                                <td>{{ matricula.ano_letivo.ano }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if matricula.status_matricula == 'ativa' %}bg-success
+                                        {% elif matricula.status_matricula == 'finalizada' %}bg-primary
+                                        {% elif matricula.status_matricula == 'cancelada' %}bg-danger
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ matricula.get_status_matricula_display }}
+                                    </span>
+                                </td>
+                                <td>{{ matricula.data_matricula|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted">
+                                    Nenhum registro encontrado
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+{% endblock %}

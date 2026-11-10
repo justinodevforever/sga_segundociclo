@@ -1,0 +1,225 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'turma_list' %}">Turmas</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{turma.designacao}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Turma 
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas da turma {{turma.designacao}}
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 20px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+        
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Turma:</strong></div>
+                <div class="col-sm-8">{{ turma.designacao }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Ano lectivo:</strong></div>
+                <div class="col-sm-8">{{ turma.ano_lectivo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Curso:</strong></div>
+                <div class="col-sm-8">{{ turma.curso.nome }}</div>
+            </div>
+             <div class="row mb-3">
+                <div class="col-sm-4"><strong>Classe:</strong></div>
+                <div class="col-sm-8">{{ turma.classe.designacao }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Período:</strong></div>
+                <div class="col-sm-8">{{ turma.periodo}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Sala:</strong></div>
+                <div class="col-sm-8">{{ turma.sala|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Capacidade máxima:</strong></div>
+                <div class="col-sm-8">{{ turma.capacidade_maxima|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Vagas disponíveis:</strong></div>
+                <div class="col-sm-8">{{ turma.vagas_disponiveis|default:"Sem Informações" }}</div>
+            </div>  
+        </div>
+
+        <div class="card card-info">
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Classificação positiva:</strong></div>
+                <div class="col-sm-7">{{ turma.classificacao_positiva|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Classificação negaiva:</strong></div>
+                <div class="col-sm-7">{{ turma.classificacao_negativa }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Máxima positiva:</strong></div>
+                <div class="col-sm-7">{{ turma.valor_maximo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Mínima negativa:</strong></div>
+                <div class="col-sm-7">{{ turma.valor_minimo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Preço da propina:</strong></div>
+                <div class="col-sm-7">{{ turma.preco_propina|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Preço da matrícula:</strong></div>
+                <div class="col-sm-7">{{ turma.preco_matricula|default:"Sem Informações" }}</div>
+            </div>   
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Preço da confirmação:</strong></div>
+                <div class="col-sm-7">{{ turma.preco_confirmacao|default:"Sem Informações" }}</div>
+            </div>
+
+        </div>
+    </div>
+
+    
+    <div class="card-body" style="border-radius: 4px; margin-top: 20px; font-size: 10pt;">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>
+                            Nome completo
+                        </th>
+                        <th>
+                            B.I
+                        </th>
+                        <th>Número matrícula</th>
+                        <th>Opção</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for matricula in matriculas %}
+                    <tr>
+                        <td><a href="{% url 'aluno_detail' matricula.aluno.id%}">{{ matricula.aluno.nome_completo }}</a></td>
+                        <td>{{ matricula.aluno.bi }}</td>
+                        <td>{{ matricula.numero_matricula }}</td>
+
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'aluno_detail' matricula.aluno.id%}" class="btn btn-outline-primary"  title="Editar">
+                                    confirmação
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <br>Nenhum registro encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if matriculas.has_other_pages %}
+            <ul class="pagination justify-content-center">
+                {% if matriculas.has_previous %}
+                    <li class="page-item">
+
+                        <a class="page-link" href="?page={{ matriculas.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Anterior</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in matriculas.paginator.page_range %}
+                    {% if matriculas.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if matriculas.has_next %}
+
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ matriculas.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Próximo</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+    </div>
+   
+</div>
+
+{% endblock %}
+

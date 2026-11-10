@@ -1,0 +1,76 @@
+{% extends 'director/base.html' %}
+{% comment %} Ajusta o nome do template base acima para o teu. {% endcomment %}
+
+{% block breadcrumb %}
+  <a href="{% url 'rel_index_financa' %}">Relatórios Financeiros</a>
+  <i class="bi bi-chevron-right"></i>
+  <a href="{% url 'rel_extrato_lista' %}">Extrato do Aluno</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">{{ conta.aluno.nome_completo }}</span>
+{% endblock %}
+{% block icon %}<i class="bi bi-file-earmark-person"></i>{% endblock %}
+{% block title %}Extrato — {{ conta.aluno.nome_completo }}{% endblock %}
+{% block sub_title %}{{ conta.ano_lectivo }} · emitido a {{ hoje|date:"d/m/Y" }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'rel_extrato_lista' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+  <button onclick="window.print()" class="btn btn-sm btn-primary"><i class="bi bi-printer"></i> Imprimir</button>
+{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    .sidebar,.topbar,.breadcrumb-bar,.btn,.sidebar-overlay { display:none !important; }
+    .main-content { margin:0 !important; padding:0 !important; }
+    body { background:#fff; }
+  }
+</style>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="stat-card sc-blue"><div class="stat-value" style="font-size:1.4rem">{{ conta.total_devido|floatformat:"2g" }} Kz</div><div class="stat-label">Total devido</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-green"><div class="stat-value" style="font-size:1.4rem">{{ conta.total_pago|floatformat:"2g" }} Kz</div><div class="stat-label">Total pago ({{ conta.percentagem_pago }}%)</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-warn"><div class="stat-value" style="font-size:1.4rem">{{ conta.saldo_devedor|floatformat:"2g" }} Kz</div><div class="stat-label">Saldo devedor</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-purple"><div class="stat-value" style="font-size:1.4rem"><span class="tag {{ tag_conta.1 }}">{{ tag_conta.0 }}</span></div><div class="stat-label">Estado da conta</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="card-hdr"><div class="section-title">Propinas</div></div>
+      <table class="dt">
+        <thead><tr><th>Mês</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Pago</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for p, tag in propinas %}
+          <tr>
+            <td>{{ p.get_mes_display }}</td>
+            <td>{{ p.data_vencimento|date:"d/m/Y" }}</td>
+            <td class="text-end">{{ p.valor|floatformat:"2g" }}</td>
+            <td class="text-end">{{ p.valor_pago|floatformat:"2g" }}</td>
+            <td><span class="tag {{ tag.1 }}">{{ tag.0 }}</span></td>
+          </tr>
+          {% empty %}<tr><td colspan="5" class="text-center text-muted p-4">Sem propinas geradas.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="card-hdr"><div class="section-title">Pagamentos</div></div>
+      <table class="dt">
+        <thead><tr><th>Data</th><th>Recibo</th><th>Método</th><th class="text-end">Valor</th><th></th></tr></thead>
+        <tbody>
+          {% for g in pagamentos %}
+          <tr>
+            <td>{{ g.data_pagamento|date:"d/m/Y" }}</td>
+            <td>{{ g.numero_recibo }}</td>
+            <td>{{ g.get_metodo_pagamento_display }}</td>
+            <td class="text-end">{{ g.valor|floatformat:"2g" }}</td>
+            <td><a href="{% url 'rel_recibo' g.pk %}" class="tag tag-blue"><i class="bi bi-receipt"></i> Recibo</a></td>
+          </tr>
+          {% empty %}<tr><td colspan="5" class="text-center text-muted p-4">Nenhum pagamento registado.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

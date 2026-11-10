@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+</head>
+<body>
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" >Notas por turma do Ano lectivo {{ano_letivo.ano}} </h1>
+
+            <form action="/listar_notas/" method="get" 
+                class="btn-group btn-group-sm">
+
+                <select name="nome_filter" id="nome_filter" class="form-control" style="border-radius: 4px 0px 0px 4px; width: 200px;">
+                    {% for ano_letivo in ano_letivos %}
+                        <option value="{{ano_letivo.id}}">{{ano_letivo.ano}}</option>
+                    {% endfor %}
+                </select>
+
+                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+
+            </form>
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number" 
+                    id="per_page" 
+                    name="per_page" 
+                    class="form-control form-control-sm" 
+                    min="1" 
+                    max="200" 
+                    value="{{ per_page|default:20 }}" 
+                    onchange="this.form.submit()"
+                    
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome da turma
+                                    <a href="?order_by=turma{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                                    >
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    </a>
+                                    <a href="/listar_turma/?{% if nome_filter %}nome_filter={{ nome_filter|urlencode  }}{% endif %}"> <i class="bi bi-eraser" style="font-size: 1.1rem; margin-left: 5px;"></i></a>
+                                </th>
+                                
+                                <th>Classe</th>
+                                <th>Período</th>
+
+                                {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                                <th>Opções</th>
+                                {%endif%}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for turma in turmas %}
+                            <tr>
+                                <td><a href="{% url "pauta_turma" turma.id%}">{{ turma.turma }}</a></td>
+                                <td>{{ turma.classe.denominacao }}</td>
+                                <td>{{ turma.periodo.periodo }}</td>
+                                
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        
+                                        {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                                        <a href="{% url "lista_disciplina" turma.id %}" 
+                                            class="btn btn-outline-success" title="Editar">
+                                            <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                        </a>
+                                        {%endif%}
+
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <br>Nenhum registro encontrado.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if turmas.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                        {% if turmas.has_previous %}
+                            <li class="page-item">
+                                
+                                <a class="page-link" href="?page={{ turmas.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Anterior</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in turmas.paginator.page_range %}
+                            {% if turmas.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% if turmas.has_next %}
+                        
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ turmas.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">Próximo</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    
+    </div>
+
+    
+</body>
+</html>
+{% endblock  %}

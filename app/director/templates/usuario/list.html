@@ -1,0 +1,471 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+    <span class="current">Lista de usuários</span>
+{% endblock breadcrumb %}
+
+{% block title %}
+    <h6>Usuários</h6>
+{% endblock title %}
+
+{% block sub_title %}
+    Lista de todos usuários cadastrados
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-list" aria-hidden="true"></i>
+{% endblock icon %}
+
+
+{% block content %}
+
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+
+        .modal-reset-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1055;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.60);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-reset-container {
+            position: fixed;
+            z-index: 1055;
+            width: 100%;
+            max-width: 440px;
+            left: calc((100% - 440px)/2);
+            top: calc((100% - 440px)/2);
+            background: #ffffff;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.20);
+            animation: modalResetEntrada 0.2s ease-out;
+        }
+
+        .modal-reset-header {
+            padding: 28px 28px 20px;
+            text-align: center;
+            border-bottom: 1px solid #edf0f4;
+        }
+
+        .modal-reset-icon {
+            width: 58px;
+            height: 58px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eaf2ff;
+            color: #0d6efd;
+            border-radius: 50%;
+            font-size: 25px;
+        }
+
+        .modal-reset-header h5 {
+            margin: 0 0 10px;
+            color: #1e293b;
+            font-size: 21px;
+            font-weight: 600;
+        }
+
+        .modal-reset-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-reset-body {
+            padding: 24px 28px;
+        }
+
+        .modal-reset-body .form-label {
+            margin-bottom: 8px;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .modal-reset-body .form-control {
+            min-height: 46px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: none;
+        }
+
+        .modal-reset-body .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+        }
+
+        .reset-error-message {
+            margin-top: 8px;
+            color: #dc3545;
+            font-size: 13px;
+        }
+
+        .reset-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-top: 18px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .reset-info i {
+            margin-top: 2px;
+            color: #0d6efd;
+        }
+
+        .modal-reset-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 18px 28px;
+            background: #f8fafc;
+            border-top: 1px solid #edf0f4;
+        }
+
+        .btn-reset-cancelar,
+        .btn-reset-confirmar {
+            min-height: 42px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-reset-cancelar {
+            border: 1px solid #dbe2ea;
+            color: #475569;
+            background: #ffffff;
+        }
+
+        .btn-reset-cancelar:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-reset-confirmar {
+            background: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .btn-reset-confirmar:hover {
+            background: #0b5ed7;
+        }
+
+        @keyframes modalResetEntrada {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal-reset-header,
+            .modal-reset-body {
+                padding: 22px 20px;
+            }
+
+            .modal-reset-footer {
+                padding: 16px 20px;
+            }
+
+            .btn-reset-cancelar,
+            .btn-reset-confirmar {
+                flex: 1;
+                padding: 10px;
+            }
+        }
+    </style>
+
+
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span></span>
+            <form action="" method="get"
+                class="btn-group btn-group-sm">
+
+                <input type="search" name="nome_filter" style="border-radius: 4px 0px 0px 4px;"
+                class="form-control" placeholder="Nome do professor">
+
+                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+
+            </form>
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" class="text-warning"></h1>
+
+
+
+        </div>
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number"
+                    id="per_page"
+                    name="per_page"
+                    class="form-control form-control-sm"
+                    min="1"
+                    max="200"
+                    value="{{ per_page|default:20 }}"
+                    onchange="this.form.submit()"
+
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover" style="font-size: 10pt;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome Completo
+
+                                    <a href="?order_by=nome_completo{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                                    >
+                                    <i class="bi bi-chevron-expand sort-icon"></i>
+                                    </a>
+                                </th>
+
+                                <th>Email</th>
+                                <th>Criado por</th>
+                                <th>Opções</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td><a href="{% url 'usuario_datail' usuario.id %}">{{ usuario.nome_completo }}</a></td>
+                                <td>{{ usuario.email}}</td>
+                                <td>{{ usuario.criado_por.nome_completo|default:'Super usuário' }}</td>
+
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url "usuario_datail" usuario.id %}"
+                                            class="btn btn-outline-primary" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                        <a href="{% url "usuario_edit" usuario.id %}"
+                                            class="btn btn-outline-warning" title="Editar">
+                                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                                        </a>
+
+                                        <button onclick="confirmardelecao('{{usuario.id}}')"
+                                            class="btn btn-outline-danger" title="Resetar Senha">
+                                            <i class="fa fa-cog" aria-hidden="true"></i>
+                                        </button>
+
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if funcionarios.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                        {% if funcionarios.has_previous %}
+                            <li class="page-item">
+
+                                <a class="page-link" href="?page={{ funcionarios.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Anterior</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in funcionarios.paginator.page_range %}
+                            {% if funcionarios.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% if funcionarios.has_next %}
+
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ funcionarios.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">Próximo</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="modalconfirmacao" class="modal-reset-overlay" style="display: none;">
+
+        <div class="modal-reset-container">
+
+            <!-- Cabeçalho -->
+            <div class="modal-reset-header">
+                <div class="modal-reset-icon">
+                    <i class="fa fa-lock"></i>
+                </div>
+
+                <h5>Redefinir palavra-passe</h5>
+
+                <p>
+                    Confirme a sua identidade para continuar
+                    com a redefinição da palavra-passe.
+                </p>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-reset-body">
+
+                <label for="password" class="form-label">
+                    Palavra-passe
+                </label>
+
+                <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    autocomplete="current-password"
+                    placeholder="Introduza a sua palavra-passe atual"
+                    required
+                >
+
+                <div id="sms" class="reset-error-message"></div>
+
+                <div class="reset-info">
+                    <i class="fa fa-info-circle"></i>
+                    <span>
+                        Por segurança, é necessário confirmar
+                        a sua palavra-passe.
+                    </span>
+                </div>
+
+            </div>
+
+            <!-- Rodapé -->
+            <div class="modal-reset-footer">
+
+                <button
+                    type="button"
+                    onclick="fecharmodal()"
+                    class="btn btn-light btn-reset-cancelar">
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="deletarItem()"
+                    class="btn btn-primary btn-reset-confirmar">
+                    <i class="fa fa-check-circle"></i>
+                    Confirmar
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let itemparadeletar = null;
+
+        function confirmardelecao(itemid) {
+            itemparadeletar = itemid;
+            document.getElementById('modalconfirmacao').style.display = 'block';
+        }
+
+        function fecharmodal() {
+            document.getElementById('modalconfirmacao').style.display = 'none';
+            itemparadeletar = null;
+            location.reload()
+        }
+
+        async function deletarItem() {
+            const passwordInput = document.getElementById('password');
+            const sms = document.getElementById('sms');
+
+            if (!passwordInput || passwordInput.value.trim() === '') {
+            alert('O campo senha é obrigatório!');
+            return;
+            }
+
+            const password = passwordInput.value;
+
+            try {
+            const response = await fetch(`/rest_senha/${itemparadeletar}/`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                password: password
+                })
+            });
+
+            if (response.ok) {
+                sms.innerText = "Senha Redefinada com sucesso!";
+                sms.style.color = "green";
+
+            } else {
+                const data = await response.json();
+                sms.innerText = data.error || "Erro ao Redifinir a senha!";
+                sms.style.color = "red";
+            }
+
+            } catch (error) {
+            console.log(error);
+            sms.innerText = "Erro de conexão com o servidor.";
+            sms.style.color = "red";
+            }
+        }
+
+
+        document.getElementById('modalconfirmacao').onclick = (e)=>{
+            if (e.target === this) {
+                fecharmodal();
+            }
+        }
+    </script>
+
+{% endblock  %}

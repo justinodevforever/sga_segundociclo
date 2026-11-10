@@ -1,0 +1,417 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="{% url 'conta_list' %}">Contas</a>
+  <i class="bi bi-chevron-right"></i>
+  {% if conta %}
+    <a href="{% url 'conta_detail' conta.pk %}">{{ conta.aluno.nome }}</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="current">Editar</span>
+  {% else %}
+    <span class="current">Nova Conta</span>
+  {% endif %}
+{% endblock %}
+
+{% block icon %}
+  {% if acao == 'Editar' %}
+    <i class="bi bi-pencil-square"></i>
+  {% else %}
+    <i class="bi bi-plus-circle-fill"></i>
+  {% endif %}
+{% endblock %}
+
+{% block title %}
+  {{ acao }} Conta de Aluno
+{% endblock %}
+
+{% block sub_title %}
+  {% if conta %}A editar a conta de {{ conta.aluno.nome }}{% else %}Preencha os dados para criar uma nova conta financeira{% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+  {% if conta %}
+    <a href="{% url 'conta_detail' conta.pk %}" class="btn-action btn-secondary">
+      <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+  {% else %}
+    <a href="{% url 'conta_list' %}" class="btn-action btn-secondary">
+      <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .btn-action {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 10px;
+    font-size: .82rem; font-weight: 600; cursor: pointer;
+    border: none; text-decoration: none; transition: all .18s;
+  }
+  .btn-primary   { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(29,78,216,.25); }
+  .btn-primary:hover  { background: #1749c2; color: #fff; transform: translateY(-1px); }
+  .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+
+  /* ── LAYOUT ── */
+  .form-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .form-layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARD ── */
+  .form-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .form-card-header {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    background: #f8fafc;
+  }
+  .fch-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem;
+  }
+  .fch-blue   { background: #dbeafe; color: #1d4ed8; }
+  .fch-green  { background: #d1fae5; color: #059669; }
+  .fch-purple { background: #ede9fe; color: #7c3aed; }
+  .fch-title  { font-size: .88rem; font-weight: 700; color: var(--text-main); }
+  .fch-sub    { font-size: .72rem; color: var(--text-muted); margin-top: 1px; }
+  .form-card-body { padding: 22px; }
+
+  /* ── GRID DE CAMPOS ── */
+  .fields-grid { display: grid; gap: 18px; }
+  .fields-grid-2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 600px) { .fields-grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── DIVIDER ── */
+  .field-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0;
+  }
+  .field-divider span {
+    font-size: .65rem; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+  }
+  .field-divider::before, .field-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── INVALID FEEDBACK ── */
+  .invalid-feedback { font-size: .72rem; color: var(--accent-danger); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .form-control-custom.is-invalid { border-color: var(--accent-danger); box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+
+  /* ── SIDEBAR: RESUMO / INFO ── */
+  .info-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .info-card-hdr {
+    padding: 13px 18px; border-bottom: 1px solid var(--border);
+    font-size: .8rem; font-weight: 700; color: var(--text-main);
+    display: flex; align-items: center; gap: 8px;
+    background: #f8fafc;
+  }
+  .info-card-hdr i { color: var(--accent); }
+  .info-card-body  { padding: 16px 18px; }
+
+  .info-item { margin-bottom: 12px; }
+  .info-item:last-child { margin-bottom: 0; }
+  .info-key {
+    font-size: .68rem; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px;
+  }
+  .info-val { font-size: .84rem; color: var(--text-main); font-weight: 500; }
+
+  .notice-strip {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border-radius: 10px; font-size: .78rem;
+    border-left: 3px solid;
+  }
+  .ns-info   { background: #eff6ff; border-color: #3b82f6; color: #1e3a8a; }
+  .ns-warn   { background: #fffbeb; border-color: #f59e0b; color: #78350f; }
+  .ns-info i { color: #2563eb; flex-shrink: 0; margin-top: 1px; }
+  .ns-warn i { color: #d97706; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── PREVIEW ── */
+  .preview-pill {
+    background: var(--bg); border: 1px dashed var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .preview-pill-lbl { font-size: .73rem; color: var(--text-muted); }
+  .preview-pill-val { font-size: .9rem; font-weight: 700; color: var(--text-main); }
+
+  /* ── SUBMIT ROW ── */
+  .submit-row {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 12px; padding: 16px 22px;
+    border-top: 1px solid var(--border); background: #f8fafc;
+  }
+  .btn-submit {
+    padding: 10px 28px; border-radius: 10px;
+    background: var(--accent); color: #fff; border: none;
+    font-size: .85rem; font-weight: 700; cursor: pointer;
+    transition: all .18s; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(29,78,216,.3);
+  }
+  .btn-submit:hover { background: #1749c2; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(29,78,216,.4); }
+  .btn-submit:active { transform: translateY(0); }
+</style>
+
+{% if messages %}
+  {% for message in messages %}
+  <div class="notice-strip ns-{% if message.tags == 'success' %}info{% else %}warn{% endif %} fade-up" style="margin-bottom:16px;">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% else %}exclamation-triangle-fill{% endif %}"></i>
+    <span>{{ message }}</span>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="form-layout">
+
+  <!-- ── COLUNA PRINCIPAL ── -->
+  <div>
+    <form method="post" id="contaForm" novalidate>
+      {% csrf_token %}
+
+      <!-- Identificação -->
+      <div class="form-card fade-up delay-1" style="margin-bottom:18px;">
+        <div class="form-card-header">
+          <div class="fch-icon fch-blue"><i class="bi bi-person-badge"></i></div>
+          <div>
+            <div class="fch-title">Identificação</div>
+            <div class="fch-sub">Aluno e ano lectivo associados à conta</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="fields-grid fields-grid-2">
+            <div class="form-field">
+              <label class="form-label" for="{{ form.aluno.id_for_label }}">
+                <i class="bi bi-person"></i> Aluno <span class="req">*</span>
+              </label>
+              {{ form.aluno }}
+              {% if form.aluno.errors %}
+                <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.aluno.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="{{ form.ano_lectivo.id_for_label }}">
+                <i class="bi bi-calendar3"></i> Ano Lectivo <span class="req">*</span>
+              </label>
+              {{ form.ano_lectivo }}
+              {% if form.ano_lectivo.errors %}
+                <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.ano_lectivo.errors.0 }}</div>
+              {% endif %}
+            </div>
+            {% if form.escola %}
+            <div class="form-field">
+              <label class="form-label" for="{{ form.escola.id_for_label }}">
+                <i class="bi bi-building"></i> Escola
+              </label>
+              {{ form.escola }}
+              {% if form.escola.errors %}
+                <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.escola.errors.0 }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Valores -->
+      <div class="form-card fade-up delay-2" style="margin-bottom:18px;">
+        <div class="form-card-header">
+          <div class="fch-icon fch-green"><i class="bi bi-currency-exchange"></i></div>
+          <div>
+            <div class="fch-title">Valores e Propinas</div>
+            <div class="fch-sub">Configuração financeira da conta</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="fields-grid">
+            <div class="form-field">
+              <label class="form-label" for="{{ form.valor_propina_mensal.id_for_label }}">
+                <i class="bi bi-wallet2"></i> Valor da Propina Mensal (Kz) <span class="req">*</span>
+              </label>
+              {{ form.valor_propina_mensal }}
+              {% if form.valor_propina_mensal.errors %}
+                <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.valor_propina_mensal.errors.0 }}</div>
+              {% endif %}
+              <div class="form-hint"><i class="bi bi-info-circle"></i> O total anual será calculado automaticamente (× 10 meses).</div>
+            </div>
+
+            <!-- Preview dinâmico -->
+            <div>
+              <div class="preview-pill">
+                <span class="preview-pill-lbl"><i class="bi bi-calculator"></i> Total anual estimado</span>
+                <span class="preview-pill-val" id="totalAnual">— Kz</span>
+              </div>
+              <div class="preview-pill">
+                <span class="preview-pill-lbl"><i class="bi bi-calendar2-range"></i> Propinas geradas</span>
+                <span class="preview-pill-val">10 meses</span>
+              </div>
+            </div>
+
+            <div class="field-divider"><span>Observações</span></div>
+
+            <div class="form-field">
+              <label class="form-label" for="{{ form.observacoes.id_for_label }}">
+                <i class="bi bi-chat-text"></i> Observações <span class="opt">Opcional</span>
+              </label>
+              {{ form.observacoes }}
+              {% if form.observacoes.errors %}
+                <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.observacoes.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Erros globais -->
+      {% if form.non_field_errors %}
+      <div class="notice-strip ns-warn fade-up" style="margin-bottom:16px;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div>
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Submit -->
+      <div class="form-card fade-up delay-3">
+        <div class="submit-row">
+          {% if conta %}
+            <a href="{% url 'conta_detail' conta.pk %}" class="btn-action btn-secondary">
+              <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+          {% else %}
+            <a href="{% url 'conta_list' %}" class="btn-action btn-secondary">
+              <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+          {% endif %}
+          <button type="submit" class="btn-submit">
+            <i class="bi bi-{% if acao == 'Editar' %}floppy2-fill{% else %}plus-circle-fill{% endif %}"></i>
+            {{ acao }} Conta
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <div>
+
+    {% if acao == 'Criar' %}
+    <div class="info-card fade-up delay-1">
+      <div class="info-card-hdr"><i class="bi bi-lightbulb-fill"></i> O que acontece ao criar</div>
+      <div class="info-card-body">
+        <div class="notice-strip ns-info" style="margin-bottom:12px;">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>Ao criar a conta, <strong>10 propinas mensais</strong> serão geradas automaticamente para o ano lectivo seleccionado.</span>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Propinas geradas</div>
+          <div class="info-val">Setembro → Junho</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Estado inicial</div>
+          <div class="info-val"><span class="tag tag-yellow">Pendente</span></div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Vencimento</div>
+          <div class="info-val">Definido pela configuração do ano</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if conta %}
+    <div class="info-card fade-up delay-1">
+      <div class="info-card-hdr"><i class="bi bi-person-circle"></i> Dados actuais</div>
+      <div class="info-card-body">
+        <div class="info-item">
+          <div class="info-key">Aluno</div>
+          <div class="info-val">{{ conta.aluno.nome }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Ano Lectivo</div>
+          <div class="info-val">{{ conta.ano_lectivo }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Total Devido</div>
+          <div class="info-val">{{ conta.total_devido|floatformat:2 }} Kz</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Total Pago</div>
+          <div class="info-val" style="color:var(--accent-2);">{{ conta.total_pago|floatformat:2 }} Kz</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Saldo Devedor</div>
+          <div class="info-val" style="color:{% if conta.saldo_devedor > 0 %}var(--accent-danger){% else %}var(--accent-4){% endif %};">
+            {{ conta.saldo_devedor|floatformat:2 }} Kz
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Estado</div>
+          <div class="info-val"><span class="tag tag-{% if conta.status == 'em_dia' %}green{% elif conta.status == 'bloqueado' %}red{% else %}yellow{% endif %}">{{ conta.get_status_display }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card fade-up delay-2">
+      <div class="info-card-hdr"><i class="bi bi-link-45deg"></i> Acções rápidas</div>
+      <div class="info-card-body" style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{% url 'conta_detail' conta.pk %}" class="btn-action btn-secondary" style="justify-content:center;">
+          <i class="bi bi-eye"></i> Ver detalhe da conta
+        </a>
+        <a href="{% url 'propinas_conta' conta.pk %}" class="btn-action btn-secondary" style="justify-content:center;">
+          <i class="bi bi-calendar2-check"></i> Ver propinas
+        </a>
+        <a href="{% url 'pagamento_create_conta' conta.pk %}" class="btn-action btn-secondary" style="justify-content:center;">
+          <i class="bi bi-plus-circle"></i> Registar pagamento
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="notice-strip ns-warn fade-up delay-2" style="border-radius:var(--radius);">
+      <i class="bi bi-shield-exclamation"></i>
+      <div style="font-size:.76rem;">
+        <div style="font-weight:700;margin-bottom:3px;">Atenção</div>
+        Um aluno só pode ter uma conta por ano lectivo. O sistema validará automaticamente esta restrição.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  const input   = document.getElementById('{{ form.valor_propina_mensal.id_for_label }}');
+  const display = document.getElementById('totalAnual');
+  function atualizar() {
+    const val = parseFloat(input?.value) || 0;
+    const total = val * 10;
+    display.textContent = total > 0
+      ? total.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Kz'
+      : '— Kz';
+  }
+  input?.addEventListener('input', atualizar);
+  atualizar();
+})();
+</script>
+{% endblock %}

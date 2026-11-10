@@ -1,0 +1,143 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'anoletivo_list' %}">Anos Lectivos</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{anoletivo.designacao}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Ano lectivo 
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas do ano lectivo {{anoletivo.designacao}}
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 10px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+        
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Ano lectivo:</strong></div>
+                <div class="col-sm-9">{{ anoletivo.designacao}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Data de início:</strong></div>
+                <div class="col-sm-9">{{ anoletivo.data_inicio|date:'d/m/Y' }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Data do fim:</strong></div>
+                <div class="col-sm-9">{{ anoletivo.data_fim|date:'d/m/Y'}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>Está em vigor?:</strong></div>
+                <div class="col-sm-9">
+                    {% if anoletivo.e_atual %}
+                        <span class="badge bg-success">Sim</span>
+                    {% else %}
+                        <span class="badge bg-danger">Não</span>
+                    {% endif %}
+                </div>
+            </div>  
+        </div>
+
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-7"><strong>Total de alunos:</strong></div>
+                <div class="col-sm-5">{{ total_alunos}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-7"><strong>Total de turmas:</strong></div>
+                <div class="col-sm-5">{{ turmas|length }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-7"><strong>Total de inscrições:</strong></div>
+                <div class="col-sm-5">{{ total_inscricao}}</div>
+            </div>
+            
+        </div>
+
+    </div>
+
+    
+    
+    <div class="card mt-2">
+
+        <h6>As turmas do ano lectivo {{anoletivo.designacao}} </h6>
+
+        {% for turma in anoletivo.turmas.all %}
+            <div class="row mb-3">
+                <div class="col-sm-3"><strong>turma:</strong></div>
+                <div class="col-sm-9"><a href="{% url 'turma_detail' turma.id %}">{{ turma.designacao}}</a></div>
+            </div>
+            
+        {%empty%}
+            <div colspan="6" class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <br>Nenhuma turma vinculada.
+            </div>
+        {% endfor %}
+    </div>
+
+    
+   
+</div>
+{% endblock %}
+

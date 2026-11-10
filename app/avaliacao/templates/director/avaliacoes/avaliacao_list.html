@@ -1,0 +1,166 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="#">Avaliações</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Lista de Avaliações</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-pencil-square"></i>{% endblock %}
+{% block title %}Avaliações & Notas{% endblock %}
+{% block sub_title %}Gestão de avaliações e lançamento de notas — IIº Ciclo{% endblock %}
+
+{% block topbar_actions %}
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+  <a href="{% url 'tipo_avaliacao_list' %}" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sub);display:flex;align-items:center;gap:6px;">
+    <i class="bi bi-tags"></i> Tipos
+  </a>
+  <a href="{% url 'pauta_trimestral' %}" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sub);display:flex;align-items:center;gap:6px;">
+    <i class="bi bi-table"></i> Pauta Trimestral
+  </a>
+  <a href="{% url 'resultados_anuais' %}" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 14px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sub);display:flex;align-items:center;gap:6px;">
+    <i class="bi bi-award"></i> Resultados Anuais
+  </a>
+  <a href="{% url 'avaliacao_create' %}" class="btn btn-sm" style="border-radius:9px;font-size:.8rem;padding:8px 16px;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;gap:6px;font-weight:600;">
+    <i class="bi bi-plus-lg"></i> Nova Avaliação
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+
+
+<!-- Tabela -->
+<div class="table-card fade-up">
+  <div class="card-hdr">
+    <div>
+      <div class="section-title">Avaliações</div>
+      <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">
+        {{ avaliacoes.paginator.count }} avaliação(ões) encontrada(s)
+      </div>
+    </div>
+  </div>
+
+  {% if avaliacoes %}
+  <div style="overflow-x:auto;">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Designação</th>
+          <th>Trimestre</th>
+          <th>Tipo</th>
+          <th>Data</th>
+          <th>Nota Máx.</th>
+          <th>Notas</th>
+          <th style="text-align:right;">Acções</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for av in avaliacoes %}
+        <tr>
+          <td>
+            <div style="font-weight:600;font-size:.84rem;">{{ av.get_designacao_display }}</div>
+          </td>
+          <td>
+            <span class="tag tag-blue">{{ av.trimestre.designacao }}</span>
+          </td>
+          <td>
+
+            {% if av.tipo_avaliacao.categoria == 'trimestral' %}
+              <span class="tag tag-green">{{ av.tipo_avaliacao.designacao }}</span>
+            {% else %}
+              <span class="tag tag-purple">{{ av.tipo_avaliacao.designacao }}</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem;white-space:nowrap;">{{ av.data_realizacao|date:"d/m/Y" }}</td>
+          <td style="font-size:.82rem;text-align:center;font-weight:600;">{{ av.nota_maxima }}</td>
+          <td>
+            {% with total=av.notas.count %}
+            {% if total > 0 %}
+              <span class="tag tag-green"><i class="bi bi-check-circle"></i> {{ total }}</span>
+            {% else %}
+              <span class="tag tag-gray"><i class="bi bi-dash-circle"></i> Sem notas</span>
+            {% endif %}
+            {% endwith %}
+          </td>
+          <td style="text-align:right;">
+            <div style="display:flex;gap:5px;justify-content:flex-end;">
+              <a href="{% url 'avaliacao_edit' av.pk %}" class="icon-btn" title="Editar" style="width:30px;height:30px;border-radius:7px;">
+                <i class="bi bi-gear" style="font-size:.72rem;"></i>
+              </a>
+                {% if not av.notas.count  %}
+                  <button type="button" class="icon-btn" title="Eliminar"
+                    style="width:30px;height:30px;border-radius:7px;border:1px solid #fee2e2;color:#dc2626;"
+                    onclick="confirmarEliminar('{% url 'avaliacao_delete' av.pk %}','{{ av.get_designacao_display }}')">
+                    <i class="bi bi-trash3" style="font-size:.72rem;"></i>
+                  </button>
+                {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if avaliacoes.has_other_pages %}
+  <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:.78rem;color:var(--text-muted);">
+      Página {{ avaliacoes.number }} de {{ avaliacoes.paginator.num_pages }}
+    </div>
+    <div style="display:flex;gap:4px;">
+      {% if avaliacoes.has_previous %}
+      <a href="?page={{ avaliacoes.previous_page_number }}{% if turma_sel %}&turma={{ turma_sel }}{% endif %}{% if trimestre_sel %}&trimestre={{ trimestre_sel }}{% endif %}{% if disciplina_sel %}&disciplina={{ disciplina_sel }}{% endif %}"
+        class="icon-btn" style="width:32px;height:32px;border-radius:7px;text-decoration:none;">
+        <i class="bi bi-chevron-left" style="font-size:.8rem;"></i>
+      </a>
+      {% endif %}
+      {% if avaliacoes.has_next %}
+      <a href="?page={{ avaliacoes.next_page_number }}{% if turma_sel %}&turma={{ turma_sel }}{% endif %}{% if trimestre_sel %}&trimestre={{ trimestre_sel }}{% endif %}{% if disciplina_sel %}&disciplina={{ disciplina_sel }}{% endif %}"
+        class="icon-btn" style="width:32px;height:32px;border-radius:7px;text-decoration:none;">
+        <i class="bi bi-chevron-right" style="font-size:.8rem;"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="padding:60px;text-align:center;">
+    <i class="bi bi-pencil-square" style="font-size:2.5rem;color:var(--text-muted);display:block;margin-bottom:12px;"></i>
+    <div style="font-weight:600;margin-bottom:6px;">Nenhuma avaliação encontrada</div>
+    <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:18px;">Crie uma nova avaliação para começar a lançar notas</div>
+    <a href="{% url 'avaliacao_create' %}" style="padding:9px 20px;border-radius:9px;background:var(--accent);color:#fff;text-decoration:none;font-size:.84rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+      <i class="bi bi-plus-lg"></i> Nova Avaliação
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Confirmar Eliminar -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-icon danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <div class="modal-title">Eliminar Avaliação</div>
+    <div class="modal-body-text">Tem a certeza que deseja eliminar <strong id="deleteNome"></strong>?<br><span style="color:#dc2626;">Todas as notas lançadas serão eliminadas.</span></div>
+    <div class="modal-actions">
+      <button onclick="fecharModal()" style="padding:9px 20px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:.84rem;">Cancelar</button>
+      <form id="deleteForm" method="post">
+        {% csrf_token %}
+        <button type="submit" style="padding:9px 20px;border-radius:8px;background:#dc2626;color:#fff;border:none;cursor:pointer;font-size:.84rem;">Eliminar</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmarEliminar(url, nome) {
+  document.getElementById('deleteNome').textContent = nome;
+  document.getElementById('deleteForm').action = url;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function fecharModal() { document.getElementById('deleteModal').classList.remove('open'); }
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="{% url 'tipo_avaliacao_list' %}">Tipos de Avaliação</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">{% if modo == 'criar' %}Novo Tipo{% else %}Editar Tipo{% endif %}</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-{% if modo == 'criar' %}plus-circle-fill{% else %}pencil-fill{% endif %}"></i>{% endblock %}
+{% block title %}{% if modo == 'criar' %}Novo Tipo de Avaliação{% else %}Editar: {{ tipo.designacao }}{% endif %}{% endblock %}
+{% block sub_title %}Configure o instrumento de avaliação e o seu peso no MAC{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-lg-8">
+    <div class="table-card" style="padding:28px;">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Designação <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="prefix bi bi-tag-fill"></i>
+                <input type="text" name="designacao" class="form-control-custom"
+                  placeholder="Ex: Teste 1, Trabalho de Grupo, Exame Normal..."
+                  value="{{ tipo.designacao|default:'' }}" required maxlength="100">
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Categoria <span class="req">*</span></label>
+              <select name="categoria" class="form-control-custom" id="categoriaSelect" required onchange="togglePeso()">
+                <option value="">-- Seleccione --</option>
+                {% for value, label in categorias %}
+                <option value="{{ value }}" {% if tipo.categoria == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-hint"><i class="bi bi-info-circle"></i> Define quando e como esta avaliação é usada</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6" id="pesoDiv">
+            <div class="form-field">
+              <label class="form-label">Peso (%) <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="prefix bi bi-percent"></i>
+                <input type="number" name="peso" class="form-control-custom"
+                  placeholder="0 – 100"
+                  min="0" max="100" step="0.01"
+                  value="{{ tipo.peso|default:'0' }}" required>
+              </div>
+              <div class="form-hint"><i class="bi bi-info-circle"></i> A soma dos pesos por trimestre deve ser 100%</div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px;">
+              <div>
+                <input type="checkbox" name="conta_para_mac" id="contaMacCheck"
+                  style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);"
+                  {% if tipo.conta_para_mac or modo == 'criar' %}checked{% endif %}>
+              </div>
+              <div>
+                <label for="contaMacCheck" style="font-size:.85rem;font-weight:600;cursor:pointer;">Conta para o MAC</label>
+                <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">
+                  Marque se esta avaliação entra no cálculo da Média de Aptidão e Conhecimento trimestral
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Descrição <span class="opt">Opcional</span></label>
+              <textarea name="descricao" class="form-control-custom" rows="3"
+                placeholder="Descrição ou instruções adicionais sobre este tipo de avaliação...">{{ tipo.descricao|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <div class="col-12" style="margin-top:8px;display:flex;gap:10px;justify-content:flex-end;">
+            <a href="{% url 'tipo_avaliacao_list' %}" style="padding:9px 20px;border-radius:9px;border:1px solid var(--border);background:transparent;font-size:.84rem;color:var(--text-sub);text-decoration:none;display:flex;align-items:center;gap:6px;">
+              <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+            <button type="submit" style="padding:9px 22px;border-radius:9px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:.84rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+              <i class="bi bi-check-lg"></i> {% if modo == 'criar' %}Criar Tipo{% else %}Actualizar{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lateral Info -->
+  <div class="col-12 col-lg-4">
+    <div class="table-card" style="padding:20px;margin-bottom:16px;">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:12px;color:var(--text-main);">
+        <i class="bi bi-lightbulb-fill" style="color:#d97706;"></i> Tipos sugeridos — IIº Ciclo
+      </div>
+      {% for item in sugeridos %}
+      <div style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:.78rem;">
+        <div style="font-weight:600;">{{ item.nome }}</div>
+        <div style="color:var(--text-muted);">{{ item.desc }}</div>
+      </div>
+      {% empty %}
+      <div style="font-size:.78rem;color:var(--text-muted);line-height:1.7;">
+        <div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;"><strong>MAC</strong> — Trimestral, 100%</div>
+        <div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;"><strong>Exame Normal</strong> — Exame, 100%</div>
+        <div style="padding:8px 0;"><strong>Exame de Recurso</strong> — Exame, 100%</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px;">
+      <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:8px;">
+        <i class="bi bi-exclamation-triangle-fill"></i> Importante
+      </div>
+      <div style="font-size:.75rem;color:#78350f;line-height:1.6;">
+        A soma dos pesos das avaliações contínuas (por turma/trimestre) <strong>deve ser igual a 100%</strong> para o MAC ser calculado correctamente.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePeso() {
+  const cat = document.getElementById('categoriaSelect').value;
+  // Todos os tipos têm peso, mas podemos ajustar a hint
+}
+</script>
+{% endblock %}

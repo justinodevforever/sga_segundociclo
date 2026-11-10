@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"/>
+<title>{{ titulo }}</title>
+<style>
+{% if orientacao == "landscape" %}
+@page { size: a4 landscape; margin: 1.2cm 1.2cm 1.9cm 1.2cm;
+  @frame footer_frame { -pdf-frame-content: footer_content; left: 1.2cm; width: 27.3cm; top: 19.3cm; height: 1.1cm; } }
+{% else %}
+@page { size: a4 portrait; margin: 1.2cm 1.5cm 1.9cm 1.5cm;
+  @frame footer_frame { -pdf-frame-content: footer_content; left: 1.5cm; width: 18cm; top: 27.9cm; height: 1.1cm; } }
+{% endif %}
+body { font-family: Helvetica; font-size: 9pt; color: #111111; }
+.c1 { font-size: 8pt; text-align: center; color: #333333; }
+.esc { font-size: 12pt; font-weight: bold; text-align: center; margin: 2px 0; }
+.titulo { font-size: 13pt; font-weight: bold; text-align: center; margin-top: 10px; color: #1e3a8a; }
+.subt { font-size: 9pt; text-align: center; margin-top: 3px; }
+.filt { font-size: 7.5pt; text-align: center; color: #555555; margin-top: 2px; }
+.linha { border-top: 1.5px solid #1e3a8a; margin: 8px 0 8px 0; }
+h3 { font-size: 10pt; color: #1e3a8a; margin: 12px 0 4px 0; }
+table.tab { width: 100%; border: 0.6px solid #94a3b8; }
+table.tab th { background-color: #1e3a8a; color: #ffffff; font-size: 8pt; padding: 4px 3px; border: 0.6px solid #94a3b8; text-align: center; }
+table.tab td { font-size: {{ fonte|default:8 }}pt; padding: 3px 4px; border: 0.6px solid #cbd5e1; }
+td.c, td.neg { text-align: center; }
+td.neg { color: #dc2626; font-weight: bold; }
+tr.tot td { font-weight: bold; background-color: #e2e8f0; }
+table.resumo { width: 55%; border: 0.6px solid #cbd5e1; margin-bottom: 6px; }
+table.resumo td { padding: 2px 5px; font-size: 8.5pt; border-bottom: 0.4px solid #e2e8f0; }
+td.k { font-weight: bold; background-color: #f1f5f9; width: 45%; }
+.ass td { text-align: center; font-size: 8.5pt; padding-top: 28px; }
+.foot td { font-size: 7pt; color: #555555; border-top: 0.5px solid #94a3b8; padding-top: 3px; }
+{% block estilo %}{% endblock %}
+</style>
+</head>
+<body>
+
+<div id="footer_content">
+  <table class="foot" width="100%"><tr>
+    <td width="75%">{{ escola.nome }} | {{ titulo }} | Emitido em {{ emitido_em|date:"d/m/Y H:i" }} por {{ utilizador.nome_completo|default:utilizador.username }}</td>
+    <td width="25%" align="right">Página <pdf:pagenumber/> de <pdf:pagecount/></td>
+  </tr></table>
+</div>
+
+<table width="100%"><tr>
+  <td width="12%" align="left">{% if escola.logo %}<img src="{{ escola.logo }}" width="52" height="52"/>{% endif %}</td>
+  <td width="76%" align="center">
+    {% for l in escola.cabecalho %}<div class="c1">{{ l }}</div>{% endfor %}
+    <div class="esc">{{ escola.nome }}</div>
+    <div class="c1">{{ escola.ciclo }}</div>
+  </td>
+  <td width="12%">&nbsp;</td>
+</tr></table>
+
+{% block cabecalho %}
+<div class="titulo">{{ titulo|upper }}</div>
+{% if subtitulo %}<div class="subt">{{ subtitulo }}</div>{% endif %}
+{% if filtros %}<div class="filt">{{ filtros }}</div>{% endif %}
+<div class="linha"></div>
+{% endblock %}
+
+{% block corpo %}{% endblock %}
+
+</body>
+</html>

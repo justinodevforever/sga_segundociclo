@@ -1,0 +1,168 @@
+{% extends "professor/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block breadcrumb %}
+	<a href="{% url 'professor:minhas_turmas' %}">Minha turma</a>
+    <span><i class="bi bi-chevron-right"></i></span>
+    <span class="current">Meus Alunos</span>
+{% endblock %}
+
+{% block icon %}
+	<i class="bi bi-person-badge"></i>
+{% endblock %}
+
+{% block title %}Os Meus Alunos — Portal do Professor{% endblock %}
+{% block sub_title %}
+	{{ total_alunos }} aluno{{ total_alunos|pluralize:"s" }} nas suas turmas
+{% endblock %}
+
+{% block topbar_actions %}
+	<button class="btn btn-primary"><i class="bi bi-download"></i> Exportar Lista</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="card fade-up d2" style="margin-bottom:20px;">
+  <div class="card-body" style="padding:14px 20px;">
+    <form method="get" action="">
+      <div class="row g- align-items-end">
+        <div class="col-12 col-md-3">
+          <label class="form-label">Turma</label>
+          <select class="form-control" name="turma">
+            <option value="">Todas as turmas</option>
+            {% for t in turmas_do_prof %}
+              <option value="{{ t.id }}" {% if filtro_turma == t.id|stringformat:"s" %}selected{% endif %}>
+                {{ t.designacao }} · {{ t.classe }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Estado</label>
+          <select class="form-control" name="estado">
+            <option value="">Todos os estados</option>
+            <option value="Activa" {% if filtro_estado == "Activa" %}selected{% endif %}>Activo</option>
+            <option value="Transferido" {% if filtro_estado == "Transferido" %}selected{% endif %}>Transferido</option>
+            <option value="Cancelada" {% if filtro_estado == "Cancelada" %}selected{% endif %}>Cancelado</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">Pesquisar</label>
+          <input class="form-control" type="text" name="q" value="{{ pesquisa }}" placeholder="Nome, Nº Processo ou BI…">
+        </div>
+        <div class="col-12 col-md-2">
+          <button type="submit" class="btn btn-primary" style="width:100%;">
+            <i class="bi bi-search"></i> Pesquisar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card fade-up d3">
+  <div style="overflow-x:auto;">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nome Completo</th>
+          <th>Nº Processo</th>
+          <th>Turma</th>
+          {% for trim in trimestres %}
+            <th style="text-align:center;">MAC {{ trim.designacao }}</th>
+          {% endfor %}
+          <th style="text-align:center;">Estado</th>
+          <th>Acções</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in lista_alunos %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:.78rem;">{{ forloop.counter }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#1e40af;flex-shrink:0;">
+                  {{ item.aluno.nome_completo|slice:":2"|upper }}
+                </div>
+                <div>
+                  <div style="font-weight:600;font-size:.70rem;">{{ item.aluno.nome_completo }}</div>
+                  <div style="font-size:.7rem;color:var(--text-muted);">{{ item.aluno.bi|default:"" }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span style="font-family:monospace;font-size:.78rem;">{{ item.aluno.numero_processo|default:"—" }}</span></td>
+            <td>
+              <span class="tag tag-blue">{{ item.matricula.turma.designacao }}</span>
+            </td>
+            {% for trim in trimestres %}
+              <td style="text-align:center;">
+                {% with mac=item.macs|get_item:trim.designacao %}
+                  {% if mac is not None %}
+                    <strong style="color:{% if mac >= 10 %}#059669{% elif mac >= 7 %}#d97706{% else %}#dc2626{% endif %};">{{ mac|floatformat:1 }}</strong>
+                  {% else %}
+                    <span style="color:var(--text-muted);">—</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+            {% endfor %}
+            <td style="text-align:center;">
+              {% if item.matricula.status == 'Activa' %}
+                <span class="tag tag-green">Activo</span>
+              {% elif item.matricula.status == 'Transferido' %}
+                <span class="tag tag-cyan">Transferido</span>
+              {% elif item.matricula.status == 'Cancelada' %}
+                <span class="tag tag-red">Cancelado</span>
+              {% else %}
+                <span class="tag tag-gray">{{ item.matricula.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'professor:detalhe_aluno' item.aluno.id %}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{{ trimestres|length|add:6 }}" style="text-align:center;padding:40px;color:var(--text-muted);">
+              <i class="bi bi-person-x" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+              Nenhum aluno encontrado.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if page_obj.has_other_pages %}
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <span style="font-size:.78rem;color:var(--text-muted);">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ total_alunos }} alunos
+      </span>
+      <div style="display:flex;gap:4px;">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
+            class="btn btn-ghost btn-sm"><i class="bi bi-chevron-left"></i></a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <button class="btn btn-primary btn-sm" disabled>{{ num }}</button>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <a href="?page={{ num }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
+              class="btn btn-ghost btn-sm">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
+            class="btn btn-ghost btn-sm"><i class="bi bi-chevron-right"></i></a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,803 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Layout principal ── */
+  .editor-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 0;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+
+  /* ── Painel esquerdo: formulário ── */
+  .painel-formulario {
+    background: #f8f9fb;
+    border-right: 2px solid #dde3ed;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .painel-topo {
+    background: #1a3a5c;
+    color: white;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .painel-topo h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .btn-guardar-topo {
+    background: #f0b429;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.4rem 1rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .btn-guardar-topo:hover { background: #e6a61a; }
+
+  /* ── Secções do formulário ── */
+  .secao-form {
+    border-bottom: 1px solid #dde3ed;
+  }
+  .secao-form summary {
+    padding: 0.75rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #1a3a5c;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #eee;
+  }
+  .secao-form summary:hover { background: #f0f4f8; }
+  .secao-form summary::before {
+    content: '▶';
+    font-size: 0.65rem;
+    transition: transform 0.2s;
+    color: #2e6da4;
+  }
+  .secao-form[open] summary::before { transform: rotate(90deg); }
+  .secao-form-corpo {
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* ── Campos do formulário ── */
+  .campo-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .campo-grupo label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .campo-grupo label .dica {
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: #888;
+    text-transform: none;
+    letter-spacing: 0;
+    display: block;
+    margin-top: 0.1rem;
+  }
+  .campo-grupo input[type="text"],
+  .campo-grupo input[type="number"],
+  .campo-grupo textarea,
+  .campo-grupo select {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1.5px solid #c8d0dd;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-family: 'Courier New', monospace;
+    background: white;
+    color: #1a1a1a;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  .campo-grupo input[type="text"]:focus,
+  .campo-grupo textarea:focus,
+  .campo-grupo select:focus {
+    outline: none;
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 3px rgba(46, 109, 164, 0.1);
+  }
+  .campo-grupo textarea { min-height: 80px; }
+  .campo-grupo textarea.grande { min-height: 120px; }
+
+  /* Toggle booleano */
+  .toggle-grupo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+  }
+  .toggle-grupo label {
+    font-size: 0.83rem;
+    color: #333;
+    cursor: pointer;
+  }
+  .toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: #2e6da4; }
+  .toggle input:checked + .toggle-slider::after { transform: translateX(18px); }
+
+  /* Grid de dois campos */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+  /* ── Variáveis disponíveis ── */
+  .variaveis-lista {
+    font-size: 0.75rem;
+    background: #f0f4f8;
+    border-radius: 6px;
+    padding: 0.6rem;
+    border: 1px solid #dde3ed;
+  }
+  .variaveis-lista p {
+    font-weight: 700;
+    color: #1a3a5c;
+    margin-bottom: 0.4rem;
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .variavel-tag {
+    display: inline-block;
+    background: #1a3a5c;
+    color: #aee0ff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    margin: 0.1rem;
+    cursor: pointer;
+    user-select: all;
+    transition: background 0.15s;
+  }
+  .variavel-tag:hover { background: #2e6da4; color: white; }
+  .variavel-tag title { display: none; }
+
+  /* ── Painel direito: pré-visualização ── */
+  .painel-preview {
+    background: #dde3ed;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-topo {
+    background: #2e6da4;
+    color: white;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .preview-topo .badge-preview {
+    background: rgba(255,255,255,0.2);
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+  }
+  .btn-atualizar-preview {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .btn-atualizar-preview:hover { background: rgba(255,255,255,0.25); }
+  .preview-iframe-container {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  #preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    background: white;
+    transform-origin: top center;
+  }
+  .overlay-carregando {
+    position: absolute;
+    inset: 0;
+    background: rgba(221, 227, 237, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #1a3a5c;
+    font-weight: 600;
+    display: none;
+  }
+  .overlay-carregando.visivel { display: flex; }
+
+  /* ── Mensagens ── */
+  .msg-sucesso {
+    background: #d4edda;
+    color: #155724;
+    padding: 0.5rem 1rem;
+    font-size: 0.83rem;
+    border-left: 4px solid #28a745;
+  }
+  .msg-erro {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 0.5rem 1rem;
+    font-size: 0.83rem;
+    border-left: 4px solid #dc3545;
+  }
+
+  /* ── Responsivo ── */
+  @media (max-width: 1024px) {
+    .editor-layout { grid-template-columns: 1fr; height: auto; }
+    .painel-preview { min-height: 60vh; }
+    #preview-iframe { height: 60vh; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div style="position:fixed;top:1rem;right:1rem;z-index:9999;max-width:380px;">
+  {% for msg in messages %}
+  <div class="{% if msg.tags == 'success' %}msg-sucesso{% else %}msg-erro{% endif %}"
+       style="margin-bottom:0.5rem;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="editor-layout">
+
+  <!-- ══ PAINEL ESQUERDO: FORMULÁRIO ══ -->
+  <div class="painel-formulario">
+    <div class="painel-topo">
+      <h2>✏️ {{ titulo }}</h2>
+      <button class="btn-guardar-topo" form="form-template" type="submit">💾 Guardar</button>
+    </div>
+
+    <form id="form-template" method="post" action="">
+      {% csrf_token %}
+
+      <!-- ── Identificação ── -->
+      <details class="secao-form" open>
+        <summary>📋 Identificação</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Nome do Template</label>
+            <input type="text" name="nome" value="{{ template.nome }}" required>
+          </div>
+          <div class="toggle-grupo">
+            <label for="e_padrao">Usar como template padrão deste tipo</label>
+            <label class="toggle">
+              <input type="checkbox" id="e_padrao" name="e_padrao"
+                     {% if template.e_padrao %}checked{% endif %}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Cabeçalho ── -->
+      <details class="secao-form" open>
+        <summary>🏛️ Cabeçalho</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Título Principal
+              <span class="dica">Aparece em destaque. Suporta variáveis.</span>
+            </label>
+            <input type="text" name="cabecalho_titulo" value="{{ template.cabecalho_titulo }}" data-preview>
+          </div>
+          <div class="campo-grupo">
+            <label>Subtítulo
+              <span class="dica">Linha abaixo do título (opcional).</span>
+            </label>
+            <input type="text" name="cabecalho_subtitulo" value="{{ template.cabecalho_subtitulo }}" data-preview>
+          </div>
+          <div class="toggle-grupo">
+            <label for="mostrar_brasao">Mostrar logótipo/brasão</label>
+            <label class="toggle">
+              <input type="checkbox" id="mostrar_brasao" name="mostrar_brasao"
+                     {% if template.mostrar_brasao %}checked{% endif %} data-preview-toggle>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-grupo">
+            <label for="mostrar_cabecalho_escola">Mostrar dados da escola</label>
+            <label class="toggle">
+              <input type="checkbox" id="mostrar_cabecalho_escola" name="mostrar_cabecalho_escola"
+                     {% if template.mostrar_cabecalho_escola %}checked{% endif %} data-preview-toggle>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Texto de Abertura ── -->
+      <details class="secao-form" open>
+        <summary>📝 Texto de Abertura</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Parágrafo de Abertura
+              <span class="dica">Introdução antes da identificação do aluno.</span>
+            </label>
+            <textarea name="texto_abertura" data-preview>{{ template.texto_abertura }}</textarea>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Identificação do Aluno ── -->
+      <details class="secao-form" open>
+        <summary>👤 Identificação do Aluno</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Bloco de Identificação
+              <span class="dica">Nome, BI, filiação e naturalidade do aluno.</span>
+            </label>
+            <textarea name="texto_identificacao" class="grande" data-preview>{{ template.texto_identificacao }}</textarea>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Corpo ── -->
+      <details class="secao-form" open>
+        <summary>📄 Corpo do Documento</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Texto Central
+              <span class="dica">O conteúdo principal: classe, curso, nota, situação.</span>
+            </label>
+            <textarea name="texto_corpo" class="grande" data-preview>{{ template.texto_corpo }}</textarea>
+          </div>
+          <div class="toggle-grupo">
+            <label for="incluir_tabela_notas">Incluir tabela de notas</label>
+            <label class="toggle">
+              <input type="checkbox" id="incluir_tabela_notas" name="incluir_tabela_notas"
+                     {% if template.incluir_tabela_notas %}checked{% endif %} data-preview-toggle>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="campo-grupo">
+            <label>Texto antes da tabela de notas</label>
+            <input type="text" name="texto_antes_tabela" value="{{ template.texto_antes_tabela }}" data-preview>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Rodapé ── -->
+      <details class="secao-form">
+        <summary>📃 Rodapé</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Texto de Rodapé
+              <span class="dica">Parágrafo antes das assinaturas.</span>
+            </label>
+            <textarea name="texto_rodape" data-preview>{{ template.texto_rodape }}</textarea>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Data e Local ── -->
+      <details class="secao-form">
+        <summary>📅 Data e Local</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Local de Emissão</label>
+            <input type="text" name="local_emissao" value="{{ template.local_emissao }}" data-preview>
+          </div>
+          <div class="campo-grupo">
+            <label>Formato da linha de data
+              <span class="dica">Ex: {{local_emissao}}, {{data_emissao}}</span>
+            </label>
+            <input type="text" name="texto_data_emissao" value="{{ template.texto_data_emissao }}" data-preview>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Layout ── -->
+      <details class="secao-form">
+        <summary>⚙️ Layout e Impressão</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Orientação</label>
+            <select name="orientacao" data-preview>
+              <option value="retrato" {% if template.orientacao == "retrato" %}selected{% endif %}>Retrato (Portrait)</option>
+              <option value="paisagem" {% if template.orientacao == "paisagem" %}selected{% endif %}>Paisagem (Landscape)</option>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="campo-grupo">
+              <label>Margem Topo (cm)</label>
+              <input type="number" name="margem_topo" value="{{ template.margem_topo }}" min="1" max="5" data-preview>
+            </div>
+            <div class="campo-grupo">
+              <label>Margem Lateral (cm)</label>
+              <input type="number" name="margem_lateral" value="{{ template.margem_lateral }}" min="1" max="5" data-preview>
+            </div>
+          </div>
+          <div class="campo-grupo">
+            <label>Tamanho da fonte (pt)</label>
+            <input type="number" name="tamanho_fonte_corpo" value="{{ template.tamanho_fonte_corpo }}" min="9" max="16" data-preview>
+          </div>
+          <div class="toggle-grupo">
+            <label for="usar_borda">Usar borda decorativa</label>
+            <label class="toggle">
+              <input type="checkbox" id="usar_borda" name="usar_borda"
+                     {% if template.usar_borda %}checked{% endif %} data-preview-toggle>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <!-- ── Numeração ── -->
+      <details class="secao-form">
+        <summary>🔢 Numeração</summary>
+        <div class="secao-form-corpo">
+          <div class="campo-grupo">
+            <label>Prefixo
+              <span class="dica">Ex: "CERT" → CERT-2024-0001</span>
+            </label>
+            <input type="text" name="prefixo_numeracao" value="{{ template.prefixo_numeracao }}" style="text-transform:uppercase">
+          </div>
+          <p style="font-size:0.78rem;color:#666;">
+            Próximo número: <strong>{{ template.prefixo_numeracao }}-{{ template.data_criacao.year }}-{{ template.contador_atual|add:1|stringformat:"04d" }}</strong>
+          </p>
+        </div>
+      </details>
+
+      <!-- ── Variáveis disponíveis ── -->
+      <details class="secao-form">
+        <summary>🔧 Variáveis Disponíveis</summary>
+        <div class="secao-form-corpo">
+          <div class="variaveis-lista">
+            <p>Clique para copiar · Use {{nome_variavel}} nos textos acima</p>
+            {% for chave, descricao in variaveis_disponiveis %}
+            <span class="variavel-tag" title="{{ descricao }}"
+                  onclick="copiarVariavel(this, '{{chave}}')"
+                  data-variavel="{{ chave }}">{{ '{{'}}{{ chave }}{{ '}}' }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+
+    </form>
+  </div><!-- /painel-formulario -->
+
+  <!-- ══ PAINEL DIREITO: PRÉ-VISUALIZAÇÃO ══ -->
+  <div class="painel-preview" style="position:relative;">
+    <div class="preview-topo">
+      <span>🔍 Pré-visualização</span>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <span class="badge-preview" id="badge-estado">Auto-actualização activada</span>
+        <button class="btn-atualizar-preview" onclick="atualizarPreview()">↺ Actualizar</button>
+      </div>
+    </div>
+    <div class="preview-iframe-container">
+      <iframe id="preview-iframe" title="Pré-visualização do documento"></iframe>
+    </div>
+    <div class="overlay-carregando" id="overlay-carregando">
+      <span>A gerar pré-visualização…</span>
+    </div>
+  </div>
+
+</div><!-- /editor-layout -->
+
+<script>
+(function() {
+  const templateId = "{{ template.id }}";
+  // Para preview, usamos um aluno fictício (se não houver aluno selecionado)
+  // O preview mostra o template com variáveis como placeholders
+
+  let debounceTimer = null;
+
+  // ── Copiar variável para clipboard ──
+  window.copiarVariavel = function(el, chave) {
+    const texto = `{{${chave}}}`;
+    navigator.clipboard.writeText(texto).then(() => {
+      const orig = el.textContent;
+      el.textContent = '✓ copiado';
+      el.style.background = '#2e6da4';
+      setTimeout(() => { el.textContent = orig; el.style.background = ''; }, 1200);
+    });
+  };
+
+  // ── Gerar HTML de preview no servidor ──
+  async function atualizarPreviewRemoto() {
+    const overlay = document.getElementById('overlay-carregando');
+    const badge = document.getElementById('badge-estado');
+    overlay.classList.add('visivel');
+    badge.textContent = 'A actualizar…';
+
+    // Recolhe os dados actuais do formulário
+    const form = document.getElementById('form-template');
+    const dados = new FormData(form);
+
+    try {
+      const resp = await fetch(`/documentos/api/previsualizar/?template_id=${templateId}`, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      // Fallback: exibe HTML estático gerado pelo servidor na última gravação
+      await atualizarPreviewEstatico();
+    } catch(e) {
+      await atualizarPreviewEstatico();
+    } finally {
+      overlay.classList.remove('visivel');
+      badge.textContent = 'Visualização actualizada';
+      setTimeout(() => { badge.textContent = 'Auto-actualização activada'; }, 2000);
+    }
+  }
+
+  // ── Preview estático: gera HTML localmente com substituições simples ──
+  async function atualizarPreviewEstatico() {
+    const form = document.getElementById('form-template');
+    const fd = new FormData(form);
+
+    // Variáveis fictícias para visualização
+    const ficticias = {
+      aluno_nome: "Maria Fernanda dos Santos",
+      aluno_bi: "123456789LA041",
+      aluno_naturalidade: "Luanda",
+      aluno_data_nasc: "15 de Março de 2005",
+      aluno_nome_pai: "António dos Santos",
+      aluno_nome_mae: "Fernanda Costa dos Santos",
+      aluno_numero_processo: "ES-2024-0042",
+      ano_lectivo: "2023/2024",
+      classe: "12ª Classe",
+      curso: "Ciências Físicas e Biológicas",
+      turma: "A",
+      periodo: "Manhã",
+      nota_final_num: "16",
+      nota_final_extenso: "dezasseis valores",
+      situacao_final: "Aprovado",
+      media_geral: "15.40",
+      escola_nome: "{{ template.escola.nome }}",
+      escola_provincia: "{{ template.escola.provincia }}",
+      escola_municipio: "{{ template.escola.municipio }}",
+      escola_nif: "{{ template.escola.nif }}",
+      escola_director: "João Pedro Nkosi Luvualu",
+      data_emissao: "26 de Março de 2026",
+      local_emissao: "{{ template.escola.municipio }}",
+      numero_documento: "PRÉ-VISUALIZAÇÃO",
+      tipo_documento: "certificado",
+    };
+
+    function substituir(texto) {
+      for (const [k, v] of Object.entries(ficticias)) {
+        texto = texto.replaceAll(`{{${k}}}`, v);
+      }
+      return texto;
+    }
+
+    const titulo = substituir(fd.get('cabecalho_titulo') || '');
+    const subtitulo = substituir(fd.get('cabecalho_subtitulo') || '');
+    const abertura = substituir(fd.get('texto_abertura') || '');
+    const identificacao = substituir(fd.get('texto_identificacao') || '');
+    const corpo = substituir(fd.get('texto_corpo') || '');
+    const rodape = substituir(fd.get('texto_rodape') || '');
+    const dataLocal = substituir(fd.get('texto_data_emissao') || '');
+    const antesTabela = substituir(fd.get('texto_antes_tabela') || '');
+    const usarBorda = fd.get('usar_borda') === 'on';
+    const mostrarCabecalho = fd.get('mostrar_cabecalho_escola') === 'on';
+    const mostrarLogo = fd.get('mostrar_brasao') === 'on';
+    const incluirTabela = fd.get('incluir_tabela_notas') === 'on';
+    const orientacao = fd.get('orientacao') || 'retrato';
+    const fonteSize = fd.get('tamanho_fonte_corpo') || 12;
+    const margemTop = fd.get('margem_topo') || 2;
+    const margemLr = fd.get('margem_lateral') || 2;
+
+    const tabelaHTML = incluirTabela ? `
+      <div style="margin:0.5cm 0;">
+        <p style="font-style:italic;font-size:10pt;margin-bottom:0.2cm;">${antesTabela}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:9pt;">
+          <thead>
+            <tr style="background:#1a3a5c;color:white;">
+              <th style="padding:5px;text-align:left;">Disciplina</th>
+              <th style="padding:5px;">1º T.</th>
+              <th style="padding:5px;">2º T.</th>
+              <th style="padding:5px;">3º T.</th>
+              <th style="padding:5px;">MAC</th>
+              <th style="padding:5px;">Exame</th>
+              <th style="padding:5px;">Final</th>
+              <th style="padding:5px;">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #ddd;">
+              <td style="padding:4px 5px;">Língua Portuguesa</td>
+              <td style="text-align:center;padding:4px;">14</td><td style="text-align:center;padding:4px;">15</td>
+              <td style="text-align:center;padding:4px;">16</td><td style="text-align:center;padding:4px;font-weight:bold;">15.0</td>
+              <td style="text-align:center;padding:4px;">—</td><td style="text-align:center;padding:4px;font-weight:bold;">15.0</td>
+              <td style="text-align:center;padding:4px;color:#1a6b3a;font-weight:bold;">Aprovado</td>
+            </tr>
+            <tr style="background:#f0f4f8;border-bottom:1px solid #ddd;">
+              <td style="padding:4px 5px;">Matemática</td>
+              <td style="text-align:center;padding:4px;">17</td><td style="text-align:center;padding:4px;">16</td>
+              <td style="text-align:center;padding:4px;">18</td><td style="text-align:center;padding:4px;font-weight:bold;">17.0</td>
+              <td style="text-align:center;padding:4px;">—</td><td style="text-align:center;padding:4px;font-weight:bold;">17.0</td>
+              <td style="text-align:center;padding:4px;color:#1a6b3a;font-weight:bold;">Aprovado</td>
+            </tr>
+            <tr style="border-bottom:1px solid #ddd;">
+              <td style="padding:4px 5px;">Física</td>
+              <td style="text-align:center;padding:4px;">12</td><td style="text-align:center;padding:4px;">14</td>
+              <td style="text-align:center;padding:4px;">15</td><td style="text-align:center;padding:4px;font-weight:bold;">13.7</td>
+              <td style="text-align:center;padding:4px;">—</td><td style="text-align:center;padding:4px;font-weight:bold;">13.7</td>
+              <td style="text-align:center;padding:4px;color:#1a6b3a;font-weight:bold;">Aprovado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>` : '';
+
+    const logoHTML = mostrarLogo
+      ? `<div style="font-size:2cm;line-height:1;margin-bottom:0.2cm;">🏫</div>`
+      : '';
+
+    const cabecalhoHTML = mostrarCabecalho ? `
+      <p style="font-size:9pt;font-weight:bold;letter-spacing:0.05em;color:#555;text-transform:uppercase;margin:0;">República de Angola</p>
+      <p style="font-size:8pt;color:#666;margin:0;">Ministério da Educação</p>
+      <p style="font-size:13pt;font-weight:bold;color:#1a3a5c;text-transform:uppercase;margin:0.2cm 0 0;">${ficticias.escola_nome}</p>
+      <p style="font-size:9pt;color:#555;margin:0;">${ficticias.escola_provincia} — ${ficticias.escola_municipio}</p>` : '';
+
+    const bordaStyle = usarBorda ? `
+      outline: 3px double #2e6da4;
+      outline-offset: -1.0cm;
+      box-shadow: inset 0 0 0 calc(1.2cm) white, inset 0 0 0 calc(0.8cm) #2e6da4;
+    ` : '';
+
+    const pageSize = orientacao === 'paisagem' ? 'width:29.7cm;min-height:21cm;' : 'width:21cm;min-height:29.7cm;';
+
+    const html = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e8e8e8; font-family: 'Times New Roman', serif; }
+  .pagina {
+    background: white;
+    margin: 0 auto;
+    padding: ${margemTop}cm ${margemLr}cm;
+    font-size: ${fonteSize}pt;
+    line-height: 1.6;
+    position: relative;
+    ${pageSize}
+    ${bordaStyle}
+  }
+  .cabecalho { text-align:center; margin-bottom:0.6cm; padding-bottom:0.4cm; border-bottom:2px solid #1a3a5c; }
+  .titulo-doc { text-align:center; margin:0.5cm 0; }
+  .titulo-doc h1 { font-family:Arial,sans-serif; font-size:16pt; font-weight:bold; color:#1a3a5c; text-transform:uppercase; letter-spacing:0.08em; border-bottom:3px solid #2e6da4; display:inline-block; padding-bottom:0.1cm; }
+  .num-doc { text-align:right; font-family:Arial,sans-serif; font-size:9pt; color:#888; margin-bottom:0.3cm; }
+  .abertura, .rodape { text-align:justify; margin-bottom:0.35cm; }
+  .identificacao { text-align:justify; margin-bottom:0.35cm; font-weight:bold; font-style:italic; }
+  .corpo { text-align:justify; margin-bottom:0.35cm; padding:0.25cm 0.45cm; border-left:3px solid #2e6da4; background:#f8fafc; }
+  .data-local { text-align:right; margin:0.5cm 0 0.3cm; font-style:italic; }
+  .assinaturas { display:flex; justify-content:space-around; margin-top:0.8cm; }
+  .assin { text-align:center; }
+  .linha-assin { border-top:1px solid #333; margin-bottom:0.15cm; }
+  .assin-nome { font-weight:bold; font-size:10pt; font-family:Arial,sans-serif; }
+  .assin-cargo { font-size:9pt; color:#555; font-style:italic; font-family:Arial,sans-serif; }
+  .rodape-pag { margin-top:0.6cm; padding-top:0.25cm; border-top:1px solid #ccc; font-size:8pt; color:#999; text-align:center; font-family:Arial,sans-serif; }
+  @media print { body { background:white; } .pagina { margin:0; box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="cabecalho">${logoHTML}${cabecalhoHTML}</div>
+  <div class="titulo-doc"><h1>${titulo}</h1>${subtitulo ? `<p style="font-size:10pt;color:#666;margin-top:0.15cm;font-style:italic;">${subtitulo}</p>` : ''}</div>
+  <p class="num-doc">N.º PRÉ-VISUALIZAÇÃO</p>
+  <p class="abertura">${abertura}</p>
+  <p class="identificacao">${identificacao}</p>
+  <p class="corpo">${corpo}</p>
+  ${tabelaHTML}
+  <p class="rodape">${rodape}</p>
+  <p class="data-local">${dataLocal}</p>
+  <div class="assinaturas">
+    <div class="assin"><div class="linha-assin" style="width:7cm;"></div><p class="assin-nome">João Pedro Nkosi Luvualu</p><p class="assin-cargo">Director(a)</p></div>
+    <div class="assin"><div class="linha-assin" style="width:7cm;"></div><p class="assin-nome">Ana Beatriz Fonseca</p><p class="assin-cargo">Chefe de Secretaria</p></div>
+  </div>
+  <div class="rodape-pag">Documento emitido pelo Sistema de Gestão Académica &bull; ${ficticias.escola_nome} &bull; PRÉ-VISUALIZAÇÃO</div>
+</div>
+</body></html>`;
+
+    const iframe = document.getElementById('preview-iframe');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+  }
+
+  window.atualizarPreview = atualizarPreviewEstatico;
+
+  // ── Auto-actualização com debounce ──
+  document.querySelectorAll('[data-preview], [data-preview-toggle]').forEach(el => {
+    el.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(atualizarPreviewEstatico, 600);
+    });
+    el.addEventListener('change', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(atualizarPreviewEstatico, 400);
+    });
+  });
+
+  // Primeira carga
+  atualizarPreviewEstatico();
+
+  // Feedback ao guardar
+  document.getElementById('form-template').addEventListener('submit', function() {
+    const btn = document.querySelector('.btn-guardar-topo');
+    btn.textContent = '⏳ A guardar…';
+    btn.disabled = true;
+  });
+
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "professor/base.html" %}{% load l10n %}
+
+{% block breadcrumb %}
+    <a href="{% url "avaliacao:turma_detalhe" turma.id %}">Minha turma</a>
+{% endblock breadcrumb %}
+
+{% block title %}
+    {{ disciplina }} - {{ trimestre }}
+{% endblock title %}
+
+{% block topbar_actions %}
+    <a href="{% url 'avaliacao:lancar_continua' turma.id disciplina.id trimestre.id %}" class="btn btn-primary">
+        + avaliação contínua
+    </a>
+{% endblock topbar_actions %}
+
+{% block sub_title %}
+    <p>{{ turma }}</p>
+{% endblock sub_title %}
+
+{% block content %}
+
+
+<form method="post">{% csrf_token %}
+    <div class="card-body" style="border-radius: 4px;">
+        <div class="table-responsive">
+            <table class="table table-hover" style="font-size: 10pt;">
+                <thead class="table-light">
+                    <tr>
+                        <th>N.º</th>
+                        <th>Nome</th>
+                        <th>MAC</th>
+                        <th>PP</th>
+                        <th>PT</th>
+                        <th>MT</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for l in linhas %}
+                        <tr>
+                            <td>{{ l.m.numero_na_turma|default:forloop.counter }}</td>
+                            <td class="nome">{{ l.m.aluno.nome_completo }}</td>
+                            <td>{{ l.r.mac|default_if_none:"-" }}</td>
+                            <td>
+                                <input type="number" name="pp_{{ l.m.id }}" value="{{ l.r.pp|default_if_none:''|unlocalize }}" class="form-control-custom" style="width: 100px;">
+                            </td>
+                            <td><input type="number" name="pt_{{ l.m.id }}" value="{{ l.r.pt|default_if_none:''|unlocalize }}" class="form-control-custom" style="width: 100px;"></td>
+                            <td><b>{{ l.r.mt|default_if_none:"-" }}</b></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p>
+        <button class="btn btn-success">Guardar</button> 
+        <a class="btn btn-outline-primary" href="{% url 'avaliacao:turma_detalhe' turma.id %}">Voltar</a>
+    </p>
+</form>
+{% endblock %}

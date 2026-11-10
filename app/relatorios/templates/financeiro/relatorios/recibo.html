@@ -1,0 +1,65 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recibo {{ p.numero_recibo }}</title>
+  <link rel="stylesheet" href="{% static 'css/css/bootstrap.min.css' %}">
+  <style>
+    body { background:#e5e7eb; font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#0f172a; }
+    .recibo { max-width:760px; margin:30px auto; background:#fff; border-radius:14px; padding:36px 40px; box-shadow:0 8px 40px rgba(15,31,61,.13); }
+    .topo { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1d4ed8; padding-bottom:16px; margin-bottom:22px; }
+    .topo h1 { font-size:1.4rem; font-weight:800; margin:0; color:#1d4ed8; }
+    .topo small { color:#64748b; }
+    .num { text-align:right; }
+    .num strong { font-size:1.1rem; display:block; }
+    table.info { width:100%; margin-bottom:20px; }
+    table.info td { padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:.9rem; }
+    table.info td:first-child { color:#64748b; width:38%; }
+    .valor { background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
+    .valor span { font-size:.85rem; color:#475569; text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+    .valor strong { font-size:1.8rem; color:#1d4ed8; }
+    .rodape { display:flex; justify-content:space-between; align-items:flex-end; margin-top:30px; font-size:.78rem; color:#64748b; }
+    .assin { border-top:1px solid #0f172a; width:220px; text-align:center; padding-top:6px; color:#0f172a; }
+    .acoes { max-width:760px; margin:0 auto 30px; display:flex; gap:10px; justify-content:center; }
+    @media print { body { background:#fff; } .recibo { box-shadow:none; margin:0; } .acoes { display:none; } }
+  </style>
+</head>
+<body>
+<div class="recibo">
+  <div class="topo">
+    <div><h1>RECIBO DE PAGAMENTO</h1><small>Instituição de Ensino</small></div>
+    <div class="num"><strong>{{ p.numero_recibo }}</strong><small>{{ p.data_pagamento|date:"d/m/Y" }}</small></div>
+  </div>
+
+  <table class="info">
+    <tr><td>Aluno</td><td><strong>{{ conta.aluno.nome_completo }}</strong></td></tr>
+    <tr><td>Ano Lectivo</td><td>{{ conta.ano_lectivo }}</td></tr>
+    <tr><td>Método de pagamento</td><td>{{ p.get_metodo_pagamento_display }}</td></tr>
+    {% if p.referencia %}<tr><td>Referência</td><td>{{ p.referencia }}</td></tr>{% endif %}
+    <tr><td>Registado por</td><td>{{ p.registado_por.nome_completo|default:"—" }}</td></tr>
+    {% if p.observacoes %}<tr><td>Observações</td><td>{{ p.observacoes }}</td></tr>{% endif %}
+  </table>
+
+  <div class="valor"><span>Valor pago</span><strong>{{ p.valor|floatformat:"2g" }} Kz</strong></div>
+
+  <table class="info">
+    <tr><td>Total devido na conta</td><td>{{ conta.total_devido|floatformat:"2g" }} Kz</td></tr>
+    <tr><td>Total pago até à data</td><td>{{ conta.total_pago|floatformat:"2g" }} Kz</td></tr>
+    <tr><td>Saldo em dívida</td><td><strong>{{ conta.saldo_devedor|floatformat:"2g" }} Kz</strong></td></tr>
+  </table>
+
+  <div class="rodape">
+    <div>
+      <img src="data:image/png;base64,{{ qr }}" alt="QR de validação" width="110" height="110"><br>
+      <small>Validação: {{ p.uuid_validacao }}</small>
+    </div>
+    <div class="assin">Assinatura / Carimbo</div>
+  </div>
+</div>
+<div class="acoes">
+  <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+  <a class="btn btn-outline-secondary" href="javascript:history.back()">Voltar</a>
+</div>
+</body>
+</html>

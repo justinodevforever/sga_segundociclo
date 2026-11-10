@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini Pauta — {{ turma }} | {{ trimestre }}</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:            #f0f4f8;
+      --bg-card:       #ffffff;
+      --bg-sidebar:    #0f2744;
+      --accent:        #1d5fa6;
+      --accent-2:      #0e9f6e;
+      --accent-danger: #dc2626;
+      --text-main:     #0f172a;
+      --text-sub:      #475569;
+      --text-muted:    #94a3b8;
+      --border:        #e2e8f0;
+      --radius:        14px;
+      --shadow:        0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.06);
+      --shadow-lg:     0 8px 40px rgba(15,31,61,.13);
+
+      /* Pauta specific */
+      --th-bg:         #0f2744;
+      --th-color:      #ffffff;
+      --th-sub-bg:     #1e3f6e;
+      --row-alt:       #f8fafc;
+      --row-hover:     #eff6ff;
+      --border-pauta:  #cbd5e1;
+      --nota-ok:       #d1fae5;
+      --nota-ok-text:  #065f46;
+      --nota-nok:      #fee2e2;
+      --nota-nok-text: #991b1b;
+      --nota-med:      #fef3c7;
+      --nota-med-text: #92400e;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .pauta-wrapper { box-shadow: none; border-radius: 0; }
+      .pauta-table th, .pauta-table td { font-size: 7pt; padding: 3px 5px; }
+      .escola-header { padding: 12px 16px; }
+      .page-controls { display: none; }
+      @page { size: A4 landscape; margin: 8mm; }
+    }
+
+    /* ── PAGE WRAPPER ── */
+    .page-outer {
+      padding: 28px;
+      max-width: 100%;
+    }
+
+    /* ── CONTROLS ── */
+    .page-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 14px;
+      margin-bottom: 22px;
+    }
+    .ctrl-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; font-weight: 800; color: var(--text-main);
+    }
+    .ctrl-title small {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .72rem; font-weight: 500; color: var(--text-muted);
+      display: block; margin-top: 2px;
+    }
+    .ctrl-actions { display: flex; gap: 8px; }
+    .btn-ctrl {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: 10px; font-size: .8rem;
+      font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif;
+      border: none; cursor: pointer; transition: all .18s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(29,95,166,.25); }
+    .btn-primary:hover { background: #1a54a0; transform: translateY(-1px); }
+    .btn-outline { background: #fff; color: var(--text-sub); border: 1.5px solid var(--border); }
+    .btn-outline:hover { background: var(--bg); color: var(--accent); border-color: var(--accent); }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+    .filter-label {
+      font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .filter-select, .filter-input {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      color: var(--text-main);
+      padding: 9px 14px;
+      font-size: .82rem; outline: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+    }
+    .filter-select:focus, .filter-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(29,95,166,.12);
+      background: #fff;
+    }
+
+    /* ── PAUTA WRAPPER ── */
+    .pauta-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    /* ── ESCOLA HEADER ── */
+    .escola-header {
+      background: linear-gradient(135deg, #0f1f3d 0%, #1d3f7a 60%, #1e40af 100%);
+      padding: 20px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap; position: relative; overflow: hidden;
+    }
+    .escola-header::before {
+      content: ''; position: absolute; top: -40px; right: -30px;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(59,130,246,.12);
+    }
+    .escola-header::after {
+      content: ''; position: absolute; bottom: -50px; left: 40%;
+      width: 130px; height: 130px; border-radius: 50%;
+      background: rgba(124,58,237,.1);
+    }
+    .esc-logo-wrap {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .esc-logo {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: rgba(255,255,255,.15);
+      border: 2px solid rgba(255,255,255,.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: #fff; flex-shrink: 0;
+      backdrop-filter: blur(8px);
+    }
+    .esc-info-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem; font-weight: 800; color: #fff;
+      line-height: 1.2;
+    }
+    .esc-info-sub { font-size: .72rem; color: rgba(255,255,255,.55); margin-top: 3px; }
+    .esc-doc-info {
+      text-align: right; z-index: 1;
+    }
+    .esc-doc-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,.9);
+    }
+    .esc-doc-meta {
+      font-size: .7rem; color: rgba(255,255,255,.5);
+      margin-top: 6px; display: flex; flex-direction: column; gap: 2px; align-items: flex-end;
+    }
+    .esc-doc-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ── INFO STRIP ── */
+    .info-strip {
+      background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+      border-bottom: 1px solid #bfdbfe;
+      padding: 10px 28px;
+      display: flex; gap: 30px; flex-wrap: wrap;
+    }
+    .is-item { display: flex; align-items: center; gap: 8px; font-size: .79rem; }
+    .is-label { color: var(--text-muted); font-weight: 500; }
+    .is-value { color: var(--text-main); font-weight: 700; }
+    .is-sep { color: var(--border); font-size: 1.1rem; }
+
+    /* ── TABLE SCROLL ── */
+    .table-scroll { overflow-x: auto; }
+
+    /* ── PAUTA TABLE ── */
+    .pauta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .77rem;
+      min-width: 900px;
+    }
+
+    /* Header rows */
+    .pauta-table thead tr.tr-main th {
+      background: var(--th-bg);
+      color: var(--th-color);
+      font-size: .63rem; font-weight: 700;
+      letter-spacing: .07em; text-transform: uppercase;
+      padding: 11px 10px;
+      border-right: 1px solid rgba(255,255,255,.1);
+      white-space: nowrap;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .pauta-table thead tr.tr-sub th {
+      background: var(--th-sub-bg);
+      color: rgba(255,255,255,.75);
+      font-size: .6rem; font-weight: 600;
+      letter-spacing: .05em; text-transform: uppercase;
+      padding: 6px 10px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      white-space: nowrap;
+    }
+    .pauta-table thead tr.tr-main th:first-child,
+    .pauta-table thead tr.tr-sub th:first-child {
+      text-align: left;
+    }
+    .pauta-table thead tr.tr-main th.th-disciplina {
+      background: #1e3f6e;
+      border-left: 2px solid rgba(255,255,255,.2);
+      text-align: center;
+    }
+
+    /* Body */
+    .pauta-table tbody tr {
+      border-bottom: 1px solid #f1f5f9;
+      transition: background .12s;
+    }
+    .pauta-table tbody tr:nth-child(even) { background: var(--row-alt); }
+    .pauta-table tbody tr:hover { background: var(--row-hover); }
+    .pauta-table tbody td {
+      padding: 10px 10px;
+      border-right: 1px solid var(--border-pauta);
+      text-align: center;
+      vertical-align: middle;
+    }
+    .pauta-table tbody td:first-child { text-align: left; }
+    .pauta-table tbody td.td-sep {
+      border-left: 2px solid var(--border-pauta);
+    }
+
+    /* Fixed columns */
+    .col-num {
+      width: 36px; min-width: 36px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; color: var(--text-muted);
+      font-weight: 600; text-align: center !important;
+    }
+    .col-nome {
+      min-width: 200px;
+      font-weight: 600; font-size: .82rem;
+    }
+    .col-nota { min-width: 54px; width: 54px; }
+    .col-mt { min-width: 58px; width: 58px; font-weight: 700; }
+
+    /* Nota badges */
+    .nota {
+      display: inline-block;
+      padding: 3px 8px; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .73rem; font-weight: 600; min-width: 34px;
+    }
+    .nota-pos  { background: var(--nota-ok);  color: var(--nota-ok-text);  }
+    .nota-neg  { background: var(--nota-nok); color: var(--nota-nok-text); }
+    .nota-med  { background: var(--nota-med); color: var(--nota-med-text); }
+    .nota-null { color: var(--text-muted); font-style: italic; font-size: .7rem; }
+
+    /* MT bold highlight */
+    .nota-mt-pos { background: #bbf7d0; color: #14532d; font-weight: 800; }
+    .nota-mt-neg { background: #fecaca; color: #7f1d1d; font-weight: 800; }
+    .nota-mt-med { background: #fde68a; color: #78350f; font-weight: 800; }
+
+    /* Footer */
+    .pauta-footer {
+      padding: 14px 28px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      background: #f8fafc;
+    }
+    .pf-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+    .pf-stat {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .76rem;
+    }
+    .pf-dot {
+      width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+    }
+    .pf-stat-val { font-weight: 700; color: var(--text-main); }
+    .pf-stat-lbl { color: var(--text-muted); }
+    .pf-date { font-size: .68rem; color: var(--text-muted); }
+
+    /* Assinatura strip */
+    .sign-strip {
+      padding: 20px 28px 28px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+    .sign-box {
+      text-align: center;
+    }
+    .sign-line {
+      height: 1px; background: var(--text-main);
+      margin-bottom: 6px; margin-top: 40px;
+    }
+    .sign-name { font-size: .75rem; font-weight: 700; color: var(--text-main); }
+    .sign-role { font-size: .65rem; color: var(--text-muted); }
+
+    /* Legend */
+    .legend-bar {
+      padding: 10px 28px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    }
+    .legend-title { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: .68rem; color: var(--text-sub); }
+    .leg-badge { padding: 1px 7px; border-radius: 4px; font-size: .65rem; font-weight: 700; }
+
+    /* Summary row */
+    .tr-summary td {
+      background: linear-gradient(90deg, #eff6ff, #f0fdf4) !important;
+      font-weight: 700; border-top: 2px solid #bfdbfe;
+      font-size: .76rem;
+    }
+
+    /* Spinner / empty */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center; color: var(--text-muted);
+    }
+    .empty-state i { font-size: 3rem; opacity: .3; margin-bottom: 12px; display: block; }
+    .empty-state p { font-size: .9rem; }
+
+    @media (max-width: 768px) {
+      .page-outer { padding: 14px; }
+      .escola-header { padding: 14px 16px; }
+      .esc-doc-info { display: none; }
+      .sign-strip { grid-template-columns: 1fr; }
+      .filter-bar { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-outer">
+
+  <!-- ── CONTROLS (no-print) ── -->
+  <div class="page-controls no-print">
+    <div class="ctrl-title">
+      Mini Pauta
+      <small>Relatório de notas por turma e trimestre</small>
+    </div>
+    <div class="ctrl-actions">
+      <a href="{% url 'professor:mini_pauta_export_pdf' trimestre_id turma_id%}" class="btn-ctrl btn-outline">
+        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+      </a>
+      <button class="btn-ctrl btn-primary" onclick="window.print()">
+        <i class="bi bi-printer-fill"></i> Imprimir
+      </button>
+    </div>
+  </div>
+
+  <!-- ── FILTER BAR (no-print) ── -->
+  <form method="GET" action="{% url 'professor:mini_pauta' %}" class="filter-bar no-print">
+    <div class="filter-group">
+      <label class="filter-label">Ano Lectivo</label>
+      <select name="ano_lectivo" class="filter-select" >
+        <option value="">— Selecionar —</option>
+        {% for ano in anos_lectivos %}
+          <option value="{{ ano.pk }}" {% if ano.pk == ano_lectivo_id %}selected{% endif %}>{{ ano }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Turma</label>
+      <select name="turma" class="filter-select" >
+        <option value="">— Selecionar —</option>
+        {% for t in turmas %}
+          <option value="{{ t.pk }}" {% if t.pk == turma_id %}selected{% endif %}>{{ t.designacao }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Trimestre</label>
+      <select name="trimestre" class="filter-select" >
+        <option value="">— Selecionar —</option>
+        {% for tr in trimestres %}
+          <option value="{{ tr.pk }}" {% if tr.pk == trimestre_id %}selected{% endif %}>{{ tr }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group" style="max-width:160px;">
+      <label class="filter-label">Pesquisar Aluno</label>
+      <input type="text" name="q" class="filter-input" placeholder="Nome..." value="{{ q|default:'' }}">
+    </div>
+    <button type="submit" class="btn-ctrl btn-primary" style="align-self:flex-end;">
+      <i class="bi bi-search"></i> Filtrar
+    </button>
+  </form>
+
+  <!-- ── PAUTA DOCUMENT ── -->
+  <div class="pauta-wrapper">
+
+    <!-- Escola Header -->
+    <div class="escola-header">
+      <div class="esc-logo-wrap">
+        {% if escola.logo %}
+          <img src="{{ escola.logo.url }}" alt="Logo" style="width:56px;height:56px;border-radius:14px;object-fit:contain;background:rgba(255,255,255,.15);">
+        {% else %}
+          <div class="esc-logo">
+            <i class="bi bi-mortarboard-fill"></i>
+          </div>
+        {% endif %}
+        <div>
+          <div class="esc-info-name">{{ escola.nome|default:"Nome da Escola" }}</div>
+          <div class="esc-info-sub">{{ escola.municipio|default:"" }}{% if escola.provincia %}, {{ escola.provincia }}{% endif %} &mdash; República de Angola</div>
+          <div class="esc-info-sub" style="margin-top:4px;">
+            Nº MEC: {{ escola.numero_mec|default:"—" }}
+          </div>
+        </div>
+      </div>
+      <div class="esc-doc-info">
+        <div class="esc-doc-title">MINI PAUTA DE AVALIAÇÃO</div>
+        <div class="esc-doc-meta">
+          <span><i class="bi bi-calendar3"></i> Ano Lectivo: <strong style="color:#fff;">{{ ano_lectivo|default:"—" }}</strong></span>
+          <span><i class="bi bi-clock-history"></i> Trimestre: <strong style="color:#fff;">{{ trimestre|default:"—" }}</strong></span>
+          <span><i class="bi bi-printer"></i> Emitido: {{ hoje }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Strip -->
+    <div class="info-strip">
+      <div class="is-item">
+        <span class="is-label">Turma:</span>
+        <span class="is-value">{{ turma|default:"—" }}</span>
+      </div>
+      <span class="is-sep">|</span>
+      <div class="is-item">
+        <span class="is-label">Classe:</span>
+        <span class="is-value">{{ classe|default:"—" }}</span>
+      </div>
+      <span class="is-sep">|</span>
+      <div class="is-item">
+        <span class="is-label">Curso:</span>
+        <span class="is-value">{{ curso|default:"—" }}</span>
+      </div>
+      <span class="is-sep">|</span>
+      <div class="is-item">
+        <span class="is-label">Sala:</span>
+        <span class="is-value">{{ sala|default:"—" }}</span>
+      </div>
+      <span class="is-sep">|</span>
+      <div class="is-item">
+        <span class="is-label">Total de Alunos:</span>
+        <span class="is-value">{{ total_alunos }}</span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-scroll">
+      <table class="pauta-table">
+        <thead>
+          <!-- Linha 1: grupos de cabeçalho -->
+          <tr class="tr-main">
+            <th class="col-num" rowspan="2">#</th>
+            <th style="min-width:200px; text-align:left;" rowspan="2">Nome do Aluno</th>
+            {% for disc in disciplinas %}
+              <th class="th-disciplina" colspan="3">{{ disc.disciplina.nome|truncatechars:18 }}</th>
+            {% endfor %}
+          </tr>
+
+          <!-- Linha 2: sub-colunas MAC / NPT1 / MT1 para cada disciplina -->
+          <tr class="tr-sub">
+            {% for disc in disciplinas %}
+              <th class="col-nota td-sep" title="Média das Avaliações Contínuas">MAC</th>
+              <th class="col-nota" title="Nota da Prova do 1º Trimestre">NPT</th>
+              <th class="col-mt" title="Média do Trimestre">MT</th>
+            {% endfor %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for linha in dados %}
+          <tr class="{% if linha.aluno.pk == aluno_destaque_id %}tr-highlight{% endif %}">
+
+            <!-- Número de ordem -->
+            <td class="col-num">{{ forloop.counter }}</td>
+
+            <!-- Nome -->
+            <td class="col-nome">{{ linha.aluno.nome_completo }}</td>
+
+            <!-- Notas por disciplina -->
+            {% for nd in linha.notas %}
+              <!-- MAC -->
+              <td class="col-nota td-sep">
+                {% if nd.mac is not None %}
+                  <span class="nota {% if nd.mac >= 14 %}nota-pos{% elif nd.mac >= 10 %}nota-med{% else %}nota-neg{% endif %}">
+                    {{ nd.mac|floatformat:1 }}
+                  </span>
+                {% else %}
+                  <span class="nota-null">—</span>
+                {% endif %}
+              </td>
+
+              <!-- NPT1 -->
+              <td class="col-nota">
+                {% if nd.npt is not None %}
+                  <span class="nota {% if nd.npt >= 14 %}nota-pos{% elif nd.npt >= 10 %}nota-med{% else %}nota-neg{% endif %}">
+                    {{ nd.npt|floatformat:1 }}
+                  </span>
+                {% else %}
+                  <span class="nota-null">—</span>
+                {% endif %}
+              </td>
+
+              <!-- MT -->
+              <td class="col-mt">
+                {% if nd.mt is not None %}
+                  <span class="nota {% if nd.mt >= 14 %}nota-mt-pos{% elif nd.mt >= 10 %}nota-mt-med{% else %}nota-mt-neg{% endif %}">
+                    {{ nd.mt|floatformat:1 }}
+                  </span>
+                {% else %}
+                  <span class="nota-null">—</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{{ num_colunas }}" class="empty-state">
+              <i class="bi bi-journal-x" style="font-size:2.5rem;opacity:.25;display:block;margin-bottom:8px;"></i>
+              Nenhum dado encontrado para os filtros seleccionados.
+            </td>
+          </tr>
+          {% endfor %}
+
+          <!-- Linha de médias da turma -->
+          {% if dados %}
+          <tr class="tr-summary">
+            <td></td>
+            <td style="font-weight:700;font-size:.76rem;color:var(--text-sub);">Média da Turma</td>
+            {% for med in medias_turma %}
+              <td class="td-sep">
+                <span class="nota {% if med.mac >= 14 %}nota-pos{% elif med.mac >= 10 %}nota-med{% else %}nota-neg{% endif %}">
+                  {{ med.mac|floatformat:1|default:"—" }}
+                </span>
+              </td>
+              <td>
+                <span class="nota {% if med.npt >= 14 %}nota-pos{% elif med.npt >= 10 %}nota-med{% else %}nota-neg{% endif %}">
+                  {{ med.npt|floatformat:1|default:"—" }}
+                </span>
+              </td>
+              <td>
+                <span class="nota {% if med.mt >= 14 %}nota-mt-pos{% elif med.mt >= 10 %}nota-mt-med{% else %}nota-mt-neg{% endif %}">
+                  {{ med.mt|floatformat:1|default:"—" }}
+                </span>
+              </td>
+            {% endfor %}
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-bar no-print">
+      <span class="legend-title">Legenda:</span>
+      <span class="legend-item"><span class="leg-badge nota-pos">14–20</span> Positiva</span>
+      <span class="legend-item"><span class="leg-badge nota-med">10–13</span> Suficiente</span>
+      <span class="legend-item"><span class="leg-badge nota-neg">0–9</span> Negativa</span>
+      <span class="legend-item" style="margin-left:12px;color:var(--text-muted);font-style:italic;font-size:.67rem;">
+        MAC = Média das Avaliações Contínuas &nbsp;|&nbsp; NPT = Nota da Prova do Trimestre &nbsp;|&nbsp; MT = Média do Trimestre
+      </span>
+    </div>
+
+    <!-- Footer stats -->
+    <div class="pauta-footer">
+      <div class="pf-stats">
+        <div class="pf-stat">
+          <div class="pf-dot" style="background:#d1fae5;border:1.5px solid #059669;"></div>
+          <span class="pf-stat-val">{{ total_positivos }}</span>
+          <span class="pf-stat-lbl">aprovados na turma</span>
+        </div>
+        <div class="pf-stat">
+          <div class="pf-dot" style="background:#fee2e2;border:1.5px solid #dc2626;"></div>
+          <span class="pf-stat-val">{{ total_negativos }}</span>
+          <span class="pf-stat-lbl">com negativas</span>
+        </div>
+        <div class="pf-stat">
+          <div class="pf-dot" style="background:#fef3c7;border:1.5px solid #d97706;"></div>
+          <span class="pf-stat-val">{{ total_alunos }}</span>
+          <span class="pf-stat-lbl">alunos no total</span>
+        </div>
+      </div>
+      <span class="pf-date">Documento gerado em {{ hoje }} às {{ agora }}</span>
+    </div>
+
+    <!-- Assinaturas -->
+    <div class="sign-strip">
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <div class="sign-name">Director(a) de Turma</div>
+        <div class="sign-role">Assinatura e Data</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <div class="sign-name">Secretário(a)</div>
+        <div class="sign-role">Assinatura e Data</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <div class="sign-name">Director(a) da Escola</div>
+        <div class="sign-role">Assinatura e Data</div>
+      </div>
+    </div>
+
+  </div><!-- /pauta-wrapper -->
+</div><!-- /page-outer -->
+
+</body>
+</html>

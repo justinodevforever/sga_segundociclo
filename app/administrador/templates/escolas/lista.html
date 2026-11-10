@@ -1,0 +1,704 @@
+{% extends 'administrador/baseadmin.html' %}
+{% load static %}
+
+{% block page_title %}Escolas{% endblock %}
+
+{% block content %}
+<div class="page-body">
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-header-icon">
+        <i class="bi bi-building-fill"></i>
+      </div>
+      <div>
+        <h1 class="page-heading">Escolas</h1>
+        <p class="page-subheading">Gestão de todas as escolas registadas no sistema</p>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn-outline-custom">
+        <i class="bi bi-download"></i>
+        <span>Exportar</span>
+      </button>
+      <a href="{% url "criar_escola" %}" class="btn-primary-custom">
+        <i class="bi bi-plus-lg"></i>
+        <span>Nova Escola</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── STAT MINI CARDS ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card c-blue">
+        <div class="stat-icon"><i class="bi bi-building-fill"></i></div>
+        <div class="stat-value">{{total_escola}}</div>
+        <div class="stat-label">Total de Escolas</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card c-green">
+        <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-value">{{total_escola_ativa}}</div>
+        <div class="stat-label">Activas</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card c-warn">
+        <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="stat-value">{{total_escola_pendente}}</div>
+        <div class="stat-label">Pendentes</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card c-purple">
+        <div class="stat-icon"><i class="bi bi-x-circle-fill"></i></div>
+        <div class="stat-value">{{total_escola_inativa}}</div>
+        <div class="stat-label">Inactivas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FILTERS & SEARCH ── -->
+  <div class="filter-bar">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input type="text" placeholder="Pesquisar por nome, código ou localização…" id="searchInput">
+    </div>
+    <div class="filter-controls">
+      <select class="filter-select" id="filterStatus">
+        <option value="">Todos os estados</option>
+        <option value="activa">Activa</option>
+        <option value="pendente">Pendente</option>
+        <option value="inactiva">Inactiva</option>
+      </select>
+      <select class="filter-select" id="filterProvincia">
+        <option value="">Todas as províncias</option>
+        <option value="luanda">Luanda</option>
+        <option value="benguela">Benguela</option>
+        <option value="huambo">Huambo</option>
+        <option value="huila">Huíla</option>
+      </select>
+      <button class="btn-outline-custom btn-icon-only" title="Filtros avançados">
+        <i class="bi bi-sliders"></i>
+      </button>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewTable" title="Vista tabela">
+          <i class="bi bi-table"></i>
+        </button>
+        <button class="view-btn" id="viewGrid" title="Vista grelha">
+          <i class="bi bi-grid-3x3-gap-fill"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABLE VIEW ── -->
+  <div id="tableView">
+    <div class="table-card">
+      <div class="card-header-custom">
+        <div>
+          <span class="section-title">Lista de Escolas</span>
+          <span class="record-count">{{total_escola}} registos encontrados</span>
+        </div>
+        <div class="table-header-actions">
+          <label class="check-all-label">
+            <input type="checkbox" id="checkAll" class="custom-check">
+            <span>Seleccionar todos</span>
+          </label>
+          <button class="btn-danger-sm" id="bulkDeleteBtn" style="display:none">
+            <i class="bi bi-trash"></i> Eliminar seleccionados
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="admin-table" id="schoolTable">
+          <thead>
+            <tr>
+              <th width="40"><input type="checkbox" class="custom-check" id="checkAllHeader"></th>
+              <th class="sortable" data-col="escola">
+                Escola <i class="bi bi-chevron-expand sort-icon"></i>
+              </th>
+              <th class="sortable" data-col="codigo">
+                Código <i class="bi bi-chevron-expand sort-icon"></i>
+              </th>
+              <th class="sortable d-none d-md-table-cell" data-col="provincia">
+                Província <i class="bi bi-chevron-expand sort-icon"></i>
+              </th>
+              <th class="d-none d-lg-table-cell">Alunos</th>
+              <th class="d-none d-lg-table-cell">Professores</th>
+              <th class="sortable" data-col="status">Estado</th>
+              <th class="d-none d-xl-table-cell">Subscrição</th>
+              <th width="80">Acções</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            {% for escola in escolas %}
+
+              <!-- Row 1 -->
+              <tr class="table-row-animate">
+                <td><input type="checkbox" class="custom-check row-check"></td>
+                <td>
+                  <div class="school-cell">
+                    <div class="school-avatar" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)">
+                      {{escola.nome|slice:2|upper}}
+                    </div>
+                    <div>
+                      <div class="school-name">{{escola.nome}}</div>
+                      <div class="school-address">
+                        <i class="bi bi-geo-alt-fill"></i> {{escola.bairro}}, {{escola.municipio}}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td><code class="code-tag">ESC-0042</code></td>
+                <td class="d-none d-md-table-cell">
+                  <span class="provincia-tag"><i class="bi bi-pin-map-fill"></i> {{escola.provincia}}</span>
+                </td>
+                <td class="d-none d-lg-table-cell">
+                  <div class="num-with-bar">
+                    <span>{{escola.total_alunos}}</span>
+                    <div class="mini-bar"><div class="mini-fill" style="width:calc(({{escola.total_alunos}}% / {{escola.plano_subscricao.max_alunos}}%) * 100% );background:var(--accent)"></div></div>
+                  </div>
+                </td>
+                <td class="d-none d-lg-table-cell">
+                  <div class="num-with-bar">
+                    <span>{{escola.total_professores}} </span>
+                    <div class="mini-bar"><div class="mini-fill" 
+                      style="width: calc(({{escola.total_professores}}% / {{escola.plano_subscricao.max_professores}}%) * 100% );background:var(--accent-2)"></div></div>
+                  </div>
+                </td>
+                <td>
+                  {% if escola.status_ensino == 'activa' %}
+                    <span class="badge-status bg-success text-white">{{escola.get_status_ensino_display}}</span>
+                  {% elif escola.status_ensino == 'pendente' %}
+                    <span class="badge-status bg-primary text-white">{{escola.get_status_ensino_display}}</span>
+                  {% elif escola.status_ensino == 'inactiva' %}
+                    <span class="badge-status bg-danger text-white">{{escola.get_status_ensino_display}}</span>
+                  {% endif %}
+                </td>
+                <td class="d-none d-xl-table-cell">
+                  <span class="badge-plan plan-pro">{{escola.plano_subscricao.nome}}</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <a href="{% url "detalhe_escola" escola.id %}" class="action-btn" title="Ver detalhes">
+                      <i class="bi bi-eye-fill"></i>
+                    </a>
+                    <a href="{% url 'editar_escola' escola.id %}" class="action-btn" title="Editar">
+                      <i class="bi bi-pencil-fill"></i>
+                    </a>
+                    <button class="action-btn danger" title="Eliminar" onclick="confirmDelete('{{escola.id}}','{{escola.nome}}')">
+                      <i class="bi bi-trash-fill"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── PAGINATION ── -->
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Mostrando <strong>1–{{per_page}}</strong> de <strong>{{total_escola}}</strong> registos
+        </div>
+
+        <div class="pagination-controls">
+
+          {% if escolas.has_previous %}
+            <a href="?page={{ escolas.previous_page_number }}&per_page={{per_page}}" class="page-btn" disabled>
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          {% endif %}
+
+          {% for num in escolas.paginator.page_range %}
+
+            {% if escolas.number == num %}
+
+              <li class="page-btn active">{{ num }}</li>
+            
+            {% else %}
+
+              <a class="page-btn" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+
+            {% endif %}
+
+          {% endfor %}
+
+          {% if escolas.has_next %}
+
+            <a href="?page={{ escolas.next_page_number }}&per_page={{per_page}}" class="page-btn">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+
+          {% endif %}
+        </div>
+
+        <form class="pagination-perpage" method="get" >
+          <span>Por página:</span>
+          <select class="filter-select" name="per_page" value="{{ per_page|default:20 }}" onchange="this.form.submit()">
+            <option>20</option>
+            <option>50</option>
+            <option>100</option>
+          </select>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GRID VIEW ── -->
+  <div id="gridView" style="display:none">
+    <div class="row g-3">
+
+      {% for escola in escolas %}
+
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="school-grid-card">
+            <div class="sgc-header">
+              <div class="sgc-avatar" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)">
+                {{escola.nome|slice:2|upper}}
+              </div>
+              <div>
+                <div class="sgc-name">{{escola.nome}}</div>
+                <div class="sgc-location"><i class="bi bi-geo-alt-fill"></i>{{escola.endereco_completo}}</div>
+              </div>
+
+              {% if escola.status_ensino == 'activa' %}
+                <span class="badge-status bg-success text-white">{{escola.get_status_ensino_display}}</span>
+              {% elif escola.status_ensino == 'pendente' %}
+                <span class="badge-status bg-primary text-white">{{escola.get_status_ensino_display}}</span>
+              {% elif escola.status_ensino == 'inactiva' %}
+                <span class="badge-status bg-danger text-white">{{escola.get_status_ensino_display}}</span>
+              {% endif %}
+
+            </div>
+            
+            <div class="sgc-stats">
+              <div class="sgc-stat">
+                <i class="bi bi-people-fill"></i>
+                <span>{{escola.total_alunos}} Alunos</span>
+              </div>
+              <div class="sgc-stat">
+                <i class="bi bi-person-workspace"></i>
+                <span>{{escola.total_professores}} Professores</span>
+              </div>
+              
+            </div>
+            <div class="sgc-footer">
+              <span class="badge-plan plan-pro">{{escola.plano_subscricao.nome}}</span>
+              <code class="code-tag">ESC-0042</code>
+              <div class="sgc-actions">
+                <a href="{% url 'detalhe_escola' escola.id%}" class="action-btn"><i class="bi bi-eye-fill"></i></a>
+                <a href="{% url 'editar_escola' escola.id %}" class="action-btn"><i class="bi bi-pencil-fill"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── DELETE MODAL ── -->
+<div class="modal-backdrop" id="deleteModal">
+  <div method="post" class="modal-box" id="formDelete">
+    
+    {% csrf_token %}
+
+    <div class="modal-icon danger">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3 class="modal-title">Confirmar Eliminação</h3>
+    <p class="modal-body-text">
+      Tem a certeza que deseja eliminar a escola <strong id="deleteTarget"></strong>?
+      Esta acção não pode ser desfeita.
+    </p>
+    
+    <div id="sms" style="color: red;"></div>
+
+    <div class="modal-actions">
+      <button class="btn-outline-custom" onclick="closeModal()">Cancelar</button>
+      <button  class="btn-danger-custom" id="confirmDeleteBtn">
+        <i class="bi bi-trash-fill"></i> Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── STYLES ── -->
+<style>
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; gap: 16px; flex-wrap: wrap;
+  }
+  .page-header-left { display: flex; align-items: center; gap: 16px; }
+  .page-header-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(59,130,246,.2), rgba(139,92,246,.2));
+    border: 1px solid rgba(59,130,246,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: var(--accent);
+  }
+  .page-heading { font-size: 1.6rem; font-weight: 800; margin: 0; line-height: 1.2; }
+  .page-subheading { font-size: .82rem; color: var(--text-muted); margin: 3px 0 0; }
+  .page-header-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* ── BUTTONS ── */
+  .btn-primary-custom {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff;
+    padding: 9px 18px; border-radius: 8px;
+    font-size: .85rem; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-primary-custom:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,.4); color:#fff; }
+
+  .btn-outline-custom {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--text-muted);
+    padding: 9px 16px; border-radius: 8px;
+    font-size: .85rem; font-weight: 500; text-decoration: none;
+    border: 1px solid var(--border); cursor: pointer; transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-outline-custom:hover { background: var(--bg-hover); color: var(--text-main); }
+  .btn-outline-custom.btn-icon-only { padding: 9px 10px; }
+
+  .btn-danger-sm {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(239,68,68,.15); color: var(--accent-danger);
+    padding: 7px 12px; border-radius: 7px;
+    font-size: .78rem; font-weight: 600;
+    border: 1px solid rgba(239,68,68,.25); cursor: pointer; transition: all .2s;
+  }
+  .btn-danger-sm:hover { background: rgba(239,68,68,.25); }
+
+  .btn-danger-custom {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-danger); color: #fff;
+    padding: 9px 18px; border-radius: 8px;
+    font-size: .85rem; font-weight: 600;
+    border: none; cursor: pointer; transition: all .2s;
+  }
+  .btn-danger-custom:hover { background: #dc2626; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-search {
+    flex: 1; min-width: 220px; max-width: 400px;
+    position: relative;
+  }
+  .filter-search i {
+    position: absolute; left: 12px; top: 50%;
+    transform: translateY(-50%); color: var(--text-muted); font-size: .9rem;
+  }
+  .filter-search input {
+    width: 100%; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-main); padding: 9px 14px 9px 36px;
+    font-size: .85rem; outline: none;
+    transition: border-color .2s;
+  }
+  .filter-search input:focus { border-color: var(--accent); }
+  .filter-search input::placeholder { color: var(--text-muted); }
+
+  .filter-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .filter-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-main);
+    padding: 8px 32px 8px 12px; font-size: .82rem;
+    appearance: none; outline: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color .2s;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  .view-toggle {
+    display: flex; border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .view-btn {
+    width: 36px; height: 36px;
+    background: var(--bg-card); border: none;
+    color: var(--text-muted); cursor: pointer;
+    transition: all .18s; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .view-btn.active { background: rgba(59,130,246,.15); color: var(--accent); }
+  .view-btn:hover:not(.active) { background: var(--bg-hover); color: var(--text-main); }
+
+  /* ── TABLE EXTRAS ── */
+  .record-count {
+    font-size: .75rem; color: var(--text-muted);
+    background: var(--bg-hover); padding: 3px 10px;
+    border-radius: 99px; margin-left: 10px; font-weight: 500;
+  }
+  .table-header-actions { display: flex; align-items: center; gap: 12px; }
+  .check-all-label { display: flex; align-items: center; gap: 7px; font-size: .82rem; color: var(--text-muted); cursor: pointer; }
+
+  .custom-check {
+    width: 15px; height: 15px;
+    accent-color: var(--accent); cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  .sortable:hover { color: var(--text-main); }
+  .sort-icon { font-size: .65rem; opacity: .5; margin-left: 3px; }
+
+  .school-cell { display: flex; align-items: center; gap: 12px; }
+  .school-avatar {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .8rem; color: #fff;
+    flex-shrink: 0;
+  }
+  .school-name { font-size: .875rem; font-weight: 600; }
+  .school-address { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+  .school-address i { font-size: .65rem; }
+
+  .code-tag {
+    font-size: .72rem; padding: 3px 8px;
+    background: var(--bg-hover); border-radius: 5px;
+    color: var(--accent-2); font-family: 'Courier New', monospace;
+    border: 1px solid var(--border);
+  }
+
+  .provincia-tag {
+    font-size: .75rem; color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .provincia-tag i { font-size: .65rem; color: var(--accent-3); }
+
+  .num-with-bar { min-width: 80px; }
+  .num-with-bar span { font-size: .82rem; font-weight: 600; display: block; margin-bottom: 4px; }
+  .mini-bar { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .mini-fill { height: 100%; border-radius: 99px; }
+
+  .badge-plan {
+    font-size: .65rem; padding: 3px 9px;
+    border-radius: 99px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
+    display: inline-block;
+  }
+  .plan-basic    { background: rgba(100,116,139,.15); color: var(--text-muted); }
+  .plan-pro      { background: rgba(59,130,246,.15);  color: var(--accent); }
+  .plan-enterprise { background: rgba(139,92,246,.15); color: var(--accent-3); }
+
+  .row-actions { display: flex; align-items: center; gap: 4px; }
+  .action-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: var(--bg-hover); border: none; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; cursor: pointer; transition: all .15s;
+    text-decoration: none;
+  }
+  .action-btn:hover { background: rgba(59,130,246,.15); color: var(--accent); }
+  .action-btn.danger:hover { background: rgba(239,68,68,.15); color: var(--accent-danger); }
+
+  /* ── PAGINATION ── */
+  .pagination-bar {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pagination-info { font-size: .78rem; color: var(--text-muted); }
+  .pagination-controls { display: flex; align-items: center; gap: 4px; }
+  .page-btn {
+    min-width: 32px; height: 32px; padding: 0 8px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-muted);
+    font-size: .8rem; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .page-btn:disabled { opacity: .4; cursor: default; }
+  .page-ellipsis { color: var(--text-muted); padding: 0 4px; }
+  .pagination-perpage { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: var(--text-muted); }
+  .pagination-perpage .filter-select { padding: 5px 28px 5px 10px; font-size: .78rem; }
+
+  /* ── GRID CARDS ── */
+  .school-grid-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+  }
+  .school-grid-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px var(--shadow);
+    border-color: rgba(59,130,246,.3);
+  }
+  .sgc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .sgc-avatar {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .85rem; color: #fff; flex-shrink: 0;
+  }
+  .sgc-name { font-size: .88rem; font-weight: 700; line-height: 1.3; }
+  .sgc-location { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+  .sgc-location i { font-size: .65rem; color: var(--accent-3); }
+  .sgc-stats {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    padding: 12px; background: var(--bg-hover); border-radius: 8px;
+  }
+  .sgc-stat { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--text-muted); }
+  .sgc-stat i { color: var(--accent); font-size: .8rem; }
+  .sgc-footer {
+    display: flex; align-items: center; gap: 8px;
+    border-top: 1px solid var(--border); padding-top: 14px;
+  }
+  .sgc-actions { margin-left: auto; display: flex; gap: 4px; }
+
+  /* ── DELETE MODAL ── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 2000; display: none;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px; max-width: 420px; width: 90%;
+    text-align: center;
+    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.9) translateY(20px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
+  .modal-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 20px;
+  }
+  .modal-icon.danger {
+    background: rgba(239,68,68,.15); color: var(--accent-danger);
+  }
+  .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+  .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+
+  /* ── ANIMATION ── */
+  .table-row-animate { animation: rowFadeIn .3s ease both; }
+  .table-row-animate:nth-child(1) { animation-delay: .04s; }
+  .table-row-animate:nth-child(2) { animation-delay: .08s; }
+  .table-row-animate:nth-child(3) { animation-delay: .12s; }
+  .table-row-animate:nth-child(4) { animation-delay: .16s; }
+  @keyframes rowFadeIn {
+    from { opacity:0; transform: translateX(-8px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+</style>
+
+<!-- ── SCRIPTS ── -->
+<script>
+  // View toggle
+  document.getElementById('viewTable').addEventListener('click', function() {
+    document.getElementById('tableView').style.display = '';
+    document.getElementById('gridView').style.display = 'none';
+    this.classList.add('active');
+    document.getElementById('viewGrid').classList.remove('active');
+  });
+  document.getElementById('viewGrid').addEventListener('click', function() {
+    document.getElementById('tableView').style.display = 'none';
+    document.getElementById('gridView').style.display = '';
+    this.classList.add('active');
+    document.getElementById('viewTable').classList.remove('active');
+  });
+
+  // Delete modal
+  let itemparadeletar = null
+  let escola = null
+
+  function confirmDelete(id, name) {
+
+    itemparadeletar = id
+    escola = name
+
+    document.getElementById('deleteTarget').textContent = name;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+  function closeModal() {
+    const sms = document.getElementById('sms');
+    sms.innerText = ''
+    document.getElementById('deleteModal').classList.remove('open');
+  }
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  document.getElementById('confirmDeleteBtn').addEventListener('click', async(e)=>{
+    e.preventDefault()
+    const form = document.getElementById('formDelete')
+
+    const sms = document.getElementById('sms');
+
+
+    try {
+    const response = await fetch(`/administrator/escola/${itemparadeletar}/remover/`, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+        },
+    });
+
+    if (response.ok) {
+        sms.innerText = `Escola ${escola} eliminada com sucesso!`;
+        sms.style.color = "green";
+
+        setTimeout(()=>{location.reload()}, 1000)
+      
+    } else {
+        const data = await response.json();
+        sms.innerText = data.error || "Erro ao deletar o item!";
+        sms.style.color = "red";
+    }
+
+    } catch (error) {
+      console.log(error);
+      sms.innerText = "Erro de conexão com o servidor.";
+      sms.style.color = "red";
+    }
+  })
+
+  // Check all
+  document.getElementById('checkAllHeader').addEventListener('change', function() {
+    document.querySelectorAll('.row-check').forEach(c => c.checked = this.checked);
+    document.getElementById('bulkDeleteBtn').style.display = this.checked ? 'inline-flex' : 'none';
+  });
+  document.querySelectorAll('.row-check').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const checked = document.querySelectorAll('.row-check:checked').length;
+      document.getElementById('bulkDeleteBtn').style.display = checked ? 'inline-flex' : 'none';
+    });
+  });
+</script>
+
+{% endblock %}

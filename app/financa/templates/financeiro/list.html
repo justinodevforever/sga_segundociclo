@@ -1,0 +1,167 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <span class="current">Contas dos Alunos</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-wallet2"></i>{% endblock %}
+{% block title %}Contas dos Alunos{% endblock %}
+{% block sub_title %}Gestão de propinas e situação financeira — {{ total_contas }} conta(s){% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'conta_create' %}"
+     style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;">
+    <i class="bi bi-plus-lg"></i> Nova Conta
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- FILTROS -->
+<div class="chart-card mb-4 fade-up">
+  <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+    <div style="flex:1;min-width:200px;">
+      <label class="form-label">Buscar</label>
+      <div class="input-icon-wrap">
+        <i class="bi bi-search prefix"></i>
+        <input type="text" name="busca" value="{{ busca }}"
+               class="form-control-custom" placeholder="Nome ou nº do aluno...">
+      </div>
+    </div>
+    <div style="min-width:160px;">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-control-custom">
+        <option value="">Todos</option>
+        <option value="em_dia" {% if status_sel == 'em_dia' %}selected{% endif %}>Em Dia</option>
+        <option value="pendente" {% if status_sel == 'pendente' %}selected{% endif %}>Pendente</option>
+        <option value="atrasado" {% if status_sel == 'atrasado' %}selected{% endif %}>Atrasado</option>
+        <option value="bloqueado" {% if status_sel == 'bloqueado' %}selected{% endif %}>Bloqueado</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="submit"
+              style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:.82rem;font-weight:600;cursor:pointer;">
+        <i class="bi bi-funnel"></i> Filtrar
+      </button>
+      <a href="{% url 'conta_list' %}"
+         style="background:var(--bg);color:var(--text-sub);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:.82rem;font-weight:600;text-decoration:none;">
+        <i class="bi bi-x"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- TABELA -->
+<div class="table-card fade-up delay-1">
+  <div class="card-hdr">
+    <span class="section-title">{{ total_contas }} Conta(s)</span>
+    <a href="{% url 'relatorio_financeiro' %}" style="font-size:.78rem;color:var(--accent);">
+      <i class="bi bi-download"></i> Exportar
+    </a>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Aluno</th>
+          <th>Ano Lectivo</th>
+          <th>Total Devido</th>
+          <th>Total Pago</th>
+          <th>Saldo Devedor</th>
+          <th>Progresso</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for conta in contas %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:10px;background:#dbeafe;color:#1d4ed8;
+                          display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;">
+                {{ conta.aluno.nome|slice:":2"|upper }}
+              </div>
+              <div>
+                <div style="font-size:.83rem;font-weight:600;">{{ conta.aluno.nome|truncatechars:22 }}</div>
+                <div style="font-size:.7rem;color:var(--text-muted);">
+                  {{ conta.aluno.numero_processo|default:"—" }}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:.8rem;">{{ conta.ano_lectivo }}</td>
+          <td style="font-size:.82rem;font-weight:600;">{{ conta.total_devido|floatformat:2 }} Kz</td>
+          <td style="font-size:.82rem;color:#059669;font-weight:600;">{{ conta.total_pago|floatformat:2 }} Kz</td>
+          <td style="font-size:.82rem;font-weight:700;color:{% if conta.saldo_devedor > 0 %}#dc2626{% else %}#059669{% endif %};">
+            {{ conta.saldo_devedor|floatformat:2 }} Kz
+          </td>
+          <td style="min-width:100px;">
+            <div class="prog-bar" style="height:6px;">
+              <div class="prog-fill"
+                   style="width:{{ conta.percentagem_pago }}%;
+                   background:{% if conta.percentagem_pago == 100 %}#059669{% elif conta.percentagem_pago >= 50 %}#d97706{% else %}#dc2626{% endif %};">
+              </div>
+            </div>
+            <div style="font-size:.65rem;color:var(--text-muted);margin-top:3px;">{{ conta.percentagem_pago }}%</div>
+          </td>
+          <td>
+            {% if conta.status == 'em_dia' %}<span class="tag tag-green">Em Dia</span>
+            {% elif conta.status == 'bloqueado' %}<span class="tag tag-red">Bloqueado</span>
+            {% elif conta.status == 'atrasado' %}<span class="tag" style="background:#ffedd5;color:#9a3412;">Atrasado</span>
+            {% else %}<span class="tag tag-yellow">Pendente</span>{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{% url 'conta_detail' conta.pk %}" title="Ver detalhes"
+                 style="width:30px;height:30px;border-radius:7px;background:#eff6ff;color:#1d4ed8;border:none;display:flex;align-items:center;justify-content:center;font-size:.8rem;text-decoration:none;">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'pagamento_create_conta' conta.pk %}" title="Registar pagamento"
+                 style="width:30px;height:30px;border-radius:7px;background:#d1fae5;color:#059669;border:none;display:flex;align-items:center;justify-content:center;font-size:.8rem;text-decoration:none;">
+                <i class="bi bi-cash-coin"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
+            <i class="bi bi-inbox" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>
+            Nenhuma conta encontrada
+            <br>
+            <a href="{% url 'conta_create' %}"
+               style="font-size:.83rem;color:var(--accent);margin-top:10px;display:inline-block;">
+              Criar primeira conta →
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if contas.has_other_pages %}
+  <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
+    {% if contas.has_previous %}
+    <a href="?page={{ contas.previous_page_number }}&busca={{ busca }}&status={{ status_sel }}"
+       style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:.78rem;color:var(--text-sub);text-decoration:none;">
+      ← Anterior
+    </a>
+    {% endif %}
+    <span style="padding:6px 12px;font-size:.78rem;color:var(--text-muted);">
+      Pág. {{ contas.number }} de {{ contas.paginator.num_pages }}
+    </span>
+    {% if contas.has_next %}
+    <a href="?page={{ contas.next_page_number }}&busca={{ busca }}&status={{ status_sel }}"
+       style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:.78rem;color:var(--text-sub);text-decoration:none;">
+      Seguinte →
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

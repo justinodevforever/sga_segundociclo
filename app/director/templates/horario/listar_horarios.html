@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Horários de Aula</title>
+        <style>
+            :root {
+                --primary-blue: #1E3A8A;
+                --medium-blue: #3B82F6;
+                --light-blue: #60A5FA;
+                --bg-gray: #F3F4F6;
+                --text-dark: #1F2937;
+                --text-gray: #6B7280;
+                --white: #FFFFFF;
+                --border-gray: #E5E7EB;
+                --hover-blue: #1E40AF;
+                --sidebar-width: 260px;
+                --topbar-height: 64px;
+            }
+
+            
+
+            
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 30px 20px;
+            }
+
+            .header2 {
+                background: linear-gradient(135deg, var(--primary-blue) 0%, var(--medium-blue) 100%);
+                color: var(--white);
+                padding: 30px;
+                border-radius: 12px;
+                margin-bottom: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .header2 h1 {
+                font-size: 32px;
+                color: #fff;
+                margin-bottom: 8px;
+            }
+
+            .header2 p {
+                font-size: 16px;
+                opacity: 0.95;
+            }
+
+            .filters-section {
+                background: var(--white);
+                padding: 25px;
+                border-radius: 12px;
+                margin-bottom: 30px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .filters-title {
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 20px;
+                color: var(--primary-blue);
+            }
+
+            .filters-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .filter-group label {
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 6px;
+                color: var(--text-dark);
+            }
+
+            .filter-group select {
+                padding: 10px 12px;
+                border: 1px solid var(--border-gray);
+                border-radius: 8px;
+                font-size: 14px;
+                background-color: var(--white);
+                color: var(--text-dark);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .filter-group select:hover {
+                border-color: var(--medium-blue);
+            }
+
+            .filter-group select:focus {
+                outline: none;
+                border-color: var(--medium-blue);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            .filter-actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .btn-primary {
+                background-color: var(--medium-blue);
+                color: var(--white);
+            }
+
+            .btn-primary:hover {
+                background-color: var(--hover-blue);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+            }
+
+            .btn-secondary {
+                background-color: var(--white);
+                color: var(--text-gray);
+                border: 1px solid var(--border-gray);
+            }
+
+            .btn-secondary:hover {
+                background-color: var(--bg-gray);
+            }
+
+            .horarios-grid {
+                display: grid;
+                gap: 20px;
+            }
+
+            .horario-card {
+                background: var(--white);
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border-left: 4px solid var(--medium-blue);
+                transition: all 0.3s ease;
+            }
+
+            .horario-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
+            }
+
+            .horario-card.prova {
+                border-left-color: #DC2626;
+                background: linear-gradient(to right, #FEE2E2 0%, var(--white) 5%);
+            }
+
+            .horario-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: start;
+                margin-bottom: 15px;
+            }
+
+            .horario-titulo {
+                font-size: 20px;
+                font-weight: 600;
+                color: var(--primary-blue);
+                margin-bottom: 5px;
+            }
+
+            .horario-tipo {
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            .horario-tipo.aula {
+                background-color: #DBEAFE;
+                color: var(--medium-blue);
+            }
+
+            .horario-tipo.prova {
+                background-color: #FEE2E2;
+                color: #DC2626;
+            }
+
+            .horario-info {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+                margin-top: 15px;
+            }
+
+            .info-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+            }
+
+            .info-label {
+                color: var(--text-gray);
+                font-weight: 500;
+            }
+
+            .info-value {
+                color: var(--text-dark);
+            }
+
+            .icon {
+                width: 18px;
+                height: 18px;
+                fill: var(--medium-blue);
+            }
+
+            .no-results {
+                text-align: center;
+                padding: 60px 20px;
+                background: var(--white);
+                border-radius: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .no-results-icon {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                opacity: 0.3;
+            }
+
+            .no-results h3 {
+                font-size: 20px;
+                color: var(--text-gray);
+                margin-bottom: 10px;
+            }
+
+            .no-results p {
+                color: var(--text-gray);
+                font-size: 14px;
+            }
+
+            @media (max-width: 768px) {
+                .container {
+                    padding: 20px 15px;
+                }
+
+                .header h1 {
+                    font-size: 24px;
+                }
+
+                .filters-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .horario-info {
+                    grid-template-columns: 1fr;
+                }
+
+                .filter-actions {
+                    flex-direction: column;
+                }
+
+                .btn {
+                    width: 100%;
+                }
+            }
+
+            .table-container {
+                background-color: var(--white);
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+
+            .table-header {
+                padding: 20px;
+                border-bottom: 1px solid var(--border-gray);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .table-header h3 {
+                color: var(--text-dark);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            thead {
+                background-color: var(--primary-blue);
+                color: var(--white);
+            }
+
+            th, td {
+                padding: 12px 20px;
+                text-align: left;
+            }
+
+            th {
+                font-weight: 600;
+                font-size: 14px;
+            }
+
+            tbody tr {
+                border-bottom: 1px solid var(--border-gray);
+            }
+
+            tbody tr:hover {
+                background-color: var(--bg-gray);
+            }
+
+            td {
+                font-size: 14px;
+                color: var(--text-dark);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container1">
+            <div class="header2">
+                <h1> <i class="fa fa-calendar" aria-hidden="true"></i> Horários de {{request.GET.tipo|default:"aula"}}</h1>
+
+                {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                    <p>Gerencie e visualize os horários das turmas</p>
+
+                    <a href="/criar_horario/" class="btn btn-success" style="display:flex; height: 40px; gap: 10px; width: 100px;">
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i></i>Novo
+                    </a>
+                {% endif %}
+
+            </div>
+
+            <div class="filters-section">
+                <h2 class="filters-title"> <i class="fa fa-search" aria-hidden="true"></i> Filtros</h2>
+                <form method="GET" action="">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="turma">Turma</label>
+                            <select name="turma" id="turma">
+                                <option value="">Todas as turmas</option>
+                                {% for turma in turmas %}
+                                <option value="{{ turma.id }}" {% if filtros.turma_id == turma.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ turma }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="ano_letivo_id">Ano letivo</label>
+                            <select name="ano_letivo_id" id="ano_letivo_id">
+                                <option value="">Todos os anos</option>
+                                {% for ano_letivo in ano_letivos %}
+                                    <option value="{{ ano_letivo.id }}" {% if request.GET.ano_letivo_id == ano_letivo.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ ano_letivo }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="tipo">Tipo</label>
+                            <select name="tipo" id="tipo">
+                                <option value="">Todos os tipos</option>
+                                {% for value, label in tipo_choices %}
+                                <option value="{{ value }}" {% if filtros.tipo == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+                        <a href="{% url 'listar_horarios' %}" class="btn btn-secondary">Limpar Filtros</a>
+                    </div>
+                </form>
+            </div>
+            
+            
+            <div class="horarios-grid">
+                {% if horarios %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Disciplina</th>
+                                <th>seg.</th>
+                                <th>ter.</th>
+                                <th>quar.</th>
+                                <th>quint.</th>
+                                <th>sex.</th>
+                                <th>opções</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for horario in horarios %}
+                            
+                                <tr>
+                                    <td>{{horario.disciplina}}</td>
+
+                                    {% if horario.dia_semana == 'Segunda'%}
+                                        <td>{{horario.hora_inicio}} | {{horario.hora_fim}}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+
+                                    {% if horario.dia_semana == 'Terça'%}
+                                        <td>{{horario.hora_inicio}} | {{horario.hora_fim}}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+
+                                    {% if horario.dia_semana == 'Quarta'%}
+                                        <td>{{horario.hora_inicio}} | {{horario.hora_fim}}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+
+                                    {% if horario.dia_semana == 'Quinta'%}
+                                        <td>{{horario.hora_inicio}} | {{horario.hora_fim}}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+
+                                    {% if horario.dia_semana == 'Sexta'%}
+                                        <td>{{horario.hora_inicio}} | {{horario.hora_fim}}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+
+                                    {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                        
+                                            <a href="{% url "editar_horario" horario.id %}" 
+                                                class="btn btn-outline-warning" title="Editar">
+                                                <i class="fa fa-pencil" aria-hidden="true"></i>
+                                            </a>
+                                            <button onclick="confirmardelecao('{{horario.id}}')"
+                                            class="btn btn-outline-danger" title="Deletar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    {%endif%}
+                                    
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% for horario in horarios %}
+                    
+                    {% endfor %}
+                {% else %}
+                    <div class="no-results">
+                        <svg class="no-results-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                        </svg>
+                        <h3>Nenhum horário encontrado</h3>
+                        <p>Tente ajustar os filtros para visualizar os horários disponíveis.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
+                <h3>confirmar exclusão</h3>
+                <p id="mensagemconfirmacao">Tem certeza que deseja deletar esta disciplina?</p>
+                    
+                <div id="sms" style="color: red;"></div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button onclick="fecharmodal()" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
+                        sair
+                    </button>
+                    <button onclick="deletarItem()" class="btn btn-danger">
+                        confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let itemparadeletar = null;
+            
+            function confirmardelecao(itemid) {
+                itemparadeletar = itemid;
+                document.getElementById('modalconfirmacao').style.display = 'block';
+            }
+            
+            function fecharmodal() {
+                document.getElementById('modalconfirmacao').style.display = 'none';
+                itemparadeletar = null;
+                location.reload()
+            }
+            
+            async function deletarItem() {
+                const passwordInput = document.getElementById('password');
+                const sms = document.getElementById('sms');
+
+                if (!passwordInput || passwordInput.value.trim() === '') {
+                alert('O campo senha é obrigatório!');
+                return;
+                }
+
+                const password = passwordInput.value;
+
+                try {
+                const response = await fetch(`/delete_disciplina/${itemparadeletar}/`, {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                    password: password
+                    })
+                });
+
+                if (response.ok) {
+                    sms.innerText = "Disciplina eliminada com sucesso!";
+                    sms.style.color = "green";
+                
+                } else {
+                    const data = await response.json();
+                    sms.innerText = data.error || "Erro ao deletar o item!";
+                    sms.style.color = "red";
+                }
+
+                } catch (error) {
+                console.log(error);
+                sms.innerText = "Erro de conexão com o servidor.";
+                sms.style.color = "red";
+                }
+            }
+            
+            
+            document.getElementById('modalconfirmacao').onclick = (e)=>{
+                if (e.target === this) {
+                    fecharmodal();
+                }
+            }
+        </script>
+    </body>
+    </html>
+{% endblock content %}

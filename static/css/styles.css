@@ -1,0 +1,96 @@
+body{
+display: flex;
+background-color: #000; 
+color: #fff;
+flex-direction: column;
+align-items: center;
+}
+.form{
+    display: flex;
+    color: #fff;
+    position: relative;
+    background-color: #000;
+    flex-direction: column;
+    margin-top: 40px;
+    border-radius: 8px;
+    margin-top: 90px;
+    width: 750px;
+    padding: 0px 0px 30px 0px;
+    gap: 20px;
+}
+.formlogin{
+    display: flex;
+    color: #fff;
+    position: relative;
+    background-color: #000;
+    flex-direction: column;
+    margin-top: 40px;
+    border-radius: 8px;
+    width: 500px;
+    padding: 0px 0px 30px 0px;
+    gap: 20px;
+}
+.conteudo{
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    height: 70px; 
+    background-color: #a31543;
+    width: 100%;
+    border-radius: 4px 4px 0px 0px;
+}   
+.dados{
+    display: flex;
+    position: relative;
+    width: 70%;
+    flex-direction: column;
+    align-items: center;
+    padding: 0px 0px 0px 20px;
+    gap: 20px;
+}
+.dadoslogin{
+    display: flex;
+    position: relative;
+    width: 90%;
+    flex-direction: column;
+    align-items: center;
+    padding: 0px 0px 0px 20px;
+    gap: 20px;
+}
+.campo{
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    gap: 10px;
+}
+
+
+label{
+    display: flex;
+    color: #fff;
+    flex-direction: column;
+    width: 90%;
+    font-size: 14pt;
+    gap: 4px;
+}
+
+button{
+    background-color: #a31543;
+    cursor: pointer;
+    color: #fff;
+    width: 40%;
+    font-size: 14pt;
+    border: none;
+    border-radius: 4px;
+    padding: 7px;
+    margin-top: 30px;
+}
+
+input{
+    height: 40px;
+        background-color: #000;
+        border-radius: 4px;
+        color: #fff;
+        border: 0.4px solid #666464;
+        font-size: 11pt;
+}

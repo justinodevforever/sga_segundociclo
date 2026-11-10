@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+</style>
+<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
+     justify-content: center;">
+    <div class="col-md-8" style="width: 100%;">
+        
+        <div class="card" style="width: 97%;">
+            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Informações do encarregado {{encarregado.nome_completo}}
+                </h5>
+                <a href="/encarregados/" class="btn" 
+                style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            </div>
+
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Nome Completo:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.nome_completo }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Número de B.I:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.bi }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Grau de parentesco:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.get_parentesco_display }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Local trabalho:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.local_trabalho|default:"sem informações" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Profissão:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.profissao|default:"sem informações" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Telefone Principal:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.telefone_principal|default:"sem informações" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Telefone alternativo:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.telefone_alternativo|default:"sem informações" }}</div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Género:</strong></div>
+                    <div class="col-sm-9">{{ encarregado.get_genero_display}}</div>
+                </div>
+                
+                <hr>
+                <h3>Encarrega-se de: </h3> <br>
+
+                {% for aluno in aluno_encarregados %}
+                
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Nome do aluno:</strong></div>
+                        <div class="col-sm-9">{{ aluno.aluno.nome_completo }}</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Número de B.I:</strong></div>
+                        <div class="col-sm-9">{{ aluno.aluno.bi }}</div>
+                    </div>
+                    <hr>
+                {% empty %}
+                    <div colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <br>Sem inofrmações.
+                    </div>
+                {% endfor %}
+                
+            </div>
+        </div>
+
+        {% if not aluno_encarregados %}
+            <button onclick="confirmardelecao('{{encarregado.id}}')" class="btn btn-outline-danger" title="Deletar">
+                Eliminar
+            </button>
+        {% endif %}
+    </div>
+
+    <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
+            <h3>confirmar exclusão</h3>
+            <p id="mensagemconfirmacao">Tem certeza que deseja deletar esta ncarregado?</p>
+
+            <input type="password" class="form-control" autocomplete="new-password"
+                id="password" placeholder="Confirme sua senha" name="password" required>
+                
+            <div id="sms" style="color: red;"></div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="fecharmodal()" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
+                    sair
+                </button>
+                <button onclick="deletarItem()" class="btn btn-danger">
+                    confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemparadeletar = null;
+        
+        function confirmardelecao(itemid) {
+            itemparadeletar = itemid;
+            document.getElementById('modalconfirmacao').style.display = 'block';
+        }
+        
+        function fecharmodal() {
+            document.getElementById('modalconfirmacao').style.display = 'none';
+            itemparadeletar = null;
+            location.reload()
+        }
+        
+        async function deletarItem() {
+            const passwordInput = document.getElementById('password');
+            const sms = document.getElementById('sms');
+
+            if (!passwordInput || passwordInput.value.trim() === '') {
+            alert('O campo senha é obrigatório!');
+            return;
+            }
+
+            const password = passwordInput.value;
+
+            try {
+            const response = await fetch(`/encarregados/${itemparadeletar}/excluir/`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                password: password
+                })
+            });
+
+            if (response.ok) {
+                sms.innerText = "Encarregado eliminado com sucesso!";
+                sms.style.color = "green";
+                window.location.href = `http://${location.host}/encarregados`
+              
+            } else {
+                const data = await response.json();
+                sms.innerText = data.error || "Erro ao deletar o item!";
+                sms.style.color = "red";
+            }
+
+            } catch (error) {
+            console.log(error);
+            sms.innerText = "Erro de conexão com o servidor.";
+            sms.style.color = "red";
+            }
+        }
+        
+        
+        document.getElementById('modalconfirmacao').onclick = (e)=>{
+            if (e.target === this) {
+                fecharmodal();
+            }
+        }
+    </script>
+   
+</div>
+{% endblock %}
+

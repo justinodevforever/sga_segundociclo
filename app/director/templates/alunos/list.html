@@ -1,0 +1,189 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+    <span class="current">Lista de alunos</span>
+{% endblock breadcrumb %}
+
+{% block title %}
+    <h6>Alunos</h6>
+{% endblock title %}
+
+{% block sub_title %}
+    Lista de todos alunos cadastrados
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-list" aria-hidden="true"></i>
+{% endblock icon %}
+
+
+{% block content %}
+
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div class="card p-2 w-100 mb-2">
+            
+            <form action="" method="get" 
+                class="btn-group btn-group-sm" style="gap: 20px; width: 100%;">
+
+                <div class="form-field">
+
+                    <input type="search" name="search" style="width: 600px"
+                    class="form-control-custom" placeholder="B.I ou Número de estudante">
+                </div>
+
+                <button class="btn btn-primary" style="border-radius: 4px; width: 100px;"><i class="bi bi-search"></i></button>
+
+            </form>
+        </div>
+
+        <div class="card w-100" style="display:flex; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" class="text-warning"></h1>
+
+            
+            
+        </div>
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number" 
+                    id="per_page" 
+                    name="per_page" 
+                    class="form-control form-control-sm" 
+                    min="1" 
+                    max="200" 
+                    value="{{ per_page|default:20 }}" 
+                    onchange="this.form.submit()"
+                    
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover" style="font-size: 10pt;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome Completo
+                                    
+                                    <a href="?order_by=nome_completo{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                                    >
+                                    <i class="bi bi-chevron-expand sort-icon"></i>
+                                    </a>
+                                </th>
+                                
+                                <th>B.I</th>
+                                <th>Data de nascimento</th>
+                                <th>Género</th>
+                            
+                                <th>Opções</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aluno in alunos %}
+                            <tr>
+                                <td><a href="{% url 'aluno_detail' aluno.id %}" >{{ aluno.nome_completo }}</a></td>
+                                <td>{{ aluno.bi|default:'----' }}</td>
+                                <td>{{ aluno.data_nascimento|date:'d/m/Y' }}</td>
+                                <td>{{ aluno.get_genero_display }}</td>
+                                
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url "aluno_detail" aluno.id %}" 
+                                            class="btn btn-outline-primary" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        
+                                        <a href="{% url "aluno_update" aluno.id %}"
+                                            class="btn btn-outline-warning" title="Editar">
+                                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                                        </a>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if alunos.has_other_pages %}
+
+                    <ul class="pagination justify-content-center">
+                            {% if alunos.has_previous %}
+                                <li class="page-item">
+
+                                    <a class="page-link" href="?page={{ alunos.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                        <span class="sr-only">Anterior</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in alunos.paginator.page_range %}
+                                {% if alunos.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        {% if alunos.has_next %}
+
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ alunos.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                    <span aria-hidden="true">&raquo;</span>
+                                    <span class="sr-only">Próximo</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
+            <h3>confirmar exclusão</h3>
+            <p id="mensagemconfirmacao">Tem certeza que deseja deletar este professor?</p>
+
+            <input type="password" class="form-control" autocomplete="new-password"
+                id="password" placeholder="Confirme sua senha" name="password" required>
+                
+            <div id="sms" style="color: red;"></div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="fecharmodal()" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
+                    sair
+                </button>
+                <button onclick="deletarItem()" class="btn btn-danger">
+                    confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    
+
+{% endblock  %}

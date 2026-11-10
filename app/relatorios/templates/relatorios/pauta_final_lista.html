@@ -1,0 +1,61 @@
+{% extends "director/base.html" %}
+{% block title %}Pauta Final — {{ ano|default:"" }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-3">
+  <h4 class="mb-3">Pautas Finais {% if ano %}— {{ ano }}{% endif %}</h4>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+      <select name="ano" class="form-select" onchange="this.form.submit()">
+        {% for a in anos %}<option value="{{ a.pk }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <select name="curso" class="form-select" onchange="this.form.submit()">
+        <option value="">Todos os cursos</option>
+        {% for c in cursos %}<option value="{{ c.pk }}" {% if request.GET.curso == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="classe" class="form-select" onchange="this.form.submit()">
+        <option value="">Todas as classes</option>
+        {% for c in classes %}<option value="{{ c.pk }}" {% if request.GET.classe == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.get_designacao_display }}</option>{% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {% if not publicada %}
+    <div class="alert alert-warning">
+      A pauta final ainda não foi publicada (o lançamento do 3.º trimestre está aberto).
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr><th>Turma</th><th>Curso</th><th>Classe</th><th>Período</th><th>Alunos</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for t in turmas %}
+        <tr>
+          <td>{{ t.designacao }}</td>
+          <td>{{ t.curso }}</td>
+          <td>{{ t.classe.get_designacao_display }}</td>
+          <td>{{ t.get_periodo_display }}</td>
+          <td>{{ t.matriculas.count }}</td>
+          <td class="text-end">
+            {% if publicada %}
+              <a class="btn btn-sm btn-primary" href="{% url 'pauta_final_turma' t.pk %}">Ver pauta</a>
+            {% else %}
+              <span class="badge bg-secondary">Não publicada</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma turma encontrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

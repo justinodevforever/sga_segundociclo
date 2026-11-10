@@ -1,0 +1,278 @@
+{% extends "director/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+  <span class="current">Financeiro — Dashboard</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-wallet2"></i>{% endblock %}
+{% block title %}Gestão Financeira{% endblock %}
+{% block sub_title %}Visão geral das contas, propinas e pagamentos{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'conta_create' %}" class="btn btn-sm"
+       style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-plus-lg"></i> Nova Conta
+    </a>
+    <a href="{% url 'pagamento_create' %}" class="btn btn-sm"
+       style="background:#059669;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-cash-coin"></i> Registar Pagamento
+    </a>
+    <a href="{% url 'relatorio_financeiro' %}" class="btn btn-sm"
+       style="background:var(--bg);color:var(--text-sub);border:1px solid var(--border);border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-bar-chart-line"></i> Relatórios
+    </a>
+  </div>
+{% endblock %}
+
+{% block content %}
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3 fade-up delay-1">
+    <div class="stat-card sc-blue">
+      <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+      <div class="stat-value">{{ total_devido|floatformat:0 }}</div>
+      <div class="stat-label">Total Devido (Kz)</div>
+      <span class="stat-trend trend-neu"><i class="bi bi-dash"></i> Anual</span>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3 fade-up delay-2">
+    <div class="stat-card sc-green">
+      <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="stat-value">{{ total_pago|floatformat:0 }}</div>
+      <div class="stat-label">Total Pago (Kz)</div>
+      <span class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> Arrecadado</span>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3 fade-up delay-3">
+    <div class="stat-card sc-warn">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="stat-value">{{ total_saldo|floatformat:0 }}</div>
+      <div class="stat-label">Saldo Devedor (Kz)</div>
+      <span class="stat-trend trend-down"><i class="bi bi-arrow-down"></i> Em Dívida</span>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3 fade-up delay-4">
+    <div class="stat-card sc-purple">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-value">{{ total_contas }}</div>
+      <div class="stat-label">Contas Activas</div>
+      <span class="stat-trend trend-neu"><i class="bi bi-dash"></i> Alunos</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS OVERVIEW -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-4 fade-up delay-1">
+    <div class="chart-card" style="height:100%;">
+      <div class="section-header" style="margin-bottom:18px;">
+        <span class="section-title">Status das Contas</span>
+      </div>
+      <canvas id="statusChart"></canvas>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;">
+        {% with em_dia=status_counts.em_dia|default:0 pendente=status_counts.pendente|default:0 atrasado=status_counts.atrasado|default:0 bloqueado=status_counts.bloqueado|default:0 %}
+        <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;">
+          <span style="width:10px;height:10px;background:#059669;border-radius:50%;display:inline-block;"></span>
+          Em Dia ({{ em_dia }})
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;">
+          <span style="width:10px;height:10px;background:#d97706;border-radius:50%;display:inline-block;"></span>
+          Pendente ({{ pendente }})
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;">
+          <span style="width:10px;height:10px;background:#f97316;border-radius:50%;display:inline-block;"></span>
+          Atrasado ({{ atrasado }})
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;">
+          <span style="width:10px;height:10px;background:#dc2626;border-radius:50%;display:inline-block;"></span>
+          Bloqueado ({{ bloqueado }})
+        </div>
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8 fade-up delay-2">
+    <div class="chart-card">
+      <div class="section-header" style="margin-bottom:18px;">
+        <span class="section-title">Pagamentos — Últimos 6 Meses</span>
+      </div>
+      <canvas id="pagamentosChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT + ALERTS -->
+<div class="row g-3">
+  <!-- Pagamentos Recentes -->
+  <div class="col-12 col-lg-7 fade-up delay-1">
+    <div class="table-card">
+      <div class="card-hdr">
+        <span class="section-title">Pagamentos Recentes</span>
+        <a href="{% url 'pagamento_list' %}" style="font-size:.78rem;color:var(--accent);">Ver todos →</a>
+      </div>
+      {% if pagamentos_recentes %}
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>Recibo</th>
+            <th>Aluno</th>
+            <th>Valor</th>
+            <th>Data</th>
+            <th>Método</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pagamentos_recentes %}
+          <tr>
+            <td>
+              <a href="{% url 'recibo_detalhe' p.numero_recibo %}"
+                 style="color:var(--accent);font-weight:600;font-size:.8rem;">
+                {{ p.numero_recibo }}
+              </a>
+            </td>
+            <td style="font-size:.82rem;">{{ p.conta_aluno.aluno.nome|truncatechars:22 }}</td>
+            <td style="font-weight:700;color:#059669;font-size:.83rem;">
+              {{ p.valor|floatformat:2 }} Kz
+            </td>
+            <td style="font-size:.78rem;color:var(--text-muted);">{{ p.data_pagamento|date:"d/m/Y" }}</td>
+            <td><span class="tag tag-blue" style="font-size:.63rem;">{{ p.get_metodo_pagamento_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:32px;text-align:center;color:var(--text-muted);">
+        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+        Nenhum pagamento registado
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Alertas + Contas Bloqueadas -->
+  <div class="col-12 col-lg-5 fade-up delay-2">
+    <div class="chart-card" style="margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:14px;">Alertas</div>
+      {% if propinas_vencidas > 0 %}
+      <div class="alert-strip as-danger">
+        <i class="bi bi-exclamation-circle-fill as-icon"></i>
+        <div>
+          <div class="as-title">Propinas Atrasadas</div>
+          <div class="as-sub">{{ propinas_vencidas }} propina(s) com pagamento em atraso</div>
+        </div>
+      </div>
+      {% endif %}
+      {% with bloq=status_counts.bloqueado|default:0 %}
+      {% if bloq > 0 %}
+      <div class="alert-strip as-danger">
+        <i class="bi bi-shield-x as-icon"></i>
+        <div>
+          <div class="as-title">Contas Bloqueadas</div>
+          <div class="as-sub">{{ bloq }} aluno(s) bloqueado(s) por dívida</div>
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+      <div class="alert-strip as-info">
+        <i class="bi bi-info-circle-fill as-icon"></i>
+        <div>
+          <div class="as-title">Hoje: {{ hoje|date:"d \d\e F \d\e Y" }}</div>
+          <div class="as-sub">Mantenha os registos financeiros actualizados</div>
+        </div>
+      </div>
+    </div>
+
+    {% if contas_bloqueadas %}
+    <div class="table-card">
+      <div class="card-hdr">
+        <span class="section-title" style="color:#dc2626;">
+          <i class="bi bi-shield-x"></i> Contas Bloqueadas
+        </span>
+      </div>
+      {% for c in contas_bloqueadas %}
+      <div class="mli">
+        <div class="mli-av" style="background:#fee2e2;color:#dc2626;">
+          {{ c.aluno.nome|slice:":2"|upper }}
+        </div>
+        <div>
+          <div class="mli-name" style="font-size:.82rem;">{{ c.aluno.nome|truncatechars:20 }}</div>
+          <div class="mli-sub">{{ c.ano_lectivo }}</div>
+        </div>
+        <div class="mli-meta">
+          <div style="font-weight:700;color:#dc2626;font-size:.82rem;">
+            {{ c.saldo_devedor|floatformat:0 }} Kz
+          </div>
+          <a href="{% url 'conta_detail' c.pk %}" style="font-size:.7rem;color:var(--accent);">Ver →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Status Doughnut
+const ctxStatus = document.getElementById('statusChart').getContext('2d');
+new Chart(ctxStatus, {
+  type: 'doughnut',
+  data: {
+    labels: ['Em Dia', 'Pendente', 'Atrasado', 'Bloqueado'],
+    datasets: [{
+      data: [
+        {{ status_counts.em_dia|default:0 }},
+        {{ status_counts.pendente|default:0 }},
+        {{ status_counts.atrasado|default:0 }},
+        {{ status_counts.bloqueado|default:0 }},
+      ],
+      backgroundColor: ['#059669','#d97706','#f97316','#dc2626'],
+      borderWidth: 0,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    cutout: '72%',
+    plugins: { legend: { display: false } },
+    responsive: true,
+  }
+});
+
+// Pagamentos Bar Chart
+const ctxPag = document.getElementById('pagamentosChart').getContext('2d');
+const meses = [{% for p in pagamentos_mensais %}'{{ p.mes }}',{% endfor %}];
+const valores = [{% for p in pagamentos_mensais %}{{ p.total }},{% endfor %}];
+new Chart(ctxPag, {
+  type: 'bar',
+  data: {
+    labels: meses,
+    datasets: [{
+      label: 'Pagamentos (Kz)',
+      data: valores,
+      backgroundColor: 'rgba(29,78,216,.15)',
+      borderColor: '#1d4ed8',
+      borderWidth: 2,
+      borderRadius: 8,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: '#e2e8f0' },
+        ticks: { color: '#94a3b8', font: { size: 11 } }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#94a3b8', font: { size: 11 } }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "relatorios/pdf/_base.html" %}
+{% block corpo %}
+{% if rel.resumo %}
+<table class="resumo">
+  {% for k, v in rel.resumo_fmt %}<tr><td class="k">{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{% for t in rel.tabelas %}
+  {% if t.titulo %}<h3>{{ t.titulo }}</h3>{% endif %}
+  <table class="tab">
+    <thead><tr repeat="1">{% for c, w in t.cab %}<th{% if w %} width="{{ w|stringformat:".1f" }}%"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for linha in t.linhas_fmt %}
+      <tr>{% for texto, cls in linha %}<td class="{{ cls }}">{{ texto }}</td>{% endfor %}</tr>
+    {% empty %}
+      <tr><td colspan="{{ t.colunas|length }}" align="center">Sem dados para os filtros seleccionados.</td></tr>
+    {% endfor %}
+    {% if t.rodape_fmt %}<tr class="tot">{% for texto, cls in t.rodape_fmt %}<td class="{{ cls }}">{{ texto }}</td>{% endfor %}</tr>{% endif %}
+    </tbody>
+  </table>
+{% endfor %}
+
+{% if rel.assinaturas %}
+<table class="ass" width="100%"><tr>
+  <td width="50%">______________________________<br/>A Secretaria</td>
+  <td width="50%">______________________________<br/>O Director{% if diretor %}<br/>{{ diretor.nome_completo }}{% endif %}</td>
+</tr></table>
+{% endif %}
+{% endblock %}

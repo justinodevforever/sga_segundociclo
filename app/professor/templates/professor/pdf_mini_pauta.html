@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+            @frame footer {
+                -pdf-frame-content: footer_content;
+                bottom: 1cm;
+                margin-left: 1cm;
+                margin-right: 1cm;
+                height: 1cm;
+            }
+        }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #333; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { font-size: 16pt; margin: 0; text-transform: uppercase; }
+
+        /* Simulação do Info Strip usando tabela */
+        .info-table { width: 100%; border-bottom: 2px solid #000; margin-bottom: 10px; padding: 5px 0; }
+        .info-label { font-weight: bold; color: #555; }
+
+        /* Tabela da Pauta */
+        table.pauta-table { width: 100%; border-collapse: collapse; }
+        table.pauta-table th, table.pauta-table td { border: 0.5pt solid #ccc; padding: 4px; text-align: center; }
+
+        .th-main { background-color: #f2f2f2; font-weight: bold; }
+        .th-sub { background-color: #fafafa; font-size: 8pt; }
+
+        .col-nome { text-align: left !important; width: 150pt; }
+        .nota-neg { color: #d9534f; font-weight: bold; } /* Vermelho para negativas */
+        .nota-pos { color: #000; }
+
+        .tr-summary { background-color: #f9f9f9; font-weight: bold; }
+        .footer { text-align: right; font-size: 8pt; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mini-Pauta de Aproveitamento</h1>
+        <p>{{ escola.nome }} | Ano Lectivo: {{ turma.ano_lectivo }}</p>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td><span class="info-label">Turma:</span> {{ turma|default:"—" }}</td>
+            <td><span class="info-label">Classe:</span> {{ classe|default:"—" }}</td>
+            <td><span class="info-label">Curso:</span> {{ curso|default:"—" }}</td>
+            <td><span class="info-label">Sala:</span> {{ sala|default:"—" }}</td>
+            <td><span class="info-label">Total Alunos:</span> {{ total_alunos }}</td>
+        </tr>
+    </table>
+
+    <table class="pauta-table">
+        <thead>
+            <tr>
+                <th class="th-main" rowspan="2">#</th>
+                <th class="th-main col-nome" rowspan="2">Nome do Aluno</th>
+                {% for disc in disciplinas %}
+                    <th class="th-main" colspan="3">{{ disc.disciplina.nome|truncatechars:15 }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for disc in disciplinas %}
+                    <th class="th-sub">MAC</th>
+                    <th class="th-sub">NPT</th>
+                    <th class="th-sub">MT</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for linha in dados %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="col-nome">{{ linha.aluno.nome_completo }}</td>
+                {% for nd in linha.notas %}
+                    <td class="{% if nd.mac < 10 %}nota-neg{% endif %}">
+                        {{ nd.mac|floatformat:1|default:"—" }}
+                    </td>
+                    <td class="{% if nd.npt < 10 %}nota-neg{% endif %}">
+                        {{ nd.npt|floatformat:1|default:"—" }}
+                    </td>
+                    <td style="background-color: #fdfdfd;" class="{% if nd.mt < 10 %}nota-neg{% endif %}">
+                        {{ nd.mt|floatformat:1|default:"—" }}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+
+            <tr class="tr-summary">
+                <td colspan="2">MÉDIA DA TURMA</td>
+                {% for med in medias_turma %}
+                    <td>—</td>
+                    <td>—</td>
+                    <td>{{ med.mt|floatformat:1|default:"—" }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+
+    <div id="footer_content" class="footer">
+        Gerado em {{ hoje|date:"d/m/Y H:i" }} - Sistema de Gestão Escolar
+    </div>
+</body>
+</html>

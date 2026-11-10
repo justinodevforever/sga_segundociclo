@@ -1,0 +1,202 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="{% url 'avaliacao_list' %}">Avaliações</a>
+  <i class="bi bi-chevron-right"></i>
+  <a href="{% url 'resultados_anuais' %}">Resultados Anuais</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Lançar Notas de Exame</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-file-earmark-check-fill"></i>{% endblock %}
+{% block title %}Lançar Notas de Exame{% endblock %}
+{% block sub_title %}Época Normal e Época de Recurso — alunos admitidos a exame{% endblock %}
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="table-card" style="padding:20px;margin-bottom:18px;">
+  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;display:flex;gap:10px;margin-bottom:16px;">
+    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;flex-shrink:0;margin-top:1px;"></i>
+    <div style="font-size:.79rem;color:#78350f;">
+      <strong>Atenção:</strong> Apenas alunos com MAC Anual entre 7 e 9 têm direito a exame.
+      Alunos com MAC &lt; 7 estão automaticamente reprovados.
+      A nota final com exame é calculada como: <strong>(MAC Anual × 2 + Nota Exame) ÷ 3</strong>
+    </div>
+  </div>
+  <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+    <div style="flex:1;min-width:200px;">
+      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Turma</label>
+      <select name="turma" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+        <option value="">-- Seleccione --</option>
+        {% for t in turmas %}
+        <option value="{{ t.pk }}" {% if turma_sel == t.pk|stringformat:"s" %}selected{% endif %}>
+          {{ t.designacao }} — {{ t.classe.designacao }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:1;min-width:200px;">
+      <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:5px;">Disciplina</label>
+      <select name="disciplina" class="form-control-custom" style="padding:9px 12px;font-size:.83rem;" required>
+        <option value="">-- Seleccione --</option>
+        {% for d in disciplinas %}
+        <option value="{{ d.pk }}" {% if disciplina_sel == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" style="padding:10px 20px;border-radius:9px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:.83rem;font-weight:600;display:flex;align-items:center;gap:7px;">
+      <i class="bi bi-search"></i> Carregar Alunos
+    </button>
+  </form>
+</div>
+
+{% if turma and disciplina %}
+
+{% if admitidos %}
+<div class="table-card fade-up">
+  <div class="card-hdr">
+    <div>
+      <div class="section-title">Alunos Admitidos a Exame</div>
+      <div style="font-size:.73rem;color:var(--text-muted);">{{ turma.designacao }} · {{ disciplina.nome }} · {{ admitidos|length }} aluno(s)</div>
+    </div>
+    <span class="tag tag-yellow"><i class="bi bi-hourglass-split"></i> Época de Exame</span>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div style="overflow-x:auto;">
+      <table class="dt">
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Nome do Aluno</th>
+            <th style="text-align:center;background:#f0f9ff;">MAC T1</th>
+            <th style="text-align:center;background:#f0f9ff;">MAC T2</th>
+            <th style="text-align:center;background:#f0f9ff;">MAC T3</th>
+            <th style="text-align:center;background:#e0f2fe;">MAC Anual</th>
+            <th style="text-align:center;min-width:120px;background:#fffbeb;">Nota de Exame <span style="color:#dc2626;">*</span></th>
+            <th style="text-align:center;background:#d1fae5;">Nota Final (Prev.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ra in admitidos %}
+          <tr id="row-{{ ra.pk }}">
+            <td style="color:var(--text-muted);font-size:.78rem;">{{ forloop.counter }}</td>
+            <td>
+              <div style="font-weight:600;font-size:.84rem;">{{ ra.matricula.aluno.nome_completo }}</div>
+              <div style="font-size:.7rem;color:var(--text-muted);">{{ ra.matricula.aluno.numero_processo|default:"—" }}</div>
+            </td>
+            <td style="text-align:center;background:#f8fcff;">
+              <span style="color:{% if ra.mac_1_trimestre >= 10 %}#059669{% elif ra.mac_1_trimestre >= 7 %}#d97706{% else %}#dc2626{% endif %};font-weight:600;">
+                {{ ra.mac_1_trimestre|floatformat:2|default:"—" }}
+              </span>
+            </td>
+            <td style="text-align:center;background:#f8fcff;">
+              <span style="color:{% if ra.mac_2_trimestre >= 10 %}#059669{% elif ra.mac_2_trimestre >= 7 %}#d97706{% else %}#dc2626{% endif %};font-weight:600;">
+                {{ ra.mac_2_trimestre|floatformat:2|default:"—" }}
+              </span>
+            </td>
+            <td style="text-align:center;background:#f8fcff;">
+              <span style="color:{% if ra.mac_3_trimestre >= 10 %}#059669{% elif ra.mac_3_trimestre >= 7 %}#d97706{% else %}#dc2626{% endif %};font-weight:600;">
+                {{ ra.mac_3_trimestre|floatformat:2|default:"—" }}
+              </span>
+            </td>
+            <td style="text-align:center;background:#e8f4fd;">
+              <strong style="font-size:.92rem;color:#d97706;">{{ ra.mac_anual|floatformat:2 }}</strong>
+            </td>
+            <td style="text-align:center;background:#fffdf0;">
+              <input
+                type="number"
+                name="exame_{{ ra.pk }}"
+                id="exame_{{ ra.pk }}"
+                class="exame-input"
+                min="0" max="20" step="0.5"
+                placeholder="0.0 – 20.0"
+                value="{{ ra.nota_exame|default:'' }}"
+                data-mac="{{ ra.mac_anual }}"
+                data-row="{{ ra.pk }}"
+                style="width:100px;text-align:center;padding:7px 10px;border:1.5px solid #fde68a;border-radius:8px;font-size:.88rem;font-weight:600;outline:none;background:#fffbeb;"
+                oninput="calcularFinal(this)"
+                onfocus="this.style.borderColor='var(--accent)'"
+                onblur="this.style.borderColor='#fde68a'"
+              >
+            </td>
+            <td style="text-align:center;background:#f0fdf4;" id="final_{{ ra.pk }}">
+              {% if ra.nota_exame %}
+              <strong style="color:{% if ra.nota_final >= 10 %}#059669{% else %}#dc2626{% endif %};">
+                {{ ra.nota_final|floatformat:2 }}
+              </strong>
+              {% else %}
+              <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+      <a href="{% url 'resultados_anuais' %}?turma={{ turma_sel }}&disciplina={{ disciplina_sel }}"
+        style="padding:9px 18px;border-radius:9px;border:1px solid var(--border);background:transparent;font-size:.84rem;color:var(--text-sub);text-decoration:none;display:flex;align-items:center;gap:6px;">
+        <i class="bi bi-arrow-left"></i> Voltar aos Resultados
+      </a>
+      <button type="submit" style="padding:9px 24px;border-radius:9px;background:#059669;color:#fff;border:none;cursor:pointer;font-size:.84rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+        <i class="bi bi-floppy2-fill"></i> Guardar Notas de Exame
+      </button>
+    </div>
+  </form>
+</div>
+
+{% else %}
+<div class="table-card" style="padding:60px;text-align:center;">
+  <div style="width:64px;height:64px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+    <i class="bi bi-check-circle-fill" style="font-size:1.8rem;color:#059669;"></i>
+  </div>
+  <div style="font-weight:700;font-size:1rem;margin-bottom:8px;color:#059669;">Nenhum aluno admitido a exame</div>
+  <div style="font-size:.82rem;color:var(--text-muted);">
+    Todos os alunos desta turma/disciplina foram aprovados directamente ou reprovados (MAC &lt; 7).
+  </div>
+</div>
+{% endif %}
+
+{% elif turma_sel or disciplina_sel %}
+<div class="table-card" style="padding:40px;text-align:center;">
+  <div style="font-size:.84rem;color:var(--text-muted);">Seleccione tanto a turma como a disciplina para carregar os alunos admitidos a exame.</div>
+</div>
+{% else %}
+<div class="table-card" style="padding:60px;text-align:center;">
+  <i class="bi bi-file-earmark-check" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+  <div style="font-weight:600;font-size:1rem;margin-bottom:8px;">Seleccione a turma e disciplina</div>
+  <div style="font-size:.82rem;color:var(--text-muted);">Apenas aparecem alunos com MAC Anual entre 7 e 9 (admitidos a exame).</div>
+</div>
+{% endif %}
+
+<script>
+function calcularFinal(input) {
+  const mac = parseFloat(input.dataset.mac);
+  const exame = parseFloat(input.value);
+  const rowId = input.dataset.row;
+  const finalEl = document.getElementById('final_' + rowId);
+
+  if (isNaN(exame) || input.value === '') {
+    finalEl.innerHTML = '<span style="color:var(--text-muted);">—</span>';
+    return;
+  }
+
+  // Fórmula: (MAC * 2 + Exame) / 3
+  const notaFinal = (mac + exame) / 2;
+  const notaArred = Math.round(notaFinal * 100) / 100;
+  const cor = notaArred >= 10 ? '#059669' : '#dc2626';
+  const label = notaArred >= 10 ? 'Aprovado' : 'Reprovado';
+
+  finalEl.innerHTML = `
+    <div>
+      <strong style="font-size:.92rem;color:${cor};">${notaArred.toFixed(2)}</strong>
+      <div style="font-size:.68rem;color:${cor};margin-top:2px;">${label}</div>
+    </div>
+  `;
+}
+</script>
+{% endblock %}

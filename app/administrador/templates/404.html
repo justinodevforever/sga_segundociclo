@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Página não encontrada</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static 'css/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome/css/all.min.css' %}">
+
+    <style>
+        body{
+            background: #f4f6f9;
+            height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .card-404{
+            max-width:500px;
+            padding:40px;
+            border-radius:16px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.1);
+            text-align:center;
+            background:white;
+        }
+        .code{
+            font-size:90px;
+            font-weight:bold;
+            color:#0d6efd;
+        }
+        .icon{
+            font-size:60px;
+            color:#0d6efd;
+            margin-bottom:15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card-404">
+
+    <div class="icon">
+        <i class="fas fa-map-signs"></i>
+    </div>
+
+    <div class="code">404</div>
+
+    <h3>Página não encontrada</h3>
+
+    <p class="text-muted">
+        A página que você está procurando não existe  
+        ou foi movida.
+    </p>
+
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary">
+            <i class="fas fa-home"></i> Voltar ao início
+        </a>
+
+        <button onclick="history.back()" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </button>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,355 @@
+{% extends "director/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .historico-layout { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+  .historico-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .historico-topo h1 { font-size: 1.4rem; font-weight: 700; color: #1a3a5c; }
+  .btn-novo-doc {
+    background: #1a3a5c;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-novo-doc:hover { background: #2e6da4; }
+
+  /* Filtros */
+  .filtros-form {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filtro-grupo { display: flex; flex-direction: column; gap: 0.3rem; min-width: 180px; }
+  .filtro-grupo label { font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+  .filtro-grupo input,
+  .filtro-grupo select {
+    padding: 0.4rem 0.6rem;
+    border: 1.5px solid #c8d0dd;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    background: white;
+  }
+  .btn-filtrar {
+    background: #2e6da4;
+    color: white;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-end;
+  }
+  .btn-limpar {
+    background: white;
+    color: #666;
+    border: 1.5px solid #c8d0dd;
+    padding: 0.45rem 0.8rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    align-self: flex-end;
+    text-decoration: none;
+  }
+
+  /* Tabela */
+  .tabela-wrapper {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .tabela-documentos {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87rem;
+  }
+  .tabela-documentos thead tr {
+    background: #1a3a5c;
+    color: white;
+  }
+  .tabela-documentos th {
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .tabela-documentos tbody tr { border-bottom: 1px solid #eee; transition: background 0.1s; }
+  .tabela-documentos tbody tr:hover { background: #f5f8fc; }
+  .tabela-documentos td { padding: 0.65rem 1rem; vertical-align: middle; }
+
+  .badge-status {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .status-emitido { background: #d4edda; color: #155724; }
+  .status-rascunho { background: #fff3cd; color: #856404; }
+  .status-anulado { background: #f8d7da; color: #721c24; }
+  .status-segunda_via { background: #d1ecf1; color: #0c5460; }
+
+  .acoes-doc { display: flex; gap: 0.4rem; flex-wrap: nowrap; }
+  .btn-acao {
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: nowrap;
+  }
+  .btn-acao-imprimir { background: #1a3a5c; color: white; }
+  .btn-acao-imprimir:hover { background: #2e6da4; }
+  .btn-acao-segunda { background: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+  .btn-acao-segunda:hover { background: #bee5eb; }
+  .btn-acao-anular { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+  .btn-acao-anular:hover { background: #f5c6cb; }
+
+  .sem-resultados {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #888;
+  }
+  .sem-resultados p { font-size: 1.1rem; margin-bottom: 0.5rem; }
+
+  /* Modal de anulação */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.aberto { display: flex; }
+  .modal-caixa {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal-caixa h3 { color: #9b1a1a; margin-bottom: 1rem; }
+  .modal-caixa textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1.5px solid #c8d0dd;
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+  }
+  .modal-acoes { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .btn-confirmar-anulacao {
+    background: #9b1a1a;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-cancelar-modal {
+    background: white;
+    color: #666;
+    border: 1.5px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  /* Paginação */
+  .paginacao { padding: 1rem; border-top: 1px solid #eee; text-align: right; font-size: 0.83rem; color: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="historico-layout">
+
+  <div class="historico-topo">
+    <h1>📋 {{ titulo }}</h1>
+    <a href="{% url 'documentos:selecionar_aluno_documento' %}" class="btn-novo-doc">+ Gerar Documento</a>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="filtros-form">
+    <div class="filtro-grupo">
+      <label>Aluno</label>
+      <input type="text" name="aluno" value="{{ filtro_aluno }}" placeholder="Nome do aluno…">
+    </div>
+    <div class="filtro-grupo">
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="">— Todos —</option>
+        {% for valor, label in tipos %}
+        <option value="{{ valor }}" {% if filtro_tipo == valor %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filtro-grupo">
+      <label>Estado</label>
+      <select name="status">
+        <option value="">— Todos —</option>
+        {% for valor, label in status_choices %}
+        <option value="{{ valor }}" {% if filtro_status == valor %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-filtrar">🔍 Filtrar</button>
+    <a href="{% url 'documentos:historico_documentos' %}" class="btn-limpar">✕ Limpar</a>
+  </form>
+
+  <!-- Tabela -->
+  <div class="tabela-wrapper">
+    {% if documentos %}
+    <table class="tabela-documentos">
+      <thead>
+        <tr>
+          <th>N.º Documento</th>
+          <th>Aluno</th>
+          <th>Tipo</th>
+          <th>Ano Lectivo</th>
+          <th>Data Emissão</th>
+          <th>Emitido por</th>
+          <th>Estado</th>
+          <th>Acções</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in documentos %}
+        <tr {% if doc.status == 'anulado' %}style="opacity:0.6;"{% endif %}>
+          <td><strong style="font-family:monospace;">{{ doc.numero_documento }}</strong></td>
+          <td>{{ doc.aluno.nome_completo }}</td>
+          <td>{{ doc.template.get_tipo_display }}</td>
+          <td>{{ doc.ano_lectivo.designacao }}</td>
+          <td>
+            {% if doc.data_emissao %}
+              {{ doc.data_emissao|date:"d/m/Y H:i" }}
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ doc.emitido_por.nome_completo|default:"—" }}</td>
+          <td>
+            <span class="badge-status status-{{ doc.status }}">
+              {{ doc.get_status_display }}
+            </span>
+            {% if doc.documento_original %}
+            <span style="font-size:0.7rem;color:#888;display:block;">2ª via de {{ doc.documento_original.numero_documento }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="acoes-doc">
+              {% if doc.status != 'anulado' %}
+              <a href="{% url 'documentos:imprimir_documento' doc.id %}"
+                 target="_blank" class="btn-acao btn-acao-imprimir">🖨️ Imprimir</a>
+              {% endif %}
+              {% if doc.status == 'emitido' %}
+              <button class="btn-acao btn-acao-segunda"
+                      onclick="confirmarSegundaVia('{{ doc.id }}', '{{ doc.numero_documento }}')">
+                2ª Via
+              </button>
+              <button class="btn-acao btn-acao-anular"
+                      onclick="abrirModalAnulacao('{{ doc.id }}', '{{ doc.numero_documento }}')">
+                Anular
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="paginacao">
+      Mostrando {{ documentos.count }} documento{{ documentos.count|pluralize }}
+    </div>
+    {% else %}
+    <div class="sem-resultados">
+      <p>📂 Nenhum documento encontrado</p>
+      {% if filtro_aluno or filtro_tipo or filtro_status %}
+      <a href="{% url 'documentos:historico_documentos' %}">Limpar filtros</a>
+      {% else %}
+      <p style="font-size:0.88rem;">Comece por <a href="{% url 'documentos:selecionar_aluno_documento' %}">gerar um documento</a>.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal de Anulação -->
+<div class="modal-overlay" id="modal-anulacao">
+  <div class="modal-caixa">
+    <h3>⚠️ Anular Documento</h3>
+    <p style="margin-bottom:1rem;font-size:0.88rem;color:#555;">
+      Documento: <strong id="modal-num-doc"></strong><br>
+      Esta acção não pode ser revertida. Indique o motivo:
+    </p>
+    <form method="post" id="form-anulacao">
+      {% csrf_token %}
+      <textarea name="motivo" placeholder="Motivo da anulação (obrigatório)…" required></textarea>
+      <div class="modal-acoes">
+        <button type="button" class="btn-cancelar-modal" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn-confirmar-anulacao">Confirmar Anulação</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Formulário segunda via (oculto) -->
+<form id="form-segunda-via" method="post">
+  {% csrf_token %}
+</form>
+
+<script>
+  function abrirModalAnulacao(docId, numDoc) {
+    document.getElementById('modal-anulacao').classList.add('aberto');
+    document.getElementById('modal-num-doc').textContent = numDoc;
+    document.getElementById('form-anulacao').action = `/documentos/historico/${docId}/anular/`;
+  }
+  function fecharModal() {
+    document.getElementById('modal-anulacao').classList.remove('aberto');
+  }
+  document.getElementById('modal-anulacao').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+
+  function confirmarSegundaVia(docId, numDoc) {
+    if (!confirm(`Emitir 2ª via do documento ${numDoc}?`)) return;
+    const form = document.getElementById('form-segunda-via');
+    form.action = `/documentos/historico/${docId}/segunda-via/`;
+    form.submit();
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+</style>
+<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
+     justify-content: center;">
+    <div class="col-md-8" style="width: 100%;">
+        
+        <div class="card" style="width: 97%;">
+            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Informações de categoria
+                </h5>
+                <a href="/listar_categoria/" class="btn" 
+                style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            </div>
+
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Denominção de categoria:</strong></div>
+                    <div class="col-sm-9">{{ categoria.categoria }}</div>
+                </div>
+                
+                {% if not professor %}
+                
+                    <button class="btn btn-outline-danger" onclick="deletarItem({{categoria.id}})">Eliminar</button>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        async function deletarItem(id) {
+
+
+            try {
+            const response = await fetch(`/delete_categoria/${id}/`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+              
+            });
+
+            if (response.ok) {
+                 window.location.href = `http://${location.host}/listar_categoria`
+              
+            } else {
+                const data = await response.json();
+            }
+
+            } catch (error) {
+            console.log(error);
+            }
+        }
+    </script>
+   
+</div>
+{% endblock %}
+

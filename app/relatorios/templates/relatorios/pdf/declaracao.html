@@ -1,0 +1,31 @@
+{% extends "relatorios/pdf/_base.html" %}
+{% block estilo %}
+.texto { font-size: 11.5pt; line-height: 190%; text-align: justify; margin-top: 30px; }
+{% endblock %}
+{% block cabecalho %}
+<div class="titulo" style="margin-top:40px">DECLARAÇÃO</div>
+<div class="linha"></div>
+{% endblock %}
+{% block corpo %}
+<div class="texto">
+  Para os devidos efeitos, declara-se que <b>{{ aluno.nome_completo }}</b>,
+  filho(a) de {{ aluno.nome_pai }} e de {{ aluno.nome_mae }},
+  natural de {{ aluno.naturalidade }}, província de {{ aluno.provincia }}{% if aluno.data_nascimento %},
+  nascido(a) aos {{ aluno.data_nascimento|date:"d/m/Y" }}{% endif %},
+  portador(a) do Bilhete de Identidade n.º {{ aluno.bi }}, emitido em {{ aluno.emitido_em }},
+  {% if aluno.genero == "F" %}encontra-se matriculada{% else %}encontra-se matriculado{% endif %}
+  nesta instituição de ensino, no ano lectivo <b>{{ mat.ano_lectivo }}</b>,
+  a frequentar a <b>{{ turma.classe.designacao }}.ª Classe</b>, curso de <b>{{ turma.curso.nome }}</b>,
+  turma <b>{{ turma.designacao }}</b>, no período da <b>{{ turma.get_periodo_display|lower }}</b>,
+  sob o n.º de processo {{ aluno.numero_processo|default:"-" }}.
+  <br/><br/>
+  Por ser verdade e me ter sido solicitado, mandei passar a presente declaração, que vai por mim assinada
+  e autenticada com o carimbo a óleo em uso nesta instituição.
+</div>
+<br/><br/>
+<div class="subt" style="font-size:10.5pt">{{ escola.municipio|default:escola.provincia }}, aos {{ data_extenso }}.</div>
+<table class="ass" width="100%"><tr>
+  <td width="50%">______________________________<br/>A Secretaria</td>
+  <td width="50%">______________________________<br/>O Director{% if diretor %}<br/>{{ diretor.nome_completo }}{% endif %}</td>
+</tr></table>
+{% endblock %}

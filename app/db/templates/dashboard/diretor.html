@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sistema Acadêmico{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1 class="page-title">Dashboard</h1>
+    <div class="breadcrumb">
+        <a href="#">Home</a> / <span>Dashboard</span>
+    </div>
+</div>
+
+<!-- Cards de Resumo -->
+<div class="row" style="display:flex; gap:1rem; flex-wrap:wrap;">
+    <div class="card" style="flex:1 1 200px;">
+        <div class="card-title">Estudantes</div>
+        <div style="font-size:2rem; font-weight:700; color:var(--medium-blue);">
+            {{total_alunos}}
+        </div>
+        <div style="color:var(--text-gray); margin-top:0.25rem;">Total de estudantes ativos</div>
+    </div>
+
+    <div class="card" style="flex:1 1 200px;">
+        <div class="card-title">Professores</div>
+        <div style="font-size:2rem; font-weight:700; color:var(--medium-blue);">
+            {{total_professores}}
+        </div>
+        <div style="color:var(--text-gray); margin-top:0.25rem;">Professores cadastrados</div>
+    </div>
+
+    <div class="card" style="flex:1 1 200px;">
+        <div class="card-title">Turmas</div>
+        <div style="font-size:2rem; font-weight:700; color:var(--medium-blue);">
+            {{total_turmas}}
+        </div>
+        <div style="color:var(--text-gray); margin-top:0.25rem;">Total de turmas ativas</div>
+    </div>
+
+    <div class="card" style="flex:1 1 200px;">
+        <div class="card-title">Matrículas</div>
+        <div style="font-size:2rem; font-weight:700; color:var(--medium-blue);">
+            {{total_matricula_finalizada}}
+        </div>
+        <div style="color:var(--text-gray); margin-top:0.25rem;">Matrículas realizadas</div>
+    </div>
+</div>
+
+<!-- Gráfico de Notas ou Frequência -->
+<div class="card">
+    <div class="card-title">Notas por Disciplina</div>
+    <canvas id="chartNotas" height="150"></canvas>
+</div>
+
+<div class="row" style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:1rem;">
+
+    <div class="card" style="flex:1 1 200px; text-align:center; cursor:pointer;" onclick="location.href='/criar_professor/'">
+        <i class="fas fa-chalkboard-teacher" style="font-size:2rem; color:var(--medium-blue);"></i>
+        <div style="margin-top:0.5rem; font-weight:600;">Novo Professor</div>
+    </div>
+    <div class="card" style="flex:1 1 200px; text-align:center; cursor:pointer;" onclick="location.href='/criar_turma/'">
+        <i class="fas fa-users" style="font-size:2rem; color:var(--medium-blue);"></i>
+        <div style="margin-top:0.5rem; font-weight:600;">Nova Turma</div>
+    </div>
+    <div class="card" style="flex:1 1 200px; text-align:center; cursor:pointer;" onclick="location.href='/criar_matricula/'">
+        <i class="fas fa-clipboard-list" style="font-size:2rem; color:var(--medium-blue);"></i>
+        <div style="margin-top:0.5rem; font-weight:600;">Nova Matrícula</div>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('chartNotas').getContext('2d');
+    const chartNotas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_chart|safe }},
+            datasets: [{
+                label: 'Média da Turma',
+                data: {{ data_chart|safe }},
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                y: { beginAtZero: true, max: 100 },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

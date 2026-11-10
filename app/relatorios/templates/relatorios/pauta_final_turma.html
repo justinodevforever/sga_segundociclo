@@ -1,0 +1,113 @@
+{% extends "director/base.html" %}
+{% block title %}Pauta Final — {{ turma.designacao }}{% endblock %}
+{% block content %}
+<style>
+  .pauta th, .pauta td { text-align: center; vertical-align: middle; font-size: .85rem; white-space: nowrap; }
+  .pauta td.nome { text-align: left; white-space: normal; min-width: 220px; }
+  .nota-neg { color: #b02a37; font-weight: 600; }
+  .nota-pos { color: #146c43; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: .72rem; font-weight: 600; }
+  .tag-apto { background: #d1e7dd; color: #0f5132; }
+  .tag-napto { background: #f8d7da; color: #842029; }
+  .tag-exame { background: #fff3cd; color: #664d03; }
+  .tag-rec { background: #cff4fc; color: #055160; }
+  @media print { .no-print { display: none !important; } }
+</style>
+
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-start mb-3 no-print">
+    <div>
+      <h4 class="mb-0">Pauta Final — {{ turma.designacao }} · {{ turma.classe.get_designacao_display }}</h4>
+      <div class="text-muted">{{ turma.curso }} · {{ turma.get_periodo_display }} · {{ turma.ano_lectivo }}</div>
+    </div>
+    <div>
+      <a href="{% url 'pauta_final_lista' %}?ano={{ turma.ano_lectivo_id }}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+      <button onclick="window.print()" class="btn btn-primary btn-sm">Imprimir</button>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3 no-print">
+    <div class="col-6 col-md-2"><div class="card p-2 text-center"><small>Alunos</small><strong>{{ resumo.total }}</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card p-2 text-center"><small>Positivos</small><strong class="text-success">{{ resumo.positivos }}</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card p-2 text-center"><small>Exame</small><strong>{{ resumo.exame }}</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card p-2 text-center"><small>Recurso</small><strong class="text-info">{{ resumo.recurso }}</strong></div></div>
+    <div class="col-6 col-md-2"><div class="card p-2 text-center"><small>Negativos</small><strong class="text-danger">{{ resumo.negativos }}</strong></div></div>
+  </div>
+
+  <form method="get" class="row g-2 mb-3 no-print">
+    <div class="col-md-4"><input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Pesquisar aluno..."></div>
+    <div class="col-md-3">
+      <select name="situacao" class="form-select" onchange="this.form.submit()">
+        <option value="">Todas as situações</option>
+        {% for k, v in situacoes %}<option value="{{ k }}" {% if filtro == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-outline-primary">Filtrar</button></div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm pauta">
+      <thead class="table-light">
+        <tr>
+          <th rowspan="2">Nº</th>
+          <th rowspan="2" class="text-start">Aluno</th>
+          {% for d in disciplinas %}<th colspan="2" title="{{ d.nome }}">{{ d.nome_abreviado }}</th>{% endfor %}
+          <th rowspan="2">Média</th>
+          <th rowspan="2">Faltas %</th>
+          <th rowspan="2">Observação</th>
+        </tr>
+        <tr>
+          {% for d in disciplinas %}<th>Nota</th><th>Res.</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in resultados %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td class="nome">{{ r.matricula.aluno.nome_completo }}</td>
+          {% for l in r.linhas %}
+            <td class="{% if l.situacao == 'NAO_APTO' %}nota-neg{% elif l.situacao == 'APTO' %}nota-pos{% endif %}">
+              {% if l.nota_final is not None %}{{ l.nota_final|floatformat:"0" }}{% elif l.mfd is not None %}{{ l.mfd|floatformat:"0" }}{% else %}—{% endif %}
+              {% if l.via_recurso %}<sup title="Nota obtida em recurso">R</sup>{% endif %}
+            </td>
+            <td>
+              {% if l.situacao == 'APTO' %}<span class="tag tag-apto">Apto</span>
+              {% elif l.situacao == 'NAO_APTO' %}<span class="tag tag-napto">N/Apto</span>
+              {% elif l.situacao == 'AGUARDAR_EXAME' %}<span class="tag tag-exame">Exame</span>
+              {% else %}—{% endif %}
+            </td>
+          {% endfor %}
+          <td><strong>{{ r.media_geral|default_if_none:"—" }}</strong></td>
+          <td class="{% if r.faltas_pct > regra.limite_faltas_injustificadas_pct %}nota-neg{% endif %}">{{ r.faltas_pct }}</td>
+          <td class="text-start">
+            {% if r.situacao == 'TRANSITA' or r.situacao == 'CONCLUIU' or r.situacao == 'APROVADO' %}
+              <span class="tag tag-apto">{{ r.rotulo }}</span>
+            {% elif r.situacao == 'ADMITIDO_RECURSO' %}
+              <span class="tag tag-rec">{{ r.rotulo }}</span>
+              <div class="small text-muted">{{ r.para_recurso|join:", " }}</div>
+            {% elif r.situacao == 'ADMITIDO_EXAME' %}
+              <span class="tag tag-exame">{{ r.rotulo }}</span>
+            {% else %}
+              <span class="tag tag-napto">{{ r.rotulo }}</span>
+              {% if r.negativas %}<div class="small text-muted">{{ r.negativas|join:", " }}</div>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="{{ disciplinas|length|add:disciplinas|length|add:5 }}" class="text-center text-muted py-4">Sem alunos.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="small text-muted mt-3">
+    <strong>Regras aplicadas:</strong>
+    nota mínima positiva {{ regra.nota_minima_positiva|floatformat:"0" }};
+    máx. {{ regra.max_negativas_transicao }} negativas para recurso;
+    exame com peso {{ regra.peso_exame_na_nota_final }} na nota final (mín. {{ regra.nota_minima_exame|floatformat:"0" }});
+    reprovação por faltas acima de {{ regra.limite_faltas_injustificadas_pct }}%.
+    {% if terminal %}Classe terminal: conclusão exige PAP/estágio positivos quando o curso os prevê.{% endif %}
+    <sup>R</sup> = nota obtida em exame de recurso.
+  </div>
+</div>
+{% endblock %}

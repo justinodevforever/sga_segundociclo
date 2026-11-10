@@ -1,0 +1,1 @@
+{% if t == 'kz' %}{{ v|floatformat:"2g" }} Kz{% elif t == 'num' %}{{ v }}{% elif t == 'pct' %}{{ v }}%{% elif t == 'data' %}{{ v|date:"d/m/Y" }}{% elif t == 'tag' %}<span class="tag {{ v.1 }}">{{ v.0 }}</span>{% elif t == 'link' %}<a href="{{ v.1 }}" class="tag tag-blue"><i class="bi bi-box-arrow-up-right"></i> {{ v.0 }}</a>{% else %}{{ v|default_if_none:"—" }}{% endif %}

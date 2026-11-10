@@ -1,0 +1,56 @@
+{% extends "professor/base.html" %}
+
+{% block breadcrumb %}
+    <a href="{% url "avaliacao:turma_detalhe" turma.id %}">Minha turma</a>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Avaliação contínua - {{ disciplina }} - {{ trimestre }}
+{% endblock title %}
+
+{% block content %}
+
+<form method="post">{% csrf_token %}
+    <div class="card form-field" style="display: flex; flex-direction: row; padding: 20px; gap: 10px;">
+        <label for="" class="form-label">
+            Tipo 
+            <select name="tipo" class="form-control-custom">
+                {% for v,l in tipos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+            </select>
+        </label>
+        <label for="" class="form-label">
+
+            Data 
+            <input type="date" name="data" class="form-control-custom" value="{{ hoje }}">
+        </label>
+        <label for="" class="form-label">
+            Descrição 
+            <input type="text" name="descricao" maxlength="150" class="form-control-custom" style="width:240px">
+        </label>
+    </div>
+    <div class="card-body" style="border-radius: 4px;">
+        <div class="table-responsive">
+            <table class="table table-hover" style="font-size: 10pt;">
+                <thead class="table-light">
+                    <tr>
+                        <th>N.º</th>
+                        <th>Nome</th>
+                        <th>Nota (0-20)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in matriculas %}
+                        <tr>
+                            <td>{{ m.numero_na_turma|default:forloop.counter }}</td>
+                            <td class="nome">{{ m.aluno.nome_completo }}</td>
+                            <td><input type="number" class="form-control-custom" name="nota_{{ m.id }}" style="width: 100px;"></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p><button class="btn btn-success">Guardara</button></p>
+</form>
+{% endblock %}
+

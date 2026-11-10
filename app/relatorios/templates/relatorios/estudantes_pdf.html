@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Estudantes</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        h2, h4 {
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info {
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+
+        table th {
+            background: #ddd;
+            padding: 6px;
+            border: 1px solid #000;
+        }
+
+        table td {
+            padding: 6px;
+            border: 1px solid #000;
+        }
+
+        .total {
+            margin-top: 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <img src="data:image/png;base64,{{ logo_base64 }}" alt="logo" width="120">
+        <h2>LISTA DE ESTUDANTES</h2>
+        <h4>Sistema de Gestão Académica</h4>
+    </div>
+
+    <div class="info">
+        <strong>Data de Geração:</strong> {{ data_geracao|date:"d/m/Y H:i" }} <br>
+        <strong>Total de Estudantes:</strong> {{ total }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nome Completo</th>
+                <th>Género</th>
+                <th>Turma</th>
+                <th>Ano Letivo</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for m in matriculas %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ m.estudante.nome_completo }}</td>
+                <td>{{ m.estudante.genero }}</td>
+                <td>{{ m.turma.turma }}</td>
+                <td>{{ m.ano_letivo.ano }}</td>
+                <td>{{ m.status_matricula|title }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align:center;">Nenhum estudante encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="total">
+        Total Geral: {{ total }}
+    </p>
+
+    <div class="footer">
+        Relatório gerado automaticamente pelo Sistema de Gestão Académica.
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+{% extends "professor/base.html" %}
+{% load custom_tags%}
+{% load static %}
+
+{% block breadcrumb %}
+	<span class="current">Horário do professor</span>
+{% endblock %}
+{% block icon %}
+	<i class="bi bi-calendar3-week"></i>
+{% endblock %}
+
+{% block title %}Meu Horário Semanal — Portal do Professor{% endblock %}
+{% block sub_title %}
+	Carga horária atribuída — Ano Lectivo {{ ano_lectivo }}
+{% endblock %}
+
+{% block topbar_actions %}
+	<button class="btn btn-primary" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimir Horário
+    </button>
+{% endblock %}
+{% block content %}
+
+{% if not blocos %}
+  <div class="alert-strip as-info fade-up d2">
+    <i class="bi bi-info-circle-fill as-icon"></i>
+    <div>
+      <div class="as-title">Horário não definido</div>
+      <div class="as-sub">Não há aulas registadas no sistema para o seu perfil. Contacte a Direcção Pedagógica.</div>
+    </div>
+  </div>
+{% else %}
+
+<!-- Grelha do Horário -->
+<div class="card fade-up d2" style="overflow-x:auto;">
+  <div class="horario-grid" style="min-width:700px;grid-template-columns:90px repeat({{ dias|length }}, 1fr);">
+    <!-- Header dias -->
+    <div class="hg-cell hg-header">Hora</div>
+    {% for dia in dias %}
+      <div class="hg-cell hg-header">{{ dia }}</div>
+    {% endfor %}
+
+    <!-- Linhas por bloco horário -->
+    {% for bloco in blocos %}
+      <div class="hg-cell hg-time">
+        {{ bloco.0|time:"H:i" }}<br>{{ bloco.1|time:"H:i" }}
+      </div>
+      {% for dia in dias %}
+        <div class="hg-cell">
+          {% with aula=grade|get_item:bloco|get_item:dia %}
+            {% if aula %}
+              <div class="hg-aula {{ forloop.parentloop.counter|divisibleby:4|yesno:'cyan,green,purple,blue' }}">
+                {{ aula.disciplina.nome }}<br>
+                <small>{{ aula.turma.designacao }} · {{ aula.sala|default:"" }}</small>
+              </div>
+            {% endif %}
+          {% endwith %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Estatísticas do horário -->
+<div class="row g-3 fade-up d3" style="margin-top:20px;">
+  <div class="col-12 col-md-4">
+    <div class="stat-card sc-blue">
+      <div class="stat-icon"><i class="bi bi-clock"></i></div>
+      <div class="stat-value">{{ carga_horaria }}h</div>
+      <div class="stat-label">Carga Horária Semanal</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-card sc-green">
+      <div class="stat-icon"><i class="bi bi-book"></i></div>
+      <div class="stat-value">{{ disciplinas_count }}</div>
+      <div class="stat-label">Disciplina{{ disciplinas_count|pluralize:"s" }} Leccionada{{ disciplinas_count|pluralize:"s" }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-card sc-purple">
+      <div class="stat-icon"><i class="bi bi-calendar-week"></i></div>
+      <div class="stat-value">{{ total_aulas }}</div>
+      <div class="stat-label">Aulas por Semana</div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+.horario-grid {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.hg-cell {
+  padding: 10px 8px; border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); font-size: .74rem;
+}
+.hg-cell:last-child { border-right: none; }
+.hg-header {
+  background: #f8fafc; font-weight: 700; font-size: .7rem;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted);
+  text-align: center;
+}
+.hg-time { color: var(--text-muted); font-weight: 600; font-size: .72rem; text-align: center; }
+.hg-aula {
+  border-radius: 6px; padding: 7px 8px; text-align: center;
+  font-weight: 600; font-size: .72rem; line-height: 1.35;
+}
+.hg-aula.blue   { background: #dbeafe; color: #1e40af; }
+.hg-aula.green  { background: #d1fae5; color: #065f46; }
+.hg-aula.purple { background: #ede9fe; color: #5b21b6; }
+.hg-aula.cyan   { background: #cffafe; color: #155e75; }
+{% endblock %}

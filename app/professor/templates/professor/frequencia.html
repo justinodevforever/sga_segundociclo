@@ -1,0 +1,131 @@
+{% extends "professor/base.html" %}
+{% load static %}
+{% block breadcrumb %}
+	<span class="current">Frequência & Faltas</span>
+{% endblock %}
+
+{% block icon %}
+    <i class="bi bi-clipboard2-check"></i>
+{% endblock %}
+
+{% block title %}Frequência & Faltas — Portal do Professor{% endblock %}
+{% block sub_title %}
+	Registo e consulta de presenças
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtros de turma e data -->
+<div class="card fade-up d2" style="margin-bottom:20px;">
+  <div class="card-body" style="padding:14px 20px;">
+    <form method="get" action="">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-5">
+          <label class="form-label">Turma</label>
+          <select class="form-control" name="turma">
+            {% for t in turmas_do_prof %}
+              <option value="{{ t.id }}" {% if turma_actual and t.id == turma_actual.id %}selected{% endif %}>
+                {{ t.designacao }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">Data</label>
+          <input class="form-control" type="date" name="data" value="{{ data_aula|date:'Y-m-d' }}">
+        </div>
+        <div class="col-12 col-md-3">
+          <button type="submit" class="btn btn-outline" style="width:100%;">
+            <i class="bi bi-funnel"></i> Filtrar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if turma_actual %}
+
+  <div class="alert-strip as-info fade-up d2">
+    <i class="bi bi-info-circle-fill as-icon"></i>
+    <div>
+      <div class="as-title">
+        Consulta de Faltas — {{ data_aula|date:"l, d \d\e F \d\e Y" }}
+        · {{ turma_actual.designacao }}
+      </div>
+      {% if horario_aula %}
+        <div class="as-sub">
+          {{ horario_aula.disciplina.nome }} · {{ horario_aula.hora_inicio|time:"H:i" }}–{{ horario_aula.hora_fim|time:"H:i" }}
+          {% if horario_aula.sala %} · Sala {{ horario_aula.sala }}{% endif %}
+        </div>
+      {% else %}
+        <div class="as-sub">Sem aula agendada neste dia para esta turma.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card fade-up d3">
+    <div class="card-hdr">
+      <span class="card-hdr-title">Lista de Alunos — {{ turma_actual.designacao }}</span>
+      <span style="font-size:.78rem;color:var(--text-muted);">{{ lista_alunos|length }} alunos</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Aluno</th>
+            <th style="text-align:center;">Total Faltas</th>
+            <th style="text-align:center;">% Presença</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lista_alunos %}
+            <tr>
+              <td style="color:var(--text-muted);font-size:.78rem;">{{ item.ordem }}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#1e40af;flex-shrink:0;">
+                    {{ item.aluno.nome_completo|slice:":2"|upper }}
+                  </div>
+                  <strong style="font-size:.84rem;">{{ item.aluno.nome_completo }}</strong>
+                </div>
+              </td>
+              <td style="text-align:center;">
+                <span style="font-weight:700;color:{% if item.total_faltas > 5 %}#dc2626{% elif item.total_faltas > 2 %}#d97706{% else %}#059669{% endif %};">
+                  {{ item.total_faltas }}
+                </span>
+              </td>
+              <td style="text-align:center;">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                  <div class="prog-bar" style="width:60px;">
+                    <div class="prog-fill" style="width:{{ item.perc_presenca }}%;background:{% if item.perc_presenca >= 90 %}#059669{% elif item.perc_presenca >= 75 %}#d97706{% else %}#dc2626{% endif %};"></div>
+                  </div>
+                  <span style="font-weight:700;font-size:.78rem;color:{% if item.perc_presenca >= 90 %}#059669{% elif item.perc_presenca >= 75 %}#d97706{% else %}#dc2626{% endif %};">
+                    {{ item.perc_presenca }}%
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span style="font-size:.78rem;color:var(--text-muted);">As faltas são registadas automaticamente via notas de avaliação.</span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">Sem alunos matriculados nesta turma.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% else %}
+  <div class="card fade-up d2">
+    <div class="card-body" style="text-align:center;padding:48px;color:var(--text-muted);">
+      <i class="bi bi-clipboard2" style="font-size:3rem;display:block;margin-bottom:12px;opacity:.3;"></i>
+      <div style="font-size:.9rem;font-weight:600;">Seleccione uma turma</div>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

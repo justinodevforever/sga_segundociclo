@@ -1,0 +1,818 @@
+{% extends 'administrador/baseadmin.html' %}
+{% load static %}
+
+
+{% block content %}
+<div class="container-fluid" style="gap: 20px;">
+
+  <style>
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes stepPop {
+      0%   { transform: scale(.85); opacity: 0; }
+      70%  { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .fade-up { animation: fadeUp .45s ease both; }
+    .d1{animation-delay:.04s} .d2{animation-delay:.10s}
+    .d3{animation-delay:.16s} .d4{animation-delay:.22s}
+    .d5{animation-delay:.28s} .d6{animation-delay:.34s}
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .78rem; color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .breadcrumb-bar a { color: var(--text-muted); text-decoration: none; transition: color .15s; }
+    .breadcrumb-bar a:hover { color: var(--accent); }
+    .breadcrumb-bar i { font-size: .6rem; }
+    .breadcrumb-bar .current { color: var(--text-main); font-weight: 500; }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 16px; }
+    .page-header-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-3));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; color: #fff;
+      box-shadow: 0 6px 20px rgba(59,130,246,.3);
+    }
+    .page-header-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem; font-weight: 800;
+    }
+    .page-header-sub { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── STEPPER ── */
+    .stepper {
+      display: flex; align-items: center; gap: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 24px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+    .step {
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0; cursor: pointer;
+    }
+    .step-circle {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700;
+      border: 2px solid var(--border);
+      color: var(--text-muted);
+      background: var(--bg-base);
+      transition: all .25s;
+      flex-shrink: 0;
+    }
+    .step.active   .step-circle {
+      background: var(--accent); border-color: var(--accent);
+      color: #fff; box-shadow: 0 0 0 4px rgba(59,130,246,.2);
+      animation: stepPop .35s ease;
+    }
+    .step.done     .step-circle {
+      background: var(--accent-4); border-color: var(--accent-4); color: #fff;
+    }
+    .step-label { font-size: .8rem; font-weight: 600; color: var(--text-muted); }
+    .step.active .step-label { color: var(--text-main); }
+    .step.done   .step-label { color: var(--accent-4); }
+    .step-sep {
+      flex: 1; height: 2px; min-width: 28px;
+      background: var(--border); border-radius: 99px;
+      margin: 0 12px;
+    }
+    .step.done + .step-sep { background: var(--accent-4); }
+
+    /* ── FORM LAYOUT ── */
+    .form-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: start;
+      width: 97%;
+    }
+    @media (max-width: 1050px) { .form-layout { grid-template-columns: 1fr; } }
+
+    /* ── SECTION CARD ── */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      transition: box-shadow .2s;
+    }
+    .section-card:focus-within {
+      box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+      border-color: rgba(59,130,246,.3);
+    }
+    .section-card-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sch-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; flex-shrink: 0;
+    }
+    .sch-blue   { background: rgba(59,130,246,.12);  color: var(--accent); }
+    .sch-cyan   { background: rgba(6,182,212,.12);   color: var(--accent-2); }
+    .sch-green  { background: rgba(16,185,129,.12);  color: var(--accent-4); }
+    .sch-purple { background: rgba(139,92,246,.12);  color: var(--accent-3); }
+    .sch-warn   { background: rgba(245,158,11,.12);  color: var(--accent-warn); }
+
+    .section-card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .9rem; font-weight: 700;
+    }
+    .section-card-body { padding: 20px; }
+
+    /* ── FORM GRID ── */
+    .fg-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .fg-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .fg-2, .fg-3 { grid-template-columns: 1fr; } }
+    .fg-full { grid-column: 1 / -1; }
+
+    /* ── FORM FIELD ── */
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+
+    .form-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-muted);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .form-label .req { color: var(--accent-danger); font-size: .85rem; }
+    .form-label .opt {
+      font-size: .62rem; background: rgba(100,116,139,.15);
+      color: var(--text-muted); padding: 1px 6px; border-radius: 4px;
+      font-weight: 600; letter-spacing: 0; text-transform: none;
+    }
+
+    .form-control-custom {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      color: var(--text-main);
+      padding: 10px 14px;
+      font-size: .875rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .form-control-custom::placeholder { color: var(--text-muted); }
+    .form-control-custom:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+      background: var(--bg-card);
+    }
+    .form-control-custom:hover:not(:focus) {
+      border-color: rgba(100,116,139,.5);
+    }
+    .form-control-custom.is-invalid {
+      border-color: var(--accent-danger);
+      box-shadow: 0 0 0 3px rgba(239,68,68,.1);
+    }
+    .form-control-custom.is-valid {
+      border-color: var(--accent-4);
+      box-shadow: 0 0 0 3px rgba(16,185,129,.1);
+    }
+
+    textarea.form-control-custom { resize: vertical; min-height: 88px; }
+
+    select.form-control-custom {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    select.form-control-custom option {
+      background: var(--bg-card); color: var(--text-main);
+    }
+
+    .form-hint {
+      font-size: .72rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .form-hint i { font-size: .75rem; }
+
+    .invalid-feedback {
+      font-size: .72rem; color: var(--accent-danger);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* ── INPUT WITH ICON ── */
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap i.prefix {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted); font-size: .9rem;
+      pointer-events: none;
+    }
+    .input-icon-wrap .form-control-custom { padding-left: 36px; }
+
+    /* ── LOGO UPLOAD ── */
+    .logo-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 28px 20px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      cursor: pointer; transition: all .22s;
+      background: var(--bg-base);
+      text-align: center;
+    }
+    .logo-upload-area:hover {
+      border-color: var(--accent);
+      background: rgba(59,130,246,.04);
+    }
+    .logo-upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(59,130,246,.07);
+      transform: scale(1.01);
+    }
+    .logo-upload-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: rgba(59,130,246,.1); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .logo-upload-title { font-size: .85rem; font-weight: 600; }
+    .logo-upload-sub   { font-size: .73rem; color: var(--text-muted); }
+    .logo-preview {
+      width: 80px; height: 80px; border-radius: 12px;
+      object-fit: cover; display: none;
+      border: 2px solid var(--accent);
+    }
+    #logoInput { display: none; }
+
+    /* ── TOGGLE SWITCH ── */
+    .toggle-wrap {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-radius: 10px;
+      background: var(--bg-base); border: 1px solid var(--border);
+    }
+    .toggle-label-wrap .toggle-title { font-size: .85rem; font-weight: 600; }
+    .toggle-label-wrap .toggle-desc  { font-size: .74rem; color: var(--text-muted); margin-top: 2px; }
+
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px; flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--border); border-radius: 99px;
+      transition: background .22s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; left: 3px; top: 3px;
+      transition: transform .22s, box-shadow .22s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      box-shadow: 0 1px 6px rgba(59,130,246,.4);
+    }
+
+    /* ── PLANO SELECTOR ── */
+    .plan-options { display: flex; flex-direction: column; gap: 10px; }
+    .plan-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 10px;
+      border: 1.5px solid var(--border);
+      cursor: pointer; transition: all .2s;
+      background: var(--bg-base);
+    }
+    .plan-option:hover { border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.04); }
+    .plan-option input[type="radio"] { display: none; }
+    .plan-option.selected {
+      border-color: var(--accent);
+      background: rgba(59,130,246,.08);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+    }
+    .plan-option-radio {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .2s;
+    }
+    .plan-option.selected .plan-option-radio {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+    .plan-option.selected .plan-option-radio::after {
+      content: ''; width: 8px; height: 8px;
+      border-radius: 50%; background: #fff;
+    }
+    .plan-option-info .plan-opt-name {
+      font-size: .85rem; font-weight: 700;
+    }
+    .plan-option-info .plan-opt-desc {
+      font-size: .73rem; color: var(--text-muted); margin-top: 1px;
+    }
+    .plan-option-price {
+      margin-left: auto; font-family: 'Syne', sans-serif;
+      font-size: .9rem; font-weight: 800; color: var(--accent);
+    }
+
+    /* ── SUMMARY SIDEBAR ── */
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      position: sticky; top: 84px;
+    }
+    .summary-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .summary-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .9rem; font-weight: 700;
+    }
+    .summary-body { padding: 16px 20px; }
+
+    .summary-avatar {
+      width: 64px; height: 64px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-3));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 900;
+      font-size: 1.4rem; color: #fff; margin: 0 auto 14px;
+    }
+    .summary-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem; font-weight: 800;
+      text-align: center; margin-bottom: 4px;
+    }
+    .summary-sub {
+      font-size: .75rem; color: var(--text-muted);
+      text-align: center; margin-bottom: 16px;
+    }
+
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 0; border-bottom: 1px solid rgba(30,45,64,.4);
+      font-size: .8rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: var(--text-muted); }
+    .summary-val { font-weight: 600; text-align: right; max-width: 55%; word-break: break-word; }
+
+    /* ── FORM ACTIONS ── */
+    .form-actions {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 12px; padding-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .btn-submit {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 12px 28px; font-size: .9rem; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-submit:hover {
+      opacity: .92; transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59,130,246,.45);
+    }
+    .btn-submit:active { transform: translateY(0); }
+
+    .btn-cancel {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-hover); color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 20px; font-size: .88rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: all .18s; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-cancel:hover { color: var(--text-main); background: var(--border); }
+
+    /* ── ANGOLA PROVINCES ── */
+    /* handled in JS */
+
+    /* ── CHAR COUNTER ── */
+    .char-counter {
+      font-size: .7rem; color: var(--text-muted);
+      text-align: right; transition: color .2s;
+    }
+    .char-counter.warn  { color: var(--accent-warn); }
+    .char-counter.limit { color: var(--accent-danger); }
+
+    /* ── SECTION DIVIDER ── */
+    .sec-gap { margin-bottom: 20px; }
+
+    textarea{
+      height: 40px;
+    }
+  </style>
+
+  <nav class="breadcrumb-bar fade-up d1">
+    <a href="/administrator/"><i class="bi bi-house-fill"></i> Início</a>
+    <i class="bi bi-chevron-right"></i>
+    <a href="{% url 'lista_planos' %}">Plano de Subscrição</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="current">Novo Plano de Subscrição</span>
+  </nav>
+
+  <div class="page-header fade-up d1">
+
+    <div class="page-header-left" style="margin-bottom: 10px;">
+      <div class="page-header-icon"><i class="bi bi-building-fill-add"></i></div>
+      <div>
+        <div class="page-header-title">Novo Plano de Subscrição</div>
+        <div class="page-header-sub">Preencha todos os dados para registar a escola no sistema</div>
+      </div>
+    </div>
+
+    <a href="{% url 'lista_planos' %}" class="btn-cancel">
+      <i class="bi bi-arrow-left"></i> Voltar à Lista
+    </a>
+  </div>
+
+
+  <form method="POST" enctype="multipart/form-data" id="escolaForm" novalidate>
+    {% csrf_token %}
+
+    {% if sucesso %}
+                    
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <strong>{{sucesso}}</strong>
+          <button type="button" class="btn-close"
+          data-bs-dismiss="alert" aria-label="close"
+          ></button>
+      </div>
+    {% elif erro %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>{{erro}}</strong>
+          <button type="button" class="btn-close"
+          data-bs-dismiss="alert" aria-label="close"
+          ></button>
+      </div>
+    {% endif %}
+
+    <div class="form-layout">
+
+      <div>
+
+        <div class="section-card fade-up d2" id="sec-1">
+          <div class="section-card-header">
+            <div class="sch-icon sch-blue"><i class="bi bi-buildings-fill"></i></div>
+            <span class="section-card-title">Informações do plano de subscrição</span>
+          </div>
+          <div class="section-card-body">
+
+            <div class="fg-3" style="margin-bottom:16px;">
+
+              <div class="form-field">
+                <label class="form-label" for="nome">
+                  Tipo de plano <span class="req">*</span>
+                </label>
+                {{form.nome}}
+                {% if form.nome.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.nome.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="form-field">
+                <label class="form-label" for="nome_abreviado">
+                  Preço mensal <span class="req">*</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <i class="fas fa-dollar-sign prefix   "></i>
+                  {{form.preco_mensal}}
+                </div>
+
+                {% if form.preco_mensal.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.preco_mensal.errors.0 }}</div>
+                {% endif %}
+
+              </div>
+
+              <div class="form-field">
+                <label class="form-label" for="nif">
+                  Preço anual <span class="req">*</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <i class="fas fa-dollar-sign prefix   "></i>
+                  {{form.preco_anual}}
+                </div>
+
+                {% if form.preco_anual.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.preco_anual.errors.0 }}</div>
+                {% endif %}
+              </div>
+      
+            </div>
+
+            <div class="fg-3" style="margin-bottom:16px;">
+              
+              <div class="form-field">
+                <label class="form-label" for="tipo_ensino">
+                  Máximo de alunos <span class="req">*</span>
+                </label>
+                {{form.max_alunos}}
+
+                {% if form.max_alunos.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.max_alunos.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="form-field">
+                <label class="form-label" for="numero_alvara">
+                  Máximo de professores <span class="req">*</span>
+                </label>
+                {{form.max_professores}}
+                
+                {% if form.max_professores.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.max_professores.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+              <div class="form-field">
+                <label class="form-label" for="max_turmas">
+                  Máximo de turmas <span class="req">*</span>
+                </label>
+                  {{form.max_turmas}}
+
+                {% if form.max_turmas.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.max_turmas.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+            </div>
+
+            <div class="fg-2">
+
+              <div class="form-field">
+                <label class="form-label" for="descricao">
+                  Descrição <span class="req">*</span>
+                </label>
+                <div class="input-icon-wrap">
+                  {{form.descricao}}
+                </div>
+
+                {% if form.descricao.errors %}
+                  <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.descricao.errors.0 }}</div>
+                {% endif %}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+        
+
+        <!-- ── FORM ACTIONS ── -->
+        <div class="form-actions fade-up d6">
+          <a href="{% url 'lista_planos' %}" class="btn-cancel">
+            <i class="bi bi-x-lg"></i> Cancelar
+          </a>
+          <button type="reset" class="btn-cancel" onclick="resetSummary()">
+            <i class="bi bi-arrow-counterclockwise"></i> Limpar
+          </button>
+          <button type="submit" class="btn-submit" id="submitBtn">
+            <i class="bi bi-building-fill-add"></i> Criar Plano
+          </button>
+        </div>
+
+      </div>
+      
+    </div>
+  </form>
+
+</div>
+
+<script>
+/* ─── CHAR COUNTER ─── */
+const nomeInput    = document.getElementById('nome');
+const nomeCounter  = document.getElementById('nomeCounter');
+nomeInput.addEventListener('input', () => {
+  const len = nomeInput.value.length;
+  nomeCounter.textContent = `${len} / 200`;
+  nomeCounter.className = 'char-counter' + (len > 180 ? ' warn' : '') + (len >= 200 ? ' limit' : '');
+});
+
+/* ─── LIVE SUMMARY ─── */
+function bind(id, summaryId, transform) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const update = () => {
+    const val = el.value.trim();
+    document.getElementById(summaryId).textContent = val ? (transform ? transform(val) : val) : '—';
+  };
+  el.addEventListener('input', update);
+  el.addEventListener('change', update);
+}
+
+bind('nome', 'summaryName');
+bind('nome_abreviado', 'sNomeAbrev');
+bind('nif', 'sNif');
+bind('email', 'sEmail');
+bind('telefone', 'sTelefone');
+bind('tipo_ensino', 'sTipo');
+bind('data_expiracao_plano', 'sExpira', v => {
+  const d = new Date(v);
+  return isNaN(d) ? '—' : d.toLocaleDateString('pt-AO', {day:'2-digit',month:'short',year:'numeric'});
+});
+
+// Avatar initials from name
+document.getElementById('nome').addEventListener('input', function() {
+  const words = this.value.trim().split(/\s+/).filter(Boolean);
+  const initials = words.slice(0,2).map(w => w[0].toUpperCase()).join('') || '?';
+  document.getElementById('summaryAvatar').textContent = initials;
+  document.getElementById('summaryName').textContent   = this.value.trim() || 'Nome da escola';
+});
+
+// Location summary
+['municipio','provincia'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updateLocal);
+  document.getElementById(id)?.addEventListener('change', updateLocal);
+});
+function updateLocal() {
+  const m = document.getElementById('municipio')?.value.trim() || '';
+  const p = document.getElementById('provincia')?.value.trim() || '';
+  document.getElementById('sLocal').textContent = [m, p].filter(Boolean).join(', ') || '—';
+}
+
+// Summary sub (tipo)
+document.getElementById('tipo_ensino')?.addEventListener('change', function() {
+  document.getElementById('summarySub').textContent = this.value ? `Ensino ${this.value}` : 'Preencha os campos';
+});
+
+// Estado toggle
+document.getElementById('activo')?.addEventListener('change', function() {
+  document.getElementById('sEstado').innerHTML = this.checked
+    ? '<span style="color:var(--accent-4);">● Activo</span>'
+    : '<span style="color:var(--accent-danger);">● Inactivo</span>';
+});
+
+/* ─── PLAN SELECTOR ─── */
+function selectPlan(el, nome, preco) {
+  document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type="radio"]').checked = true;
+  document.getElementById('sPlano').textContent = `${nome} · ${preco}`;
+}
+
+/* ─── LOGO UPLOAD ─── */
+function previewLogo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    alert('O ficheiro é demasiado grande. Máximo 2MB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('logoPreview');
+    const icon    = document.getElementById('uploadIcon');
+    preview.src   = e.target.result;
+    preview.style.display = 'block';
+    icon.style.display    = 'none';
+    document.querySelector('.logo-upload-title').textContent = file.name;
+    document.querySelector('.logo-upload-sub').textContent   = (file.size / 1024).toFixed(0) + ' KB';
+    document.getElementById('removeLogoBtn').style.display   = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  document.getElementById('logoInput').value = '';
+  document.getElementById('logoPreview').style.display = 'none';
+  document.getElementById('uploadIcon').style.display  = 'flex';
+  document.querySelector('.logo-upload-title').textContent = 'Clique ou arraste aqui';
+  document.querySelector('.logo-upload-sub').textContent   = 'PNG, JPG, SVG · Máx. 2MB';
+  document.getElementById('removeLogoBtn').style.display   = 'none';
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.add('dragover');
+}
+function handleDragLeave() {
+  document.getElementById('uploadArea').classList.remove('dragover');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('logoInput').files = dt.files;
+    previewLogo({ target: { files: [file] } });
+  }
+}
+
+/* ─── STEPPER VISUAL (scroll-based) ─── */
+const secs  = ['sec-1','sec-2','sec-3','sec-4'];
+const steps = document.querySelectorAll('.step');
+
+function updateStepper() {
+  let active = 0;
+  secs.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.5) active = i;
+  });
+  steps.forEach((s, i) => {
+    s.classList.remove('active','done');
+    if (i < active)      s.classList.add('done');
+    else if (i === active) s.classList.add('active');
+  });
+}
+window.addEventListener('scroll', updateStepper, { passive: true });
+updateStepper();
+
+// Click to scroll
+steps.forEach((step, i) => {
+  step.style.cursor = 'pointer';
+  step.addEventListener('click', () => {
+    const el = document.getElementById(secs[i]);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+/* ─── FORM VALIDATION ─── */
+document.getElementById('escolaForm').addEventListener('submit', function(e) {
+  let valid = true;
+  const required = this.querySelectorAll('[required]');
+  required.forEach(field => {
+    field.classList.remove('is-invalid','is-valid');
+    if (!field.value.trim()) {
+      field.classList.add('is-invalid');
+      valid = false;
+    } else {
+      field.classList.add('is-valid');
+    }
+  });
+  if (!valid) {
+    e.preventDefault();
+    // Scroll to first invalid
+    const first = this.querySelector('.is-invalid');
+    if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+  } else {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:14px;height:14px;border-width:2px;"></span> A criar…';
+    btn.disabled = true;
+  }
+});
+
+// Live inline validation on blur
+document.querySelectorAll('.form-control-custom[required]').forEach(field => {
+  field.addEventListener('blur', function() {
+    this.classList.remove('is-invalid','is-valid');
+    if (!this.value.trim()) this.classList.add('is-invalid');
+    else this.classList.add('is-valid');
+  });
+});
+
+function resetSummary() {
+  document.getElementById('summaryAvatar').textContent = '?';
+  document.getElementById('summaryName').textContent   = 'Nome da escola';
+  document.getElementById('summarySub').textContent    = 'Preencha os campos';
+  ['sNomeAbrev','sNif','sTipo','sEmail','sTelefone','sLocal','sExpira']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('sPlano').textContent = 'Básico';
+  document.getElementById('sEstado').innerHTML =
+    '<span style="color:var(--accent-4);">● Activo</span>';
+  document.querySelectorAll('.form-control-custom').forEach(f => f.classList.remove('is-valid','is-invalid'));
+  removeLogo();
+}
+
+/* ─── SET DEFAULT EXPIRY (+1 year) ─── */
+(function(){
+  const expField = document.getElementById('data_expiracao_plano');
+  if (expField && !expField.value) {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    expField.value = d.toISOString().split('T')[0];
+    document.getElementById('sExpira').textContent =
+      d.toLocaleDateString('pt-AO', {day:'2-digit', month:'short', year:'numeric'});
+  }
+})();
+</script>
+
+{% endblock %}

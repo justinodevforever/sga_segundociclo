@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Recibo Escolar</title>
+
+<style>
+@page { size: A4; margin: 1cm; }
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 10pt;
+  color: #111;
+}
+
+/* BLOCO DO RECIBO */
+.recibo {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+/* CABEÇALHO */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #dc2626;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.titulo {
+  font-size: 14pt;
+  font-weight: bold;
+  color: #dc2626;
+}
+
+/* INFO */
+.info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.info div {
+  width: 48%;
+}
+
+/* TABELA */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th {
+  background: #dc2626;
+  color: white;
+  padding: 6px;
+  font-size: 9pt;
+}
+
+td {
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+/* TOTAL */
+.total {
+  text-align: right;
+  margin-top: 10px;
+}
+
+.total strong {
+  font-size: 12pt;
+}
+
+/* ASSINATURA */
+.assinatura {
+  margin-top: 20px;
+  text-align: right;
+}
+
+/* RODAPÉ */
+.footer {
+  margin-top: 10px;
+  font-size: 8pt;
+  color: #555;
+}
+
+/* LINHA DE CORTE */
+.corte {
+  border-top: 2px dashed #999;
+  margin: 25px 0;
+  text-align: center;
+  font-size: 8pt;
+  color: #999;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- ===================== VIA ESCOLA ===================== -->
+<div class="recibo">
+
+  <div class="header">
+    <div>
+      <div class="titulo">Recibo - Escola</div>
+      <div>Sistema Escolar</div>
+    </div>
+    <div class="logo">LOGO</div>
+  </div>
+
+  <div class="info">
+    <div>
+      <strong>Aluno:</strong> {{ pagamento.conta_aluno.aluno.nome }}<br>
+      <strong>Processo:</strong> {{ pagamento.conta_aluno.aluno.numero_estudante }}<br>
+      <strong>Ano:</strong> {{ pagamento.conta_aluno.ano_lectivo }}
+    </div>
+
+    <div>
+      <strong>Recibo Nº:</strong> {{ pagamento.numero_recibo }}<br>
+      <strong>Data:</strong> {{ pagamento.data_pagamento|date:"d/m/Y" }}<br>
+      <strong>Método:</strong> {{ pagamento.get_metodo_pagamento_display }}
+    </div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Descrição</th>
+      <th>Valor</th>
+    </tr>
+    <tr>
+      <td>Pagamento de Propina</td>
+      <td>{{ pagamento.valor|floatformat:2 }} Kz</td>
+    </tr>
+  </table>
+
+  <div class="total">
+    <strong>Total: {{ pagamento.valor|floatformat:2 }} Kz</strong>
+  </div>
+
+  <div class="assinatura">
+    ___________________________<br>
+    Assinatura / Carimbo
+  </div>
+
+  <div class="footer">
+    Documento interno - Via da escola
+  </div>
+
+</div>
+
+<!-- LINHA DE CORTE -->
+<div class="corte">✂️ Corte aqui</div>
+
+<!-- ===================== VIA ALUNO ===================== -->
+<div class="recibo">
+
+  <div class="header">
+    <div>
+      <div class="titulo">Recibo - Aluno</div>
+      <div>Sistema Escolar</div>
+    </div>
+    <div class="logo">LOGO</div>
+  </div>
+
+  <div class="info">
+    <div>
+      <strong>Aluno:</strong> {{ pagamento.conta_aluno.aluno.nome }}<br>
+      <strong>Processo:</strong> {{ pagamento.conta_aluno.aluno.numero_estudante }}<br>
+      <strong>Ano:</strong> {{ pagamento.conta_aluno.ano_lectivo }}
+    </div>
+
+    <div>
+      <strong>Recibo Nº:</strong> {{ pagamento.numero_recibo }}<br>
+      <strong>Data:</strong> {{ pagamento.data_pagamento|date:"d/m/Y" }}<br>
+      <strong>Método:</strong> {{ pagamento.get_metodo_pagamento_display }}
+    </div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Descrição</th>
+      <th>Valor</th>
+    </tr>
+    <tr>
+      <td>Pagamento de Propina</td>
+      <td>{{ pagamento.valor|floatformat:2 }} Kz</td>
+    </tr>
+  </table>
+
+  <div class="total">
+    <strong>Total: {{ pagamento.valor|floatformat:2 }} Kz</strong>
+  </div>
+
+  <div class="assinatura">
+    ___________________________<br>
+    Assinatura / Carimbo
+  </div>
+
+  <div class="footer">
+    Este documento serve como comprovativo de pagamento.
+  </div>
+
+</div>
+
+</body>
+</html>

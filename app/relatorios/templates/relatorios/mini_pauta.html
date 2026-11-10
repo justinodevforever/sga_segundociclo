@@ -1,0 +1,253 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-pauta · {{ disciplina.nome }} · {{ classe_txt }} {{ turma.designacao }} · {{ turma.ano_lectivo.designacao }}</title>
+<style>
+  :root {
+    --tinta: #1b1f2a;
+    --papel: #ffffff;
+    --fundo: #e9ebf0;
+    --linha: #2b2f3a;
+    --linha-fina: #9aa0ad;
+    --faixa: #f3f5f9;
+    --cab: #e4e8f0;
+    --neg: #b3261e;
+    --acento: #1f3a6e;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--tinta);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 13px;
+  }
+
+  /* ---------- barra de ferramentas (ecrã) ---------- */
+  .barra {
+    position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: var(--acento); color: #fff;
+  }
+  .barra a, .barra button {
+    font: inherit; color: #fff; text-decoration: none; cursor: pointer;
+    background: transparent; border: 1px solid rgba(255,255,255,.45);
+    padding: 6px 12px; border-radius: 4px;
+  }
+  .barra a:hover, .barra button:hover { background: rgba(255,255,255,.14); }
+  .barra a:focus-visible, .barra button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .barra .activo { background: #fff; color: var(--acento); font-weight: 600; }
+  .barra .grupo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .barra .sep { opacity: .7; margin-right: 4px; }
+
+  /* ---------- folha ---------- */
+  .folha {
+    position: relative; width: 297mm; max-width: calc(100% - 24px); margin: 18px auto;
+    background: var(--papel); padding: 12mm 12mm 10mm; box-shadow: 0 2px 14px rgba(0,0,0,.18);
+    overflow-x: auto;
+  }
+  .marca-agua {
+    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    font-size: 110px; font-weight: 800; letter-spacing: .12em; color: rgba(179,38,30,.07);
+    transform: rotate(-22deg); user-select: none;
+  }
+
+  .oficial { text-align: center; line-height: 1.35; }
+  .oficial img { height: 18mm; display: block; margin: 0 auto 2mm; }
+  .oficial .rep { font-weight: 700; font-size: 14px; letter-spacing: .02em; }
+  .oficial .min { font-size: 12px; }
+  .oficial .ciclo { font-weight: 700; font-size: 13px; margin-top: 1mm; }
+  .oficial h1 { font-size: 15px; margin: 3mm 0 0; letter-spacing: .12em; }
+
+  .ident {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px 14px;
+    margin: 4mm 0 3mm; font-size: 12.5px;
+  }
+  .ident div { border-bottom: 1px solid var(--linha-fina); padding: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ident b { font-weight: 600; color: #50566a; margin-right: 4px; }
+  .c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c6 { grid-column: span 6; }
+  .c4 { grid-column: span 4; } .c3 { grid-column: span 3; }
+
+  /* ---------- tabela ---------- */
+  table.pauta { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .pauta th, .pauta td { border: 1px solid var(--linha); padding: 2.2px 4px; text-align: center; }
+  .pauta thead th { background: var(--cab); font-size: 11.5px; font-weight: 700; }
+  .pauta thead th.sub { font-size: 10.5px; font-weight: 600; }
+  .pauta thead .prov { display: block; font-size: 9px; font-weight: 500; color: var(--neg); }
+  .pauta td.nome { text-align: left; white-space: nowrap; padding-left: 6px; min-width: 62mm; }
+  .pauta td.n { width: 8mm; }
+  .pauta tbody tr:nth-child(even) { background: var(--faixa); }
+  .pauta td.mt, .pauta td.cf, .pauta td.mf { font-weight: 700; }
+  .pauta td.neg { color: var(--neg); }
+  .pauta td.vazio { background: repeating-linear-gradient(135deg, #fff 0 3px, #eceef3 3px 4px); }
+  .pauta td.obs { font-size: 11px; white-space: nowrap; min-width: 24mm; }
+  .pauta tr.inactivo td.nome { color: #6a7083; font-style: italic; }
+  .pauta .sep-esq { border-left: 2px solid var(--linha); }
+
+  /* ---------- estatística + legenda ---------- */
+  .rodape-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 8mm; margin-top: 5mm; align-items: start; }
+  table.estat { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+  .estat th, .estat td { border: 1px solid var(--linha-fina); padding: 2px 6px; text-align: center; }
+  .estat th { background: var(--cab); }
+  .estat th:first-child, .estat td:first-child { text-align: left; }
+  .estat caption { text-align: left; font-weight: 700; margin-bottom: 2px; font-size: 12px; }
+  .legenda { font-size: 11px; line-height: 1.55; color: #3c4254; }
+  .legenda strong { color: var(--tinta); }
+  .legenda .neg { color: var(--neg); font-weight: 700; }
+
+  .assinaturas {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14mm; margin-top: 14mm; text-align: center; font-size: 12px;
+  }
+  .assinaturas .traco { border-top: 1px solid var(--linha); padding-top: 3px; }
+  .assinaturas small { display: block; color: #50566a; }
+  .emissao { margin-top: 8mm; font-size: 10.5px; color: #50566a; display: flex; justify-content: space-between; }
+
+  /* ---------- impressão ---------- */
+  @page { size: A4 landscape; margin: 8mm; }
+  @media print {
+    body { background: #fff; font-size: 11px; }
+    .barra { display: none; }
+    .folha { box-shadow: none; margin: 0; padding: 0; width: auto; max-width: none; overflow: visible; }
+    .pauta th, .pauta td { padding: 1.4px 3px; }
+    .pauta thead { display: table-header-group; }
+    .pauta tr, .rodape-grid, .assinaturas { break-inside: avoid; }
+    .pauta thead .prov { display: none; }
+    .oficial img { height: 15mm; }
+  }
+  @media (max-width: 760px) { .folha { padding: 8mm 6mm; } .ident div { grid-column: span 12 !important; } }
+</style>
+</head>
+<body>
+
+<nav class="barra" aria-label="Opções da pauta">
+  <div class="grupo">
+    <a href="{% url 'mini_pauta_selecao' %}?ano={{ turma.ano_lectivo_id }}&amp;turma={{ turma.pk }}">Voltar</a>
+    <span class="sep">Mostrar:</span>
+    <a href="?t=todos" class="{% if sel == 'todos' %}activo{% endif %}">Todos os trimestres</a>
+    <a href="?t=1" class="{% if sel == '1' %}activo{% endif %}">1.º</a>
+    <a href="?t=2" class="{% if sel == '2' %}activo{% endif %}">2.º</a>
+    <a href="?t=3" class="{% if sel == '3' %}activo{% endif %}">3.º</a>
+  </div>
+  <div class="grupo"><button type="button" onclick="window.print()">Imprimir / Guardar PDF</button></div>
+</nav>
+
+<main class="folha">
+  {% if provisoria %}<div class="marca-agua" aria-hidden="true">PROVISÓRIA</div>{% endif %}
+
+  <header class="oficial">
+    <img src="{% static 'img/insignia_angola.png' %}" alt="Insígnia da República de Angola" onerror="this.style.display='none'">
+    <div class="rep">REPÚBLICA DE ANGOLA</div>
+    <div class="min">MINISTÉRIO DA EDUCAÇÃO</div>
+    <div class="ciclo">{{ titulo_ciclo }}</div>
+    <h1>MINI-PAUTA</h1>
+  </header>
+
+  <section class="ident" aria-label="Identificação">
+    <div class="c8"><b>Escola:</b>{{ escola|default:"—" }}</div>
+    <div class="c4"><b>Ano lectivo:</b>{{ turma.ano_lectivo.designacao }}</div>
+    <div class="c8"><b>Curso:</b>{{ turma.curso.nome }}</div>
+    <div class="c4"><b>Turno:</b>{{ turma.get_periodo_display }}</div>
+    <div class="c3"><b>Classe:</b>{{ classe_txt }}</div>
+    <div class="c3"><b>Turma:</b>{{ turma.designacao }}</div>
+    <div class="c6"><b>Sala:</b>{{ turma.sala|default:"—" }}</div>
+    <div class="c6"><b>Disciplina:</b>{{ disciplina.nome }}</div>
+    <div class="c6"><b>Professor:</b>{{ professor|default:"—" }}</div>
+  </section>
+
+  <table class="pauta">
+    <thead>
+      <tr>
+        <th rowspan="2">Nº</th>
+        <th rowspan="2">Nome completo do aluno</th>
+        {% for c in cab_trim %}
+          <th colspan="{{ colspan_tri }}" class="sep-esq">{{ c.rotulo }}{% if c.aberto %}<span class="prov">em lançamento</span>{% endif %}</th>
+        {% endfor %}
+        {% if mostrar_final %}
+          <th rowspan="2" class="sep-esq" title="Classificação Final">CF</th>
+          <th rowspan="2" title="Exame Escrito">EE</th>
+          <th rowspan="2" title="Média Final">MF</th>
+        {% endif %}
+        <th rowspan="2">Resultado</th>
+      </tr>
+      <tr>
+        {% for c in cab_trim %}
+          <th class="sub sep-esq" title="Média de Avaliação Contínua">MAC</th>
+          {% if usa_pp %}<th class="sub" title="Prova do Professor">PP</th>{% endif %}
+          <th class="sub" title="Prova Trimestral">PT</th>
+          <th class="sub" title="Média Trimestral">MT</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in linhas %}
+      <tr class="{% if l.inactivo %}inactivo{% endif %}">
+        <td class="n">{{ l.n }}</td>
+        <td class="nome">{{ l.aluno.nome_completo|upper }}</td>
+        {% for s in l.slots %}
+          <td class="sep-esq {% if s.mac.neg %}neg{% endif %}">{{ s.mac.txt }}</td>
+          {% if usa_pp %}<td class="{% if s.pp.neg %}neg{% endif %}">{{ s.pp.txt }}</td>{% endif %}
+          <td class="{% if s.pt.neg %}neg{% endif %}">{{ s.pt.txt }}</td>
+          <td class="mt {% if s.mt.neg %}neg{% endif %}">{{ s.mt.txt }}</td>
+        {% endfor %}
+        {% if mostrar_final %}
+          <td class="cf sep-esq {% if l.cf.neg %}neg{% endif %}">{{ l.cf.txt }}</td>
+          {% if tem_exame %}
+            <td class="{% if l.ee.neg %}neg{% endif %}">{{ l.ee.txt }}</td>
+          {% else %}
+            <td class="vazio" title="Disciplina sem exame nacional"></td>
+          {% endif %}
+          <td class="mf {% if l.mf.neg %}neg{% endif %}">{{ l.mf.txt }}</td>
+        {% endif %}
+        <td class="obs {% if l.mf.neg %}neg{% endif %}">{{ l.obs }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="30" style="padding:18px">Esta turma ainda não tem alunos matriculados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rodape-grid">
+    <table class="estat">
+      <caption>Aproveitamento · {{ total_alunos }} aluno{{ total_alunos|pluralize }} (F: {{ total_f }})</caption>
+      <thead>
+        <tr><th></th>{% for c in estat_cols %}<th>{{ c.rotulo }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        <tr><td>Avaliados (HM / F)</td>{% for c in estat_cols %}<td>{{ c.s.aval }} / {{ c.s.aval_f }}</td>{% endfor %}</tr>
+        <tr><td>Positivas (HM / F)</td>{% for c in estat_colPositivas %}<td>{{ c.s.pos }} / {{ c.s.pos_f }}</td>{% endfor %}</tr>
+        <tr><td>Negativas (HM / F)</td>{% for c in estat_cols %}<td>{{ c.s.neg }} / {{ c.s.neg_f }}</td>{% endfor %}</tr>
+        <tr><td>Aproveitamento (%)</td>{% for c in estat_cols %}<td>{{ c.s.pct }}</td>{% endfor %}</tr>
+        <tr><td>Média da turma</td>{% for c in estat_cols %}<td>{{ c.s.media }}</td>{% endfor %}</tr>
+      </tbody>
+    </table>
+
+    <div class="legenda">
+      <strong>Legenda</strong><br>
+      <strong>MAC</strong> Média da Avaliação Contínua ·
+      {% if usa_pp %}<strong>PP</strong> Prova do Professor · {% endif %}
+      <strong>PT</strong> Prova Trimestral · <strong>MT</strong> Média Trimestral<br>
+      <strong>CF</strong> Classificação Final · <strong>EE</strong> Exame Escrito · <strong>MF</strong> Média Final<br>
+      Escala {{ regra.nota_minima_positiva|floatformat:"0" }}–{{ regra.nota_maxima|floatformat:"0" }} valores.
+      Nota positiva: ≥ {{ regra.nota_minima_positiva|floatformat:"0" }}. <span class="neg">Vermelho</span> = negativa.<br>
+      {% if tem_exame %}
+        Disciplina com exame nacional: MF = CF × (1 − p) + EE × p, com p = {{ regra.peso_exame_na_nota_final }}.
+      {% else %}
+        Disciplina sem exame nacional: MF = CF.
+      {% endif %}
+      {% if regra.arredondar_unidades %}Médias arredondadas às unidades (0,5 sobe).{% endif %}
+    </div>
+  </div>
+
+  <section class="assinaturas">
+    <div><div class="traco">{{ professor|default:"O Professor" }}<small>O Professor</small></div></div>
+    <div><div class="traco">&nbsp;<small>O Subdirector Pedagógico</small></div></div>
+    <div><div class="traco">{{ director|default:"O Director" }}<small>O Director</small></div></div>
+  </section>
+
+  <footer class="emissao">
+    <span>{{ escola_local }}, {{ emitido_em|date:"d \d\e F \d\e Y" }}</span>
+    <span>Emitido por {{ utilizador }} às {{ emitido_em|time:"H:i" }}</span>
+  </footer>
+</main>
+</body>
+</html>

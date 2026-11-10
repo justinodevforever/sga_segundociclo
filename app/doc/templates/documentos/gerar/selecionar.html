@@ -1,0 +1,236 @@
+{% extends "director/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .gerar-layout { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  .card-gerar {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.09);
+    overflow: hidden;
+  }
+  .card-topo {
+    background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+  }
+  .card-topo h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .card-topo p { margin: 0.3rem 0 0; opacity: 0.85; font-size: 0.9rem; }
+  .card-corpo { padding: 2rem; }
+
+  .passo {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .passo-numero {
+    width: 36px;
+    height: 36px;
+    background: #1a3a5c;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .passo-conteudo { flex: 1; }
+  .passo-conteudo label {
+    display: block;
+    font-weight: 700;
+    color: #1a3a5c;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .passo-conteudo select,
+  .passo-conteudo input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid #c8d0dd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    color: #1a1a1a;
+  }
+  .passo-conteudo select:focus,
+  .passo-conteudo input:focus {
+    outline: none;
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 3px rgba(46,109,164,0.12);
+  }
+
+  .separador { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+
+  .acoes {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+  }
+  .btn-primario {
+    background: #1a3a5c;
+    color: white;
+    border: none;
+    padding: 0.65rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+  .btn-primario:hover { background: #2e6da4; }
+  .btn-secundario {
+    background: white;
+    color: #555;
+    border: 1.5px solid #c8d0dd;
+    padding: 0.65rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn-secundario:hover { background: #f5f5f5; }
+
+  .aluno-pesquisa { position: relative; }
+  .aluno-pesquisa input { padding-left: 2.2rem; }
+  .aluno-pesquisa::before { content: '🔍'; position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.9rem; }
+
+  .info-template {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: #f0f4f8;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    color: #555;
+    display: none;
+  }
+  .info-template.visivel { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gerar-layout">
+  <div class="card-gerar">
+    <div class="card-topo">
+      <h1>📄 {{ titulo }}</h1>
+      <p>Seleccione o aluno, o tipo de documento e o ano lectivo para gerar e emitir.</p>
+    </div>
+    <div class="card-corpo">
+      <form method="get" action="{% url 'documentos:previsualizar_documento' %}" id="form-selecao">
+
+        <!-- Passo 1: Aluno -->
+        <div class="passo">
+          <div class="passo-numero">1</div>
+          <div class="passo-conteudo">
+            <label for="aluno_id">Aluno</label>
+            <div class="aluno-pesquisa">
+              <input type="text" id="pesquisa-aluno" placeholder="Pesquisar por nome, BI ou n.º processo…" autocomplete="off">
+            </div>
+            <select id="aluno_id" name="aluno_id" required style="margin-top:0.5rem;">
+              <option value="">— Seleccione um aluno —</option>
+              {% for aluno in alunos %}
+              <option value="{{ aluno.id }}"
+                      data-nome="{{ aluno.nome_completo|lower }}"
+                      data-bi="{{ aluno.bi|lower }}"
+                      data-processo="{{ aluno.numero_processo|lower }}">
+                {{ aluno.nome_completo }}
+                {% if aluno.numero_processo %}({{ aluno.numero_processo }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <hr class="separador">
+
+        <!-- Passo 2: Ano Lectivo -->
+        <div class="passo">
+          <div class="passo-numero">2</div>
+          <div class="passo-conteudo">
+            <label for="ano_lectivo_id">Ano Lectivo</label>
+            <select id="ano_lectivo_id" name="ano_lectivo_id" required>
+              <option value="">— Seleccione o ano lectivo —</option>
+              {% for ano in anos_lectivos %}
+              <option value="{{ ano.id }}" {% if ano.e_atual %}selected{% endif %}>
+                {{ ano.designacao }}{% if ano.e_atual %} ✓ (Actual){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <hr class="separador">
+
+        <!-- Passo 3: Template -->
+        <div class="passo">
+          <div class="passo-numero">3</div>
+          <div class="passo-conteudo">
+            <label for="template_id">Tipo de Documento</label>
+            <select id="template_id" name="template_id" required onchange="mostrarInfoTemplate(this)">
+              <option value="">— Seleccione o documento —</option>
+              {% regroup templates by get_tipo_display as templates_por_tipo %}
+              {% for grupo in templates_por_tipo %}
+              <optgroup label="{{ grupo.grouper }}">
+                {% for tmpl in grupo.list %}
+                <option value="{{ tmpl.id }}"
+                        data-tipo="{{ tmpl.tipo }}"
+                        data-padrao="{{ tmpl.e_padrao|yesno:'true,false' }}"
+                        data-tabela="{{ tmpl.incluir_tabela_notas|yesno:'Inclui tabela de notas,Sem tabela de notas' }}">
+                  {{ tmpl.nome }}{% if tmpl.e_padrao %} ★{% endif %}
+                </option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+            <div class="info-template" id="info-template"></div>
+          </div>
+        </div>
+
+        <div class="acoes">
+          <a href="{% url 'documentos:lista_templates' %}" class="btn-secundario">⚙️ Gerir Templates</a>
+          <button type="submit" class="btn-primario">🔍 Pré-visualizar Documento</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pesquisa de aluno
+  document.getElementById('pesquisa-aluno').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const sel = document.getElementById('aluno_id');
+    Array.from(sel.options).forEach(opt => {
+      if (!opt.value) return;
+      const match = opt.dataset.nome?.includes(q) || opt.dataset.bi?.includes(q) || opt.dataset.processo?.includes(q);
+      opt.hidden = !!q && !match;
+    });
+    if (q) {
+      const primeiraVisivel = Array.from(sel.options).find(o => o.value && !o.hidden);
+      if (primeiraVisivel) sel.value = primeiraVisivel.value;
+    }
+  });
+
+  // Info do template seleccionado
+  function mostrarInfoTemplate(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const div = document.getElementById('info-template');
+    if (!opt.value) { div.classList.remove('visivel'); return; }
+    div.innerHTML = `<strong>${opt.dataset.tipo || ''}</strong> &bull; ${opt.dataset.tabela || ''} ${opt.dataset.padrao === 'true' ? ' &bull; ⭐ Template padrão' : ''}`;
+    div.classList.add('visivel');
+  }
+</script>
+{% endblock %}

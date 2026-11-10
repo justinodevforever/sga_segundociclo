@@ -1,0 +1,308 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'classe_list' %}">Classes</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <span class="current">Atuaização da Classe</span>
+
+{% endblock breadcrumb %}
+
+{% block title %}
+    <h6 >Atuaização da Classe</h6>
+    
+{% endblock title %}
+
+{% block sub_title %}
+    Preencha todos os campos obrigatórios (*) para salvar informações
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-plus" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+    
+{% endblock topbar_actions %}
+
+{% block content %}
+  
+    {% load static %}
+    
+    <style>
+
+        textarea{
+            height: 40px;
+        }
+
+        /* ── FORM LAYOUT ── */
+        .form-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        align-items: start;
+        }
+        @media (max-width: 1050px) { .form-layout { grid-template-columns: 1fr; } }
+
+        /* ── SECTION CARD ── */
+        .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: box-shadow .2s;
+        }
+        .section-card:focus-within {
+        box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+        border-color: rgba(59,130,246,.3);
+        }
+        .section-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px;
+        }
+        .sch-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
+        }
+        .sch-blue   { background: rgba(59,130,246,.12);  color: var(--accent); }
+        .sch-cyan   { background: rgba(6,182,212,.12);   color: var(--accent-2); }
+        .sch-green  { background: rgba(16,185,129,.12);  color: var(--accent-4); }
+        .sch-purple { background: rgba(139,92,246,.12);  color: var(--accent-3); }
+        .sch-warn   { background: rgba(245,158,11,.12);  color: var(--accent-warn); }
+
+        .section-card-title {
+        font-family: 'Syne', sans-serif;
+        font-size: .9rem; font-weight: 700;
+        }
+        .section-card-body { padding: 20px; }
+
+        /* ── FORM GRID ── */
+        .fg-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .fg-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .fg-2, .fg-3 { grid-template-columns: 1fr; } }
+        .fg-full { grid-column: 1 / -1; }
+
+        /* ── FORM FIELD ── */
+        .form-field { display: flex; flex-direction: column; gap: 6px; }
+
+        .form-label {
+        font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: var(--text-muted);
+        display: flex; align-items: center; gap: 5px;
+        }
+        .form-label .req { color: var(--accent-danger); font-size: .85rem; }
+        .form-label .opt {
+        font-size: .62rem; background: rgba(100,116,139,.15);
+        color: var(--text-muted); padding: 1px 6px; border-radius: 4px;
+        font-weight: 600; letter-spacing: 0; text-transform: none;
+        }
+
+        .form-control-custom {
+        width: 100%;
+        background: var(--bg-base);
+        border: 1.5px solid var(--border);
+        border-radius: 9px;
+        color: var(--text-main);
+        padding: 10px 14px;
+        font-size: .875rem;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s, background .2s;
+        font-family: 'DM Sans', sans-serif;
+        }
+        .form-control-custom::placeholder { color: var(--text-muted); }
+        .form-control-custom:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+        background: var(--bg-card);
+        }
+        .form-control-custom:hover:not(:focus) {
+        border-color: rgba(100,116,139,.5);
+        }
+        .form-control-custom.is-invalid {
+        border-color: var(--accent-danger);
+        box-shadow: 0 0 0 3px rgba(239,68,68,.1);
+        }
+        .form-control-custom.is-valid {
+        border-color: var(--accent-4);
+        box-shadow: 0 0 0 3px rgba(16,185,129,.1);
+        }
+
+        textarea.form-control-custom { resize: vertical; min-height: 88px; }
+
+        select.form-control-custom {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 36px;
+        cursor: pointer;
+        }
+        select.form-control-custom option {
+        background: var(--bg-card); color: var(--text-main);
+        }
+
+        .form-hint {
+        font-size: .72rem; color: var(--text-muted);
+        display: flex; align-items: center; gap: 4px;
+        }
+        .form-hint i { font-size: .75rem; }
+
+        .invalid-feedback {
+        font-size: .72rem; color: var(--accent-danger);
+        display: flex; align-items: center; gap: 4px;
+        }
+
+        /* ── INPUT WITH ICON ── */
+        .input-icon-wrap { position: relative; }
+        .input-icon-wrap i.prefix {
+        position: absolute; left: 12px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted); font-size: .9rem;
+        pointer-events: none;
+        }
+        .input-icon-wrap .form-control-custom { padding-left: 36px; }
+
+        /* ── FORM ACTIONS ── */
+        .form-actions {
+        display: flex; align-items: center; justify-content: flex-end;
+        gap: 12px; padding-top: 4px;
+        flex-wrap: wrap;
+        }
+
+        .btn-submit {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: linear-gradient(135deg, var(--accent), #2563eb);
+        color: #fff; border: none; border-radius: 10px;
+        padding: 12px 28px; font-size: .9rem; font-weight: 700;
+        cursor: pointer; text-decoration: none;
+        transition: opacity .2s, transform .15s, box-shadow .2s;
+        font-family: 'DM Sans', sans-serif;
+        }
+        .btn-submit:hover {
+        opacity: .92; transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(59,130,246,.45);
+        }
+        .btn-submit:active { transform: translateY(0); }
+
+        .btn-cancel {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--bg-hover); color: var(--text-muted);
+        border: 1px solid var(--border); border-radius: 10px;
+        padding: 12px 20px; font-size: .88rem; font-weight: 600;
+        cursor: pointer; text-decoration: none;
+        transition: all .18s; font-family: 'DM Sans', sans-serif;
+        }
+        .btn-cancel:hover { color: var(--text-main); background: var(--border); }
+
+        
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--primary-blue);
+            color: var(--medium-blue);
+        }
+    </style>
+
+    <div style="container-fluid">
+        
+        <form action="" method="post" >
+
+            {% csrf_token %}       
+        
+            {% if sucesso %}
+            
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>{{sucesso}}</strong>
+                    <button type="button" class="btn-close"
+                    data-bs-dismiss="alert" aria-label="close"
+                    ></button>
+                </div>
+            {% elif erro %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>{{erro}}</strong>
+                    <button type="button" class="btn-close"
+                    data-bs-dismiss="alert" aria-label="close"
+                    ></button>
+                </div>
+            {% endif %}
+
+            <div class="form-layout">
+
+                <div>
+
+                    <div class="section-card fade-up d2" id="sec-1">
+
+                        <div class="section-card-header">
+                            <div class="sch-icon sch-blue"><i class="bi bi-buildings-fill"></i></div>
+                            <span class="section-card-title">1. Informações do Períodos</span>
+                        </div>
+
+                        <div class="section-card-body">
+                            <div class="fg-3" style="margin-bottom:16px;">
+
+                                <div class="form-field">
+                                    <label class="form-label" for="designacao">
+                                        Classe <span class="req">*</span>
+                                    </label>
+                                    {{form.designacao}}
+                                    
+                                    {% if form.designacao.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.designacao.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="numero">
+                                        Número <span class="req">*</span>
+                                    </label>
+                                    {{form.numero}}
+                                    
+                                    {% if form.numero.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.numero.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="ordem">
+                                        Ordem <span class="req">*</span>
+                                    </label>
+                                    {{form.ordem}}
+                                    
+                                    {% if form.ordem.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.ordem.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="form-actions fade-up d6">
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fa fa-plus" aria-hidden="true"></i> Cadastrar
+                    </button>
+                    </div>
+
+                </div>
+
+                
+                </div>
+
+        </form>
+    </div>
+            
+{% endblock content %}

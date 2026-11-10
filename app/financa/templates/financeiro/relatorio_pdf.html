@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+
+<style>
+@page {
+  size: A4;
+  margin: 1.5cm;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 10pt;
+  color: #1e293b;
+}
+
+/* HEADER */
+.header {
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 16pt;
+  font-weight: bold;
+}
+
+.subtitle {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+/* GRID TOTALS */
+.totais {
+  margin-bottom: 20px;
+}
+
+.totais table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.totais td {
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  text-align: center;
+}
+
+.titulo-box {
+  font-size: 8pt;
+  color: #64748b;
+}
+
+.valor-box {
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+/* SECTIONS */
+.section {
+  margin-top: 20px;
+}
+
+.section-title {
+  font-size: 11pt;
+  font-weight: bold;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+
+/* TABLE */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: #2563eb;
+  color: white;
+  padding: 6px;
+  font-size: 9pt;
+}
+
+.table td {
+  padding: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 9pt;
+}
+
+/* STATUS COLORS */
+.status-em_dia { color: #16a34a; }
+.status-pendente { color: #d97706; }
+.status-bloqueado { color: #dc2626; }
+
+/* FOOTER */
+.footer {
+  margin-top: 30px;
+  font-size: 8pt;
+  color: #64748b;
+  text-align: center;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="title">Relatório Financeiro</div>
+  <div class="subtitle">
+    {% if escola %}{{ escola.nome }} - {% endif %}
+    Gerado em {{ data|date:"d/m/Y H:i" }}
+  </div>
+</div>
+
+<!-- TOTAIS -->
+<div class="totais">
+  <table>
+    <tr>
+      <td>
+        <div class="titulo-box">Total Devido</div>
+        <div class="valor-box">
+          {{ totais.total_devido|default:0|floatformat:2 }} Kz
+        </div>
+      </td>
+      <td>
+        <div class="titulo-box">Total Pago</div>
+        <div class="valor-box" style="color:#16a34a;">
+          {{ totais.total_pago|default:0|floatformat:2 }} Kz
+        </div>
+      </td>
+      <td>
+        <div class="titulo-box">Saldo Devedor</div>
+        <div class="valor-box" style="color:#dc2626;">
+          {{ totais.total_saldo|default:0|floatformat:2 }} Kz
+        </div>
+      </td>
+      <td>
+        <div class="titulo-box">Total de Contas</div>
+        <div class="valor-box">
+          {{ totais.total_contas|default:0 }}
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- POR STATUS -->
+<div class="section">
+  <div class="section-title">Resumo por Situação</div>
+
+  <table class="table">
+    <tr>
+      <th>Status</th>
+      <th>Quantidade</th>
+      <th>Total em Dívida</th>
+    </tr>
+
+    {% for item in por_status %}
+    <tr>
+      <td class="status-{{ item.status }}">
+        {{ item.status|title }}
+      </td>
+      <td>{{ item.n }}</td>
+      <td>{{ item.total|default:0|floatformat:2 }} Kz</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<!-- CONTAS -->
+<div class="section">
+  <div class="section-title">Top Contas com Maior Dívida</div>
+
+  <table class="table">
+    <tr>
+      <th>Aluno</th>
+      <th>Processo</th>
+      <th>Ano</th>
+      <th>Total Pago</th>
+      <th>Saldo</th>
+    </tr>
+
+    {% for conta in contas|slice:":30" %}
+    <tr>
+      <td>{{ conta.aluno.nome_completo }}</td>
+      <td>{{ conta.aluno.numero_processo|default:"-" }}</td>
+      <td>{{ conta.ano_lectivo }}</td>
+      <td style="color:#16a34a;">
+        {{ conta.total_pago|floatformat:2 }}
+      </td>
+      <td style="color:#dc2626;">
+        {{ conta.saldo_devedor|floatformat:2 }}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Documento gerado automaticamente pelo sistema.<br>
+  Confidencial – Uso interno da instituição.
+</div>
+
+</body>
+</html>

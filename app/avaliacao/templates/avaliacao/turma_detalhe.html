@@ -1,0 +1,42 @@
+{% extends "professor/base.html" %}
+
+{% block title %}
+    {{ turma }}
+{% endblock %}
+
+{% block sub_title %}
+    Lançamento de notas | {{ n_alunos }} alunos activos
+{% endblock %}
+
+{% block content %}
+
+<div class="card-body" style="border-radius: 4px;">
+    
+    <div class="table-responsive">
+        <table class="table table-hover" style="font-size: 10pt;">
+            <tr>
+                <th>Disciplina</th>
+                {% for t in trimestres %}
+                    <th>{{ t.designacao }}.º Trimestre</th>
+                {% endfor %}
+                <th>Exame</th>
+            </tr>
+            {% for d in disciplinas %}
+                <tr>
+                    <td class="nome">{{ d.disciplina.nome }}</td>
+                    {% for t in trimestres %}<td>
+                        <a href="{% url 'avaliacao:lancar_continua' turma.id d.disciplina.id t.id %}">Contínua</a> |
+                        <a href="{% url 'avaliacao:lancar_notas' turma.id d.disciplina.id t.id %}">PP/PT</a></td>
+                    {% endfor %}
+                    <td><a href="{% url 'avaliacao:lancar_exame' turma.id d.disciplina.id %}">Lançar</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+        <h3>Pautas</h3>
+        <p>
+            {% for t in trimestres %}<a class="btn btn-outline-primary" href="{% url 'avaliacao:pauta_trimestral' turma.id t.id %}">Pauta {{ t.designacao }}.º T</a> {% endfor %}
+            <a class="btn btn-primary" href="{% url 'avaliacao:pauta_final' turma.id %}">Pauta final</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

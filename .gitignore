@@ -1,0 +1,124 @@
+
+# ==========================================
+# PYTHON
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.log
+
+# ==========================================
+# DJANGO
+# ==========================================
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static_root/
+
+# ==========================================
+# AMBIENTES VIRTUAIS
+# ==========================================
+venv/
+env/
+ENV/
+.venv/
+.virtualenv/
+venv.bak/
+env.bak/
+
+# ==========================================
+# VARIÁVEIS DE AMBIENTE E SEGREDOS
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# ==========================================
+# TESTES E COBERTURA
+# ==========================================
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+coverage.xml
+nosetests.xml
+test-results/
+
+# ==========================================
+# MIGRAÇÕES (NÃO IGNORAR)
+# ==========================================
+# Não ignorar migrations do Django.
+# Elas devem ser versionadas no Git.
+
+# ==========================================
+# CELERY
+# ==========================================
+celerybeat-schedule
+celerybeat.pid
+
+# ==========================================
+# JUPYTER NOTEBOOK
+# ==========================================
+.ipynb_checkpoints/
+
+# ==========================================
+# IDEs E EDITORES
+# ==========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ==========================================
+# SISTEMA OPERATIVO
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# DOCUMENTAÇÃO E BUILD
+# ==========================================
+docs/_build/
+site/
+
+# ==========================================
+# FICHEIROS TEMPORÁRIOS
+# ==========================================
+*.tmp
+*.bak
+*.orig
+*.old
+*.temp
+
+# ==========================================
+# CACHE
+# ==========================================
+.cache/
+.pyre/
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+
+# ==========================================
+# DISTRIBUIÇÃO PYTHON
+# ==========================================
+MANIFEST

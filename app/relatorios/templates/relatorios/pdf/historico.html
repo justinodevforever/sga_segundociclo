@@ -1,0 +1,22 @@
+{% extends "relatorios/pdf/_base.html" %}
+{% block estilo %}
+td.aula { font-size: 8pt; vertical-align: top; padding: 4px; height: 1.4cm; }
+td.hora { font-weight: bold; text-align: center; background-color: #e2e8f0; width: 9%; }
+.d { font-weight: bold; } .o { font-size: 7pt; color: #475569; }
+{% endblock %}
+{% block cabecalho %}
+<div class="titulo">{{ titulo_doc|upper }}</div><div class="subt">{{ sub }}</div><div class="linha"></div>
+{% endblock %}
+{% block corpo %}
+<table class="tab">
+  <thead><tr><th>Hora</th>{% for d in dias %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for l in linhas %}
+    <tr><td class="hora">{{ l.hora }}</td>
+    {% for cel in l.celulas %}
+      <td class="aula">{% for a in cel %}<div class="d">{{ a.disc }}</div><div class="o">{{ a.outro }}{% if a.sala %} | Sala {{ a.sala }}{% endif %}</div>{% endfor %}</td>
+    {% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

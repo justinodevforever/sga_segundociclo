@@ -1,0 +1,62 @@
+{% extends "relatorios/pdf/_base.html" %}
+{% block estilo %}
+table.cad { width: 100%; margin-bottom: 6px; }
+table.cad td { font-size: 8.5pt; padding: 2px 4px; }
+td.l { text-align: left; }
+{% endblock %}
+{% block cabecalho %}
+<div class="titulo">BOLETIM DE NOTAS - {{ mat.ano_lectivo }}</div>
+<div class="linha"></div>
+<table class="cad"><tr>
+  <td width="50%"><b>Aluno:</b> {{ aluno.nome_completo }}</td>
+  <td width="25%"><b>Nº Processo:</b> {{ aluno.numero_processo|default:"-" }}</td>
+  <td width="25%"><b>Turma:</b> {{ turma.classe.designacao }}.ª {{ turma.designacao }} ({{ turma.get_periodo_display }})</td>
+</tr><tr>
+  <td><b>Curso:</b> {{ turma.curso.nome }}</td>
+  <td><b>B.I.:</b> {{ aluno.bi }}</td>
+  <td><b>Estado:</b> {{ mat.get_status_display }}</td>
+</tr></table>
+{% endblock %}
+
+{% block corpo %}
+<table class="tab" repeat="2">
+  <thead>
+    <tr>
+      <th rowspan="2" width="20%">Disciplina</th>
+      <th colspan="4">1.º Trimestre</th><th colspan="4">2.º Trimestre</th><th colspan="4">3.º Trimestre</th>
+      <th rowspan="2">MFD</th><th rowspan="2">Exame</th><th rowspan="2">Nota Final</th><th rowspan="2" width="8%">Obs.</th>
+    </tr>
+    <tr>
+      {% for i in "123" %}<th>MAC</th><th>PP</th><th>PT</th><th>MT</th>{% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for l in linhas %}
+    <tr>
+      <td>{{ l.disciplina }}</td>
+      {% for tr in l.tri %}{% for c in tr %}<td class="{{ c.1 }}">{{ c.0 }}</td>{% endfor %}{% endfor %}
+      <td class="{{ l.mfd.1 }}">{{ l.mfd.0 }}</td>
+      <td class="{{ l.exame.1 }}">{{ l.exame.0 }}</td>
+      <td class="{{ l.nf.1 }}"><b>{{ l.nf.0 }}</b></td>
+      <td class="c">{{ l.obs }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="17" align="center">Plano curricular sem disciplinas para esta turma.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<br/>
+<table class="resumo">
+  <tr><td class="k">Média final</td><td>{{ media_final|default_if_none:"-" }}</td></tr>
+  <tr><td class="k">Disciplinas negativas</td><td>{{ negativas }}</td></tr>
+  <tr><td class="k">Faltas justificadas / injustificadas</td><td>{{ faltas_j }} / {{ faltas_i }}</td></tr>
+  <tr><td class="k">Resultado final</td><td><b>{{ mat.get_situacao_final_display }}</b></td></tr>
+</table>
+
+<table class="ass" width="100%"><tr>
+  <td width="33%">______________________________<br/>O Director de Turma</td>
+  <td width="33%">______________________________<br/>O Encarregado de Educação</td>
+  <td width="33%">______________________________<br/>O Director{% if diretor %}<br/>{{ diretor.nome_completo }}{% endif %}</td>
+</tr></table>
+{% endblock %}

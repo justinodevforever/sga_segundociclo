@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+</style>
+<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
+     justify-content: center;">
+    <div class="col-md-8" style="width: 100%;">
+        
+        <div class="card" style="width: 97%;">
+            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Informações da matrícula
+                </h5>
+                <a href="/matriculas/" class="btn" 
+                style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Nome do estudante:</strong></div>
+                    <div class="col-sm-9">{{ matricula.aluno.nome_completo }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Data de nascimento:</strong></div>
+                    <div class="col-sm-9">{{ matricula.aluno.data_nascimento }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Idade:</strong></div>
+                    <div class="col-sm-9">{{ matricula.aluno.idade }} Anos</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>B.I:</strong></div>
+                    <div class="col-sm-9">{{ matricula.aluno.bi }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Tipo da matrícula:</strong></div>
+                    <div class="col-sm-9">{{ matricula.get_tipo_matricula_display}}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Número da matrícula:</strong></div>
+                    <div class="col-sm-9">{{ matricula.numero_matricula}}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Status da matrícula:</strong></div>
+                    <div class="col-sm-9">{{ matricula.get_status_display}}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Data da matrícula:</strong></div>
+                    <div class="col-sm-9">{{ matricula.data_matricula }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Turma:</strong></div>
+                    <div class="col-sm-9">{{ matricula.turma }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Classe:</strong></div>
+                    <div class="col-sm-9">{{ matricula.turma.classe }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Ano Letivo:</strong></div>
+                    <div class="col-sm-9">{{ matricula.ano_lectivo }}</div>
+                </div>
+
+                {% if matricula.status_matricula == 'Cancelada' %}
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Data de Cancelamento:</strong></div>
+                    <div class="col-sm-9">{{ matricula.data_cancelamento }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Motivo de  cancelamento:</strong></div>
+                    <div class="col-sm-9">{{ matricula.motivo_cancelamento }}</div>
+                </div>
+                
+                {% endif %}
+
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Matrícula feita Por:</strong></div>
+                    <div class="col-sm-9">{{ matricula.matriculado_por.get_full_name }}</div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+   
+</div>
+{% endblock %}
+

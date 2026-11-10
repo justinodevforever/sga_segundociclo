@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+</head>
+<body>
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" >Lista de Roles</h1>
+
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+                <h1 style="margin-left: 20px;" class="text-warning"></h1>
+                
+                {% if request.user.role.nome == 1  or request.user.role.nome == 3 %}
+                <a href="/criar_role/" class="btn btn-success" style="display:flex; height: 40px; gap: 10px;">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i></i>Novo
+                </a>
+                {%endif%}
+            
+            </div>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome do período
+                                </th>
+                                
+                                <th>Opções</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in roles %}
+                            <tr>
+                                <td>{{ r.get_nome_display }}</td>
+                                
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url "visualizar_role" r.id %}" 
+                                            class="btn btn-outline-primary" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    
+    </div>
+
+    
+</body>
+</html>
+{% endblock  %}

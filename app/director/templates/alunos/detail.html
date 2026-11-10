@@ -1,0 +1,361 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'aluno_list' %}">Alunos</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{aluno.nome_completo}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Aluno
+{% endblock title %}
+
+{% block sub_title %}
+    Informações mais detalhadas do aluno <strong>{{aluno.nome_completo}}</strong>
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+    
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 20px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+    /* ── FORM LAYOUT ── */
+        .form-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            align-items: start;
+            margin-top:20px;
+        }
+        @media (max-width: 1050px) { .form-layout { grid-template-columns: 1fr; } }
+
+        /* ── SECTION CARD ── */
+        .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: box-shadow .2s;
+        }
+        .section-card:focus-within {
+        box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+        border-color: rgba(59,130,246,.3);
+        }
+        .section-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px;
+        }
+        .sch-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
+        }
+        .sch-blue   { background: rgba(59,130,246,.12);  color: var(--accent); }
+        .sch-cyan   { background: rgba(6,182,212,.12);   color: var(--accent-2); }
+        .sch-green  { background: rgba(16,185,129,.12);  color: var(--accent-4); }
+        .sch-purple { background: rgba(139,92,246,.12);  color: var(--accent-3); }
+        .sch-warn   { background: rgba(245,158,11,.12);  color: var(--accent-warn); }
+
+        .section-card-title {
+        font-family: 'Syne', sans-serif;
+        font-size: .9rem; font-weight: 700;
+        }
+        .section-card-body { padding: 20px; }
+
+        /* ── FORM GRID ── */
+        .fg-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .fg-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .fg-2, .fg-3 { grid-template-columns: 1fr; } }
+        .fg-full { grid-column: 1 / -1; }
+</style>
+<div class="container-fluid">
+
+    {% if sucesso %}
+
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>{{sucesso}}</strong>
+            <button type="button" class="btn-close"
+            data-bs-dismiss="alert" aria-label="close"
+            ></button>
+        </div>
+    {% elif erro %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>{{erro}}</strong>
+            <button type="button" class="btn-close"
+            data-bs-dismiss="alert" aria-label="close"
+            ></button>
+        </div>
+    {% endif %}
+
+    <div class="container-grid">
+
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Nome completo:</strong></div>
+                <div class="col-sm-8">{{ aluno.nome_completo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>B.I:</strong></div>
+                <div class="col-sm-8">{{ aluno.bi }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Data da emissão:</strong></div>
+                <div class="col-sm-8">{{ aluno.data_emissao_bi }}</div>
+            </div>
+             <div class="row mb-3">
+                <div class="col-sm-4"><strong>Data de expiração:</strong></div>
+                <div class="col-sm-8">{{ aluno.data_expiracao_bi }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Local da emissão:</strong></div>
+                <div class="col-sm-8">{{ aluno.emitido_em}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Fildo de:</strong></div>
+                <div class="col-sm-8">{{ aluno.nome_pai}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>E de:</strong></div>
+                <div class="col-sm-8">{{ aluno.nome_mae}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4"><strong>Telefone:</strong></div>
+                <div class="col-sm-8">{{ aluno.telefone|default:"Sem Informações" }}</div>
+            </div>
+        </div>
+
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Número de estudante:</strong></div>
+                <div class="col-sm-7">{{ aluno.numero_estudante|default:"Sem Informações" }}</div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Número de processo:</strong></div>
+                <div class="col-sm-7">{{ aluno.numero_processo|default:"Sem Informações" }}</div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Gênero:</strong></div>
+                <div class="col-sm-7">{{ aluno.get_genero_display|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>N. Especiais:</strong></div>
+                {% if aluno.necessidades_especiais %}
+                	<div class="col-sm-7">Sim</div>
+                {% else %}
+                    <div class="col-sm-7">Não</div>
+                {% endif %}
+
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Naturalidade:</strong></div>
+                <div class="col-sm-7">{{ aluno.naturalidade }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Província:</strong></div>
+                <div class="col-sm-7">{{ aluno.provincia }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Município:</strong></div>
+                <div class="col-sm-7">{{ aluno.municipio }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Bairro:</strong></div>
+                <div class="col-sm-7">{{ aluno.bairro|default:"Sem Informações" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-2" style="gap: 10px">
+        <h6>Histórico de matrículas do {{ aluno.nome_completo }}</h6>
+
+        	<div class="fg-2">
+                {% for matricula in matriculas %}
+                    <div class="card card-info">
+                        <h6>{{ matricula.turma.designacao }}</h6>
+                        <small class="text-muted">Curso: {{ matricula.turma.curso.nome }}</small>
+                        <small class="text-muted">Ano lectivo: {{ matricula.ano_lectivo }}</small>
+                        <span> Classe: {{ matricula.turma.classe.designacao }}</span>
+
+                        {% if matricula.status == 'Activa' %}
+                            <span class="badge bg-primary w-25">{{ matricula.status }}</span>
+                        {% elif matricula.status == 'Concluída' %}
+                            <span class="badge bg-success w-25">{{ matricula.status }}</span>
+                        {% elif matricula.status == 'Cancelada' %}
+                            <span class="badge bg-danger w-25">{{ matricula.status }}</span>
+                        {% elif matricula.status == 'Trancamento' %}
+                            <span class="badge bg-warning w-25">{{ matricula.status }}</span>
+                        {% elif matricula.status == 'Transferida' %}
+                            <span class="badge bg-black w-25">{{ matricula.status }}</span>
+                        {% endif %}
+
+                        {% if matricula.status == 'Activa' %}
+                            <div class="btn-group btn-group-sm mt-1">
+                                <a href="{% url 'trancar_matricula' matricula.id %}" class="btn btn-warning">
+                                    <i class="fa fa-lock"></i> Trancar
+                                </a>
+                                <a href="{% url 'cancelar_matricula' matricula.id %}" class="btn btn-danger">
+                                    <i class="fa fa-close"></i> cancelar
+                                </a>
+                            </div>
+
+                        {% elif matricula.status == 'Cancelada' or matricula.status == 'Trancamento' %}
+
+                            <div class="btn-group btn-group-sm mt-1">
+                                <a href="{% url 'reactivar_matricula' matricula.id %}" class="btn btn-success">
+                                    <i class="fa fa-check"></i> Reactivar
+                                </a>
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+                {% endfor %}
+            </div>
+
+    </div>
+
+
+
+
+    <div class="form-layout">
+        <div>
+            <div class="section-card fade-up d2" id="sec-1">
+
+                <div class="section-card-header">
+                    <div class="sch-icon sch-blue"><i class="bi bi-buildings-fill"></i></div>
+                    <span class="section-card-title">Confirmação de matrícula do(a) {{ aluno.nome_completo }}</span>
+                </div>
+
+                <form method="post"  class="section-card-body">
+                    {% csrf_token %}
+                    <div class="fg-2" style="margin-bottom:16px;">
+
+                        <div class="form-field">
+                            <label class="form-label" for="ano_lectivo">
+                                Ano lectivo <span class="req">*</span>
+                            </label>
+
+                            <select name="ano_lectivo" class="form-control-custom" id="ano_lectivo">
+                                {% for ano in ano_lectivos %}
+                                	<option value="{{ ano.id }}">{{ ano.designacao }}</option>
+                                {% endfor %}
+                            </select>
+
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="turma">
+                                Turma <span class="req">*</span>
+                            </label>
+
+                            <select name="turma" id="turma" class="form-control-custom">
+
+                            </select>
+                        </div>
+                    </div>
+                    {% if turmas %}
+                    	<button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fa fa-plus" aria-hidden="true"></i> Confirmar
+                        </button>
+                    {% endif %}
+                </form>
+            </div>
+
+        </div>
+
+
+    </div>
+   
+</div>
+    <script>
+
+        const ano_lectivo = document.getElementById('ano_lectivo')
+        const turma = document.getElementById('turma')
+
+        ano_lectivo.addEventListener('change', async (e)=>{
+            e.preventDefault()
+
+            turma.innerHTML = '<option value="">Carregando...</option>'
+
+            await fetch(`/api/turma-ano-por_curso/?ano_lectivo_id=${ano_lectivo.value}`,{
+                method: 'get',
+                headers: {
+                    'Content-type':'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }).then( response => response.json())
+                .then(data=>{
+                    if (data.length > 0){
+                        turma.innerHTML = '<option value="">Selecione a turma</option>'
+                    }else{
+                        turma.innerHTML = '<option value="">Nenhuma turma encontrada</option>'
+                    }
+                    data.map(v=>{
+                        let option = document.createElement('option')
+                        option.value = v.id
+                        option.textContent = v.designacao
+                        turma.append(option)
+                    })
+                })
+        })
+
+
+
+    </script>
+{% endblock %}
+

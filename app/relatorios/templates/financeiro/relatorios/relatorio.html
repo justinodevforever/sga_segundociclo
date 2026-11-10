@@ -1,0 +1,188 @@
+{% extends 'director/base.html' %}
+{% comment %} Ajusta o nome do template base acima para o teu (o que tem os blocks breadcrumb/icon/title/sub_title/content). {% endcomment %}
+
+{% block breadcrumb %}
+  <a href="{% url 'rel_index_financa' %}">Relatórios Financeiros</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">{{ titulo }}</span>
+{% endblock %}
+
+{% block icon %}<i class="bi {{ icone }}"></i>{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block sub_title %}{{ subtitulo }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'rel_index_financa' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Relatórios</a>
+  {% if linhas %}
+  <a href="?{% if qs %}{{ qs }}&{% endif %}export=csv" class="btn btn-sm btn-success"><i class="bi bi-filetype-csv"></i> Exportar CSV</a>
+  {% endif %}
+  <button onclick="window.print()" class="btn btn-sm btn-primary"><i class="bi bi-printer"></i> Imprimir</button>
+{% endblock %}
+
+{% block content %}
+<style>
+  .filtros { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; margin-bottom:20px; box-shadow:var(--shadow); }
+  .filtros form { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+  .filtros .form-field { min-width:150px; }
+  .rel-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px; margin-bottom:22px; }
+  .rel-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-bottom:22px; }
+  .tfoot-total td { font-weight:700; background:#f8fafc; border-top:2px solid var(--border); }
+  .num-col { text-align:start; white-space:nowrap; }
+  @media print {
+    .sidebar,.topbar,.breadcrumb-bar,.filtros,.topbar-actions,.btn,.sidebar-overlay { display:none !important; }
+    .main-content { margin:0 !important; padding:0 !important; }
+    body { background:#fff; }
+  }
+</style>
+
+{% if filtros %}
+<div class="filtros">
+  <form method="get">
+    {% if 'ano' in filtros %}
+    <div class="form-field">
+      <label class="form-label">Ano Lectivo</label>
+      <select name="ano" class="form-control-custom">
+        <option value="todos" {% if not ano %}selected{% endif %}>Todos</option>
+        {% for a in anos %}<option value="{{ a.pk }}" {% if ano and ano.pk == a.pk %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% if 'periodo' in filtros %}
+    <div class="form-field"><label class="form-label">De</label>
+      <input type="date" name="inicio" value="{{ request.GET.inicio }}" class="form-control-custom"></div>
+    <div class="form-field"><label class="form-label">Até</label>
+      <input type="date" name="fim" value="{{ request.GET.fim }}" class="form-control-custom"></div>
+    {% endif %}
+    {% if 'dia' in filtros %}
+    <div class="form-field"><label class="form-label">Dia</label>
+      <input type="date" name="dia" value="{{ dia|date:'Y-m-d' }}" class="form-control-custom"></div>
+    {% endif %}
+    {% if 'metodo' in filtros %}
+    <div class="form-field"><label class="form-label">Método</label>
+      <select name="metodo" class="form-control-custom">
+        <option value="">Todos</option>
+        {% for k,n in METODOS %}<option value="{{ k }}" {% if request.GET.metodo == k %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    {% if 'status' in filtros %}
+    <div class="form-field"><label class="form-label">Estado</label>
+      <select name="status" class="form-control-custom">
+        <option value="">Todos</option>
+        {% for k,n in STATUS_CONTA %}<option value="{{ k }}" {% if request.GET.status == k %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    {% if 'mes' in filtros %}
+    <div class="form-field"><label class="form-label">Mês</label>
+      <select name="mes" class="form-control-custom">
+        <option value="">Todos</option>
+        {% for k,n in MESES %}<option value="{{ k }}" {% if request.GET.mes == k|stringformat:"s" %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    {% if 'acao' in filtros %}
+    <div class="form-field"><label class="form-label">Acção</label>
+      <select name="acao" class="form-control-custom">
+        <option value="">Todas</option>
+        {% for k,n in ACOES %}<option value="{{ k }}" {% if request.GET.acao == k %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    {% if 'q' in filtros %}
+    <div class="form-field" style="flex:1;min-width:200px">
+      <label class="form-label">Pesquisar</label>
+      <div class="input-icon-wrap"><i class="bi bi-search prefix"></i>
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Nome do aluno, recibo…" class="form-control-custom"></div>
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
+      <a href="?" class="btn btn-outline-secondary btn-sm">Limpar</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if cards %}
+<div class="rel-cards">
+  {% for c in cards %}
+  <div class="stat-card sc-{{ c.3 }}">
+    <div class="stat-icon"><i class="bi {{ c.4 }}"></i></div>
+    <div class="stat-value" style="font-size:1.45rem">{% include 'financeiro/relatorios/_celula.html' with v=c.1 t=c.2 %}</div>
+    <div class="stat-label">{{ c.0 }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if graficos %}
+<div class="rel-charts">
+  {% for g in graficos %}
+  <div class="chart-card">
+    <div class="section-title" style="margin-bottom:12px">{{ g.titulo }}</div>
+    <canvas id="{{ g.id }}"></canvas>
+  </div>
+  {% endfor %}
+</div>
+{{ graficos|json_script:"graficos-data" }}
+{% endif %}
+
+{% if colunas and linhas is not None %}
+<div class="table-card">
+  <div class="card-hdr">
+    <div class="section-title">{{ tabela_titulo|default:titulo }}</div>
+    <span class="tag tag-blue">{{ total_linhas }} registo{{ total_linhas|pluralize }}</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="dt">
+      <thead><tr>{% for c in colunas %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for l in linhas %}
+        <tr>
+          {% for cel in l %}
+          <td {% if cel.1 == 'kz' or cel.1 == 'num' or cel.1 == 'pct' %}class="num-col"{% endif %}>{% include 'financeiro/relatorios/_celula.html' with v=cel.0 t=cel.1 %}</td>
+          {% endfor %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ colunas|length }}" style="text-align:center;padding:36px;color:var(--text-muted)">
+          <i class="bi bi-inbox" style="font-size:1.8rem;display:block;margin-bottom:6px"></i>Sem dados para os filtros seleccionados.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if rodape and linhas %}
+      <tfoot><tr class="tfoot-total">
+        {% for cel in rodape %}<td {% if cel.1 == 'kz' or cel.1 == 'num' %}class="num-col"{% endif %}>{% if cel.0 != '' %}{% include 'financeiro/relatorios/_celula.html' with v=cel.0 t=cel.1 %}{% endif %}</td>{% endfor %}
+      </tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if graficos %}
+<script>
+(function () {
+  const dados = JSON.parse(document.getElementById('graficos-data').textContent);
+  console.log(dados)
+  const cores = ['#1d4ed8','#059669','#d97706','#7c3aed','#0891b2','#dc2626','#64748b'];
+  dados.forEach(g => {
+    const circular = g.tipo === 'pie' || g.tipo === 'doughnut';
+    new Chart(document.getElementById(g.id), {
+      type: g.tipo,
+      data: {
+        labels: g.labels,
+        datasets: g.datasets.map((d, i) => ({
+          label: d.label, data: d.data,
+          backgroundColor: circular ? cores : cores[i % cores.length],
+          borderColor: circular ? '#fff' : cores[i % cores.length],
+          borderWidth: circular ? 2 : 2, tension: .3, borderRadius: g.tipo === 'bar' ? 6 : 0,
+        })),
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: circular || g.datasets.length > 1, position: 'bottom' } },
+        scales: circular ? {} : { y: { beginAtZero: true,},
+                                   x: { grid: { display: false } } },
+      },
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

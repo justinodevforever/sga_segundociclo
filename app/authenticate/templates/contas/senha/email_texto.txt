@@ -1,0 +1,14 @@
+{% autoescape off %}Olá, {{ user.nome_completo|default:user.get_username }}!
+
+Recebemos um pedido para redefinir a senha da sua conta.
+
+Clique no link abaixo para criar uma nova senha (válido por 1 hora):
+
+{{ protocol }}://{{ domain }}{% url 'senha_redefinir' uidb64=uid token=token %}
+
+O seu nome de utilizador é: {{ user.get_username }}
+
+Se não fez este pedido, ignore este e-mail. A sua senha permanece inalterada.
+
+Equipa O Meu Sistema
+{% endautoescape %}

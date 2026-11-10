@@ -1,0 +1,67 @@
+{% extends "director/base.html" %}
+{% block breadcrumb %}<span class="current">Relatórios</span>{% endblock %}
+{% block icon %}<i class="bi bi-bar-chart-line"></i>{% endblock %}
+{% block title %}Relatórios{% endblock %}
+{% block sub_title %}{{ total }} relatórios e documentos disponíveis. Todos exportam para PDF; os tabulares também para Excel.{% endblock %}
+
+{% block content %}
+<style>
+  .rep-search{max-width:420px;margin-bottom:22px}
+  .rep-group{margin-bottom:30px}
+  .rep-group h2{font-size:1rem;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .rep-card{display:flex;gap:14px;height:100%;padding:16px 18px;background:var(--bg-card);border:1px solid var(--border);
+            border-radius:var(--radius);color:var(--text-main);transition:border-color .15s,box-shadow .15s}
+  .rep-card:hover{border-color:var(--accent);box-shadow:var(--shadow);color:var(--text-main)}
+  .rep-ico{flex:0 0 40px;height:40px;border-radius:10px;background:#dbeafe;color:#1d4ed8;display:flex;
+           align-items:center;justify-content:center;font-size:1.1rem}
+  .rep-t{font-size:.88rem;font-weight:700;line-height:1.3}
+  .rep-d{font-size:.76rem;color:var(--text-sub);margin-top:4px}
+  .rep-f{margin-top:8px;display:flex;gap:6px}
+</style>
+
+<input type="search" id="repBusca" class="form-control-custom rep-search" placeholder="Pesquisar relatório…" autocomplete="off">
+
+<section class="rep-group">
+  <h2>Documentos individuais (PDF)</h2>
+  <div class="row g-3">
+    {% for d in documentos %}
+    <div class="col-md-6 col-xl-4 rep-item" data-busca="{{ d.titulo|lower }} {{ d.desc|lower }}">
+      <a class="rep-card" href="{% url 'documento' d.slug %}">
+        <div class="rep-ico"><i class="bi {{ d.icone }}"></i></div>
+        <div><div class="rep-t">{{ d.titulo }}</div><div class="rep-d">{{ d.desc }}</div>
+          <div class="rep-f"><span class="tag tag-red">PDF</span></div></div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% for grupo, itens in grupos.items %}
+<section class="rep-group">
+  <h2>{{ grupo }}</h2>
+  <div class="row g-3">
+    {% for m in itens %}
+    <div class="col-md-6 col-xl-4 rep-item" data-busca="{{ m.titulo|lower }} {{ m.descricao|lower }}">
+      <a class="rep-card" href="{% url 'relatorio' m.slug %}">
+        <div class="rep-ico"><i class="bi {{ m.icone }}"></i></div>
+        <div><div class="rep-t">{{ m.titulo }}</div><div class="rep-d">{{ m.descricao }}</div>
+          <div class="rep-f"><span class="tag tag-red">PDF</span>{% if m.excel %}<span class="tag tag-green">Excel</span>{% endif %}</div></div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<script>
+  document.getElementById('repBusca').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.rep-item').forEach(el => {
+      el.style.display = !q || el.dataset.busca.includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('.rep-group').forEach(g => {
+      g.style.display = [...g.querySelectorAll('.rep-item')].some(i => i.style.display !== 'none') ? '' : 'none';
+    });
+  });
+</script>
+{% endblock %}

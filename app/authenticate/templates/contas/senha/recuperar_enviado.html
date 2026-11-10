@@ -1,0 +1,15 @@
+{% extends "contas/senha/base_auth.html" %}
+{% block titulo %}Verifique o seu e-mail{% endblock %}
+
+{% block conteudo %}
+  <div class="icone">📧</div>
+  <h1>Verifique o seu e-mail</h1>
+  <p>
+    Se existir uma conta associada ao e-mail informado, enviámos as instruções
+    para redefinir a senha. O link expira em 1 hora.
+  </p>
+  <p>Não recebeu? Verifique a pasta de spam ou tente novamente dentro de alguns minutos.</p>
+
+  <a href="{% url 'login' %}" class="btn">Voltar ao login</a>
+  <div class="links"><a href="{% url 'senha_recuperar' %}">Tentar com outro e-mail</a></div>
+{% endblock %}

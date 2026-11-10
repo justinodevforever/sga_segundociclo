@@ -1,0 +1,215 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="{% url 'avaliacao_list' %}">Avaliações</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">{% if modo == 'criar' %}Nova Avaliação{% else %}Editar Avaliação{% endif %}</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-pencil-square"></i>{% endblock %}
+{% block title %}{% if modo == 'criar' %}Nova Avaliação{% else %}Editar: {{ avaliacao.get_designacao_display }}{% endif %}{% endblock %}
+{% block sub_title %}Crie uma avaliação e lance as notas dos alunos da turma{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-lg-8">
+    <div class="table-card" style="padding:28px;">
+      <form method="post" id="avaliacaoForm">
+        {% csrf_token %}
+        <div class="row g-3">
+
+          <!-- Trimestre -->
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Trimestre <span class="req">*</span></label>
+              <select name="trimestre" class="form-control-custom" required>
+                <option value="">-- Seleccione --</option>
+                {% for t in trimestres %}
+                <option value="{{ t.pk }}" {% if avaliacao.trimestre_id == t.pk %}selected{% endif %}>{{ t.designacao }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Tipo de Avaliação -->
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Tipo de Avaliação <span class="req">*</span></label>
+              <select name="tipo_avaliacao" class="form-control-custom" required>
+                <option value="">-- Seleccione --</option>
+                {% regroup tipos by get_categoria_display as tipos_agrupados %}
+                {% for grupo in tipos_agrupados %}
+                <optgroup label="{{ grupo.grouper }}">
+                  {% for tp in grupo.list %}
+                  <option value="{{ tp.pk }}" {% if avaliacao.tipo_avaliacao_id == tp.pk %}selected{% endif %}>
+                    {{ tp.designacao }} ({{ tp.peso }}%)
+                  </option>
+                  {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Designação -->
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Designação <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="prefix bi bi-pencil-fill"></i>
+
+                  <select name="designacao" class="form-control-custom" required>
+                    <option value="">--Selecione--</option>
+                      {% for value, label in categorias %}
+                          <option value="{{ value }}" {% if avaliacao.designacao == value %}selected{% endif %} >
+                            {{ label }}
+                          </option>
+                      {% endfor %}
+
+                  </select>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Data e Nota Máxima -->
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Data de Realização <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="prefix bi bi-calendar3"></i>
+                <input type="date" name="data_realizacao" class="form-control-custom"
+                  value="{{ avaliacao.data_realizacao|date:'Y-m-d'|default:'' }}" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="form-field">
+              <label class="form-label">Nota Máxima <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="prefix bi bi-trophy-fill"></i>
+                <input type="number" name="nota_maxima" class="form-control-custom"
+                  placeholder="20" min="1" max="100" step="0.5"
+                  value="{{ avaliacao.nota_maxima|default:'20' }}" required>
+              </div>
+              <div class="form-hint"><i class="bi bi-info-circle"></i> Escala padrão do IIº Ciclo é 0–20</div>
+            </div>
+          </div>
+
+          <!-- Observações -->
+          <div class="col-12">
+            <div class="form-field">
+              <label class="form-label">Observações <span class="opt">Opcional</span></label>
+              <textarea name="observacoes" class="form-control-custom" rows="2"
+                placeholder="Notas adicionais sobre esta avaliação...">{{ avaliacao.observacoes|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <div class="col-12" style="margin-top:8px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:18px;">
+            <a href="{% url 'avaliacao_list' %}" style="padding:9px 20px;border-radius:9px;border:1px solid var(--border);background:transparent;font-size:.84rem;color:var(--text-sub);text-decoration:none;display:flex;align-items:center;gap:6px;">
+              <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+            <button type="submit" style="padding:9px 22px;border-radius:9px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:.84rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+              <i class="bi bi-check-lg"></i>
+              {% if modo == 'criar' %}Criar e Lançar Notas{% else %}Actualizar{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lateral -->
+  <div class="col-12 col-lg-4">
+    <div class="table-card" style="padding:20px;margin-bottom:14px;">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;">
+        <i class="bi bi-diagram-3" style="color:var(--accent);"></i> Fluxo de Avaliação — IIº Ciclo
+      </div>
+      <div style="position:relative;padding-left:20px;">
+        {% for step in steps %}
+        <div style="border-left:2px solid {% if forloop.counter == 1 %}var(--accent){% elif forloop.counter == 2 %}#059669{% elif forloop.counter == 3 %}#d97706{% else %}#7c3aed{% endif %};padding:0 0 18px 16px;position:relative;">
+          <div style="position:absolute;left:-7px;top:0;width:12px;height:12px;border-radius:50%;background:{% if forloop.counter == 1 %}var(--accent){% elif forloop.counter == 2 %}#059669{% elif forloop.counter == 3 %}#d97706{% else %}#7c3aed{% endif %};"></div>
+          <div style="font-size:.79rem;font-weight:700;">{{ step.titulo }}</div>
+          <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px;">{{ step.desc }}</div>
+        </div>
+        {% empty %}
+        <!-- Passos do fluxo -->
+        {% for n in "1234"|make_list %}
+        <div style="border-left:2px solid {% cycle 'var(--accent)' '#059669' '#d97706' '#7c3aed' %};padding:0 0 16px 16px;position:relative;">
+          <div style="position:absolute;left:-7px;top:0;width:12px;height:12px;border-radius:50%;background:{% cycle 'var(--accent)' '#059669' '#d97706' '#7c3aed' %};"></div>
+          {% if n == '1' %}
+          <div style="font-size:.79rem;font-weight:700;">Criar Avaliação</div>
+          <div style="font-size:.73rem;color:var(--text-muted);">Definir tipo, data e nota máxima</div>
+          {% elif n == '2' %}
+          <div style="font-size:.79rem;font-weight:700;">Lançar Notas</div>
+          <div style="font-size:.73rem;color:var(--text-muted);">Inserir notas de todos os alunos da turma</div>
+          {% elif n == '3' %}
+          <div style="font-size:.79rem;font-weight:700;">Calcular MAC</div>
+          <div style="font-size:.73rem;color:var(--text-muted);">O sistema calcula o MAC ponderado por trimestre</div>
+          {% else %}
+          <div style="font-size:.79rem;font-weight:700;">Resultado Final</div>
+          <div style="font-size:.73rem;color:var(--text-muted);">Aprovado / Admitido a Exame / Reprovado</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Regras rápidas -->
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div style="font-size:.79rem;font-weight:700;margin-bottom:10px;">Regras do IIº Ciclo</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.75rem;">
+          <span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700;white-space:nowrap;">≥ 10</span>
+          <span>MAC Anual → Aprovado</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:10pt;">
+          <span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:700;white-space:nowrap;">< 10</span>
+          <span>MAC Anual → Reprovado s/ exame</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px;padding-top:8px;border-top:1px solid var(--border);">
+          Com exame: <strong>Nota Final = (MAC + Exame) ÷ 3</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function carregarDisciplinas() {
+  const turmaId = document.getElementById('turmaSelect').value;
+  const select = document.getElementById('disciplinaSelect');
+  select.innerHTML = '<option value="">A carregar...</option>';
+
+  if (!turmaId) {
+    select.innerHTML = '<option value="">-- Seleccione a turma primeiro --</option>';
+    return;
+  }
+
+  fetch(`/api/disciplinas-turma/?turma_id=${turmaId}`)
+    .then(r => r.json())
+    .then(data => {
+      select.innerHTML = '<option value="">-- Seleccione a disciplina --</option>';
+      data.disciplinas.forEach(d => {
+        select.innerHTML += `<option value="${d.id}">${d.nome}</option>`;
+      });
+    })
+    .catch(() => {
+      // Fallback: mostrar todas as disciplinas
+      select.innerHTML = '<option value="">Erro ao carregar. Seleccione manualmente.</option>';
+      {% for d in disciplinas %}
+      select.innerHTML += '<option value="{{ d.pk }}">{{ d.nome }}</option>';
+      {% endfor %}
+    });
+}
+
+// Se estamos a editar, a disciplina já está seleccionada
+{% if modo == 'editar' %}
+// Não recarregar
+{% else %}
+document.getElementById('turmaSelect').addEventListener('change', carregarDisciplinas);
+{% endif %}
+</script>
+{% endblock %}

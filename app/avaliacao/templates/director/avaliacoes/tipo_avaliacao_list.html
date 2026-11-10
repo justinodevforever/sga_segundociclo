@@ -1,0 +1,125 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+  <a href="/avaliacoes/">Avaliações</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="current">Tipos de Avaliação</span>
+{% endblock %}
+
+{% block icon %}<i class="bi bi-tags-fill"></i>{% endblock %}
+{% block title %}Tipos de Avaliação{% endblock %}
+{% block sub_title %}Configure os instrumentos de avaliação do IIº Ciclo{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'tipo_avaliacao_create' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-2" style="border-radius:9px;font-size:.82rem;padding:8px 16px;background:var(--accent);border:none;">
+    <i class="bi bi-plus-lg"></i> Novo Tipo
+  </a>
+{% endblock %}
+
+
+
+    <!-- Info Banner IIº Ciclo -->
+{% block content %}
+    <div style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:14px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:22px;">
+          <i class="bi bi-info-circle-fill" style="color:#1d4ed8;font-size:1.1rem;margin-top:2px;flex-shrink:0;"></i>
+          <div>
+                <div style="font-size:.82rem;font-weight:700;color:#1e3a8a;margin-bottom:4px;">Regras do IIº Ciclo — Avaliação Contínua</div>
+                <div style="font-size:.77rem;color:#475569;line-height:1.6;">
+                      O MAC (Média de Aptidão e Conhecimento) é calculado com base nas avaliações contínuas ponderadas pelo seu peso.
+                      <strong>A soma dos pesos das avaliações contínuas por trimestre deve ser 100%.</strong>
+                      Alunos com MAC ≥ 10 são aprovados; entre 7–9 são admitidos a exame; abaixo de 7 reprovam sem direito a exame.
+                </div>
+          </div>
+    </div>
+
+
+    <!-- Categorias Cards -->
+    <div class="row g-3 mb-4">
+          {% regroup tipos by get_categoria_display as tipos_by_cat %}
+              {% for cat in tipos_by_cat %}
+                  <div class="col-12 col-md-4">
+                        <div class="table-card">
+                              <div class="card-hdr">
+                                    <div>
+                                      <div style="font-size:.82rem;font-weight:700;">{{ cat.grouper }}</div>
+                                      <div style="font-size:.72rem;color:var(--text-muted);">{{ cat.list|length }} tipo(s)</div>
+                                    </div>
+                                    {% if cat.grouper == "Avaliação Contínua" %}
+                                      <span class="tag tag-blue">Conta para MAC</span>
+                                    {% elif cat.grouper == "Avaliação Trimestral (MAC)" %}
+                                      <span class="tag tag-green">Resultado</span>
+                                    {% else %}
+                                      <span class="tag tag-purple">Exame</span>
+                                    {% endif %}
+                              </div>
+                              {% for tipo in cat.list %}
+                                  <div class="mli">
+                                        <div class="mli-av" style="background:{% if cat.grouper == 'Avaliação Contínua' %}#dbeafe;color:#1d4ed8{% elif cat.grouper == 'Avaliação Trimestral (MAC)' %}#d1fae5;color:#059669{% else %}#ede9fe;color:#7c3aed{% endif %};">
+                                          <i class="bi bi-pencil-square" style="font-size:.8rem;"></i>
+                                        </div>
+                                        <div>
+                                              <div class="mli-name">{{ tipo.designacao }}</div>
+                                              <div class="mli-sub">
+                                                Peso: <strong>{{ tipo.peso }}%</strong> &nbsp;•&nbsp;
+                                                {% if tipo.conta_para_mac %}<span style="color:#059669;">Conta MAC</span>{% else %}<span style="color:#94a3b8;">Não conta MAC</span>{% endif %}
+                                              </div>
+                                        </div>
+                                        <div class="mli-meta" style="display:flex;gap:6px;">
+                                              <a href="{% url 'tipo_avaliacao_edit' tipo.pk %}" class="icon-btn" title="Editar" style="width:30px;height:30px;border-radius:7px;">
+                                                  <i class="bi bi-pencil" style="font-size:.75rem;"></i>
+                                              </a>
+                                              <button type="button" class="icon-btn" title="Eliminar"
+                                                    style="width:30px;height:30px;border-radius:7px;border:1px solid #fee2e2;color:#dc2626;"
+                                                    onclick="confirmarEliminar('{% url 'tipo_avaliacao_delete' tipo.pk %}','{{ tipo.designacao }}')">
+                                                    <i class="bi bi-trash3" style="font-size:.75rem;"></i>
+                                              </button>
+                                        </div>
+                                  </div>
+                              {% empty %}
+                                <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.8rem;">Nenhum tipo nesta categoria</div>
+                              {% endfor %}
+                        </div>
+                  </div>
+              {% empty %}
+                  <div class="col-12">
+                        <div class="table-card" style="padding:48px;text-align:center;">
+                              <i class="bi bi-tags" style="font-size:2.5rem;color:var(--text-muted);display:block;margin-bottom:12px;"></i>
+                              <div style="font-weight:600;margin-bottom:6px;">Nenhum tipo de avaliação configurado</div>
+                              <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:18px;">Crie os tipos de avaliação para começar (Teste 1, Teste 2, etc.)</div>
+                              <a href="{% url 'tipo_avaliacao_create' %}" class="btn btn-primary btn-sm" style="border-radius:8px;background:var(--accent);border:none;">
+                                <i class="bi bi-plus-lg"></i> Criar primeiro tipo
+                              </a>
+                        </div>
+                  </div>
+              {% endfor %}
+
+    </div>
+
+<!-- Modal Confirmação Eliminar -->
+    <div class="modal-backdrop" id="deleteModal">
+          <div class="modal-box">
+                <div class="modal-icon danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="modal-title">Eliminar Tipo de Avaliação</div>
+                <div class="modal-body-text">Tem a certeza que deseja eliminar <strong id="deleteNome"></strong>?<br>Esta acção não pode ser revertida.</div>
+                <div class="modal-actions">
+                      <button onclick="fecharModal()" style="padding:9px 20px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:.84rem;">Cancelar</button>
+                      <form id="deleteForm" method="post">
+                            {% csrf_token %}
+                            <button type="submit" style="padding:9px 20px;border-radius:8px;background:#dc2626;color:#fff;border:none;cursor:pointer;font-size:.84rem;">Eliminar</button>
+                      </form>
+                </div>
+          </div>
+    </div>
+
+    <script>
+        function confirmarEliminar(url, nome) {
+          document.getElementById('deleteNome').textContent = nome;
+          document.getElementById('deleteForm').action = url;
+          document.getElementById('deleteModal').classList.add('open');
+        }
+        function fecharModal() {
+          document.getElementById('deleteModal').classList.remove('open');
+        }
+    </script>
+
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "professor/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+	<span class="current">Comunicados</span>
+{% endblock %}
+
+{% block icon %}
+	<i class="bi bi-megaphone-fill"></i>
+{% endblock %}
+
+{% block title %}Comunicados — Portal do Professor{% endblock %}
+{% block sub_title %}
+	Avisos e comunicados da escola
+{% endblock %}
+
+{% block content %}
+
+<!-- Comunicados urgentes -->
+{% if urgentes %}
+  <div style="margin-bottom:20px;" class="fade-up d2">
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-danger);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      <i class="bi bi-exclamation-triangle-fill"></i> Comunicados Urgentes
+    </div>
+    {% for c in urgentes %}
+      <div class="comunicado-card urgente">
+        <div class="com-icon"><i class="bi bi-megaphone-fill"></i></div>
+        <div class="com-body">
+          <div class="com-titulo">{{ c.titulo }}</div>
+          <div class="com-texto">{{ c.corpo|truncatewords:30 }}</div>
+          <div class="com-meta">
+            <span><i class="bi bi-calendar3"></i> {{ c.data_publicacao|date:"d M Y" }}</span>
+            <span><i class="bi bi-person"></i> {{ c.criado_por.get_full_name|default:"Direcção" }}</span>
+            {% if c.data_expiracao %}
+              <span><i class="bi bi-clock"></i> Válido até {{ c.data_expiracao|date:"d/m/Y" }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <span class="tag tag-red">Urgente</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Todos os comunicados -->
+<div class="fade-up d3">
+  {% if comunicados %}
+    {% for c in comunicados %}
+      <div class="comunicado-card {% if c.tipo == 'Urgente' %}urgente{% elif c.tipo == 'Info' %}info{% endif %}">
+        <div class="com-icon {% if c.tipo == 'Urgente' %}danger{% elif c.tipo == 'Info' %}info{% else %}default{% endif %}">
+          <i class="bi {% if c.tipo == 'Urgente' %}bi-megaphone-fill{% elif c.tipo == 'Info' %}bi-info-circle-fill{% else %}bi-bell-fill{% endif %}"></i>
+        </div>
+        <div class="com-body">
+          <div class="com-titulo">{{ c.titulo }}</div>
+          <div class="com-texto">{{ c.conteudo|truncatewords:40 }}</div>
+          <div class="com-meta">
+            <span><i class="bi bi-calendar3"></i> {{ c.data_publicacao|date:"d M Y" }}</span>
+            <span><i class="bi bi-people"></i> {{ c.destinatario_tipo }}</span>
+            {% if c.data_expiracao %}
+              <span><i class="bi bi-clock"></i> Expira {{ c.data_expiracao|date:"d/m/Y" }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          {% if c.tipo == 'Urgente' %}
+            <span class="tag tag-red">Urgente</span>
+          {% elif c.tipo == 'Info' %}
+            <span class="tag tag-blue">Info</span>
+          {% else %}
+            <span class="tag tag-gray">{{ c.tipo }}</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <!-- Paginação -->
+    {% if is_paginated %}
+      <div style="display:flex;justify-content:center;gap:6px;margin-top:20px;">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-sm">
+            <i class="bi bi-chevron-left"></i> Anterior
+          </a>
+        {% endif %}
+        <span style="padding:6px 16px;font-size:.82rem;color:var(--text-muted);">
+          Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost btn-sm">
+            Seguinte <i class="bi bi-chevron-right"></i>
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:64px;color:var(--text-muted);">
+        <i class="bi bi-megaphone" style="font-size:3.5rem;display:block;margin-bottom:16px;opacity:.3;"></i>
+        <div style="font-size:.95rem;font-weight:700;">Sem comunicados</div>
+        <div style="font-size:.8rem;margin-top:6px;">Não há comunicados activos no momento.</div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+.comunicado-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: flex; align-items: flex-start; gap: 16px;
+  box-shadow: var(--shadow); margin-bottom: 12px;
+  transition: transform .15s, box-shadow .15s;
+}
+.comunicado-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.comunicado-card.urgente {
+  border-color: #fca5a5; background: #fff5f5;
+}
+.comunicado-card.info {
+  border-color: #bfdbfe; background: #eff6ff;
+}
+.com-icon {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: var(--text-muted);
+}
+.com-icon.danger { background: #fee2e2; color: #dc2626; }
+.com-icon.info   { background: #dbeafe; color: #1d5fa6; }
+.com-icon.default{ background: #ede9fe; color: #7c3aed; }
+.com-body { flex: 1; min-width: 0; }
+.com-titulo { font-weight: 700; font-size: .9rem; margin-bottom: 5px; }
+.com-texto  { font-size: .8rem; color: var(--text-sub); line-height: 1.5; }
+.com-meta   {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: .72rem; color: var(--text-muted);
+  margin-top: 10px;
+}
+.com-meta span { display: flex; align-items: center; gap: 4px; }
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "professor/base.html" %}
+{% load static %}
+
+{% block breadcrumb %}
+	<a href="{% url 'professor:meus_alunos' %}">Meus Alunos</a>
+    <span><i class="bi bi-chevron-right"></i> </span>
+    <span class="current">{{ aluno.nome_completo }}</span>
+{% endblock %}
+
+{% block icon %}
+    <i class="fa fa-user"></i>
+{% endblock %}
+
+{% block title %}{{ aluno.nome_completo }} — Portal do Professor{% endblock %}
+{% block sub_title %}
+	Detalhes do(a) - {{ aluno.nome_completo }}
+{% endblock %}
+
+{% block content %}
+
+<!-- Ficha do aluno -->
+<div class="card fade-up d2" style="margin-bottom:20px;">
+  <div class="card-body" style="padding:24px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1d5fa6,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem;color:#fff;flex-shrink:0;">
+        {{ aluno.nome_completo|slice:":2"|upper }}
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:'Playfair Display',serif;font-size:.80rem;font-weight:800;">{{ aluno.nome_completo }}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:.78rem;color:var(--text-muted);">
+          {% if aluno.numero_processo %}
+            <span><i class="bi bi-card-text"></i> Nº {{ aluno.numero_processo }}</span>
+          {% endif %}
+          {% if aluno.bi %}
+            <span><i class="bi bi-person-badge"></i> BI: {{ aluno.bi }}</span>
+          {% endif %}
+          <span><i class="bi bi-people"></i> {{ matricula.turma.designacao }}</span>
+          <span class="tag tag-green" style="font-size:.72rem;">{{ matricula.status }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resultados Trimestrais -->
+<div class="row g-3 fade-up d3" style="margin-bottom:20px;">
+  {% for rt in resultados_trim %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="stat-card sc-{% if rt.mac >= 10 %}green{% elif rt.mac >= 7 %}warn{% else %}purple{% endif %}">
+        <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+        <div class="stat-value">{{ rt.mac|floatformat:1 }}</div>
+        <div class="stat-label">{{ rt.trimestre.designacao }} · {{ rt.turma_disciplina.disciplina.nome }}</div>
+        <span class="stat-trend {% if rt.mac >= 10 %}trend-up{% elif rt.mac >= 7 %}trend-warn{% else %}trend-warn{% endif %}">
+          {% if rt.mac >= 10 %}Aprovado{% elif rt.mac >= 7 %}A Exame{% else %}Reprovado{% endif %}
+        </span>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="alert-strip as-info">
+        <i class="bi bi-info-circle-fill as-icon"></i>
+        <div><div class="as-title">Sem resultados trimestrais</div></div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Histórico de notas -->
+<div class="card fade-up d4">
+  <div class="card-hdr">
+    <span class="card-hdr-title">Histórico de Notas</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Avaliação</th>
+          <th>Tipo</th>
+          <th>Trimestre</th>
+          <th>Disciplina</th>
+          <th style="text-align:center;">Data</th>
+          <th style="text-align:center;">Nota</th>
+          <th style="text-align:center;">Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nota in notas %}
+          <tr>
+            <td><strong style="font-size:.84rem;">{{ nota.avaliacao.get_designacao_display }}</strong></td>
+            <td><span class="tag tag-blue">{{ nota.avaliacao.tipo_avaliacao.designacao }}</span></td>
+            <td>{{ nota.avaliacao.trimestre.designacao }}</td>
+            <td>{{ nota.turma_disciplina.disciplina.nome }}</td>
+            <td style="text-align:center;font-size:.78rem;color:var(--text-muted);">{{ nota.avaliacao.data_realizacao|date:"d/m/Y" }}</td>
+            <td style="text-align:center;">
+              {% if nota.faltou %}
+                <span class="tag tag-red">Faltou</span>
+              {% else %}
+                <strong style="color:{% if nota.nota >= 10 %}#059669{% elif nota.nota >= 7 %}#d97706{% else %}#dc2626{% endif %};">
+                  {{ nota.nota|floatformat:1 }}
+                </strong>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              {% if nota.faltou %}
+                <span class="tag tag-red">Faltou</span>
+              {% elif nota.nota >= 10 %}
+                <span class="tag tag-green">Aprovado</span>
+              {% elif nota.nota >= 7 %}
+                <span class="tag tag-yellow">A Exame</span>
+              {% else %}
+                <span class="tag tag-red">Reprovado</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">Sem notas registadas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,453 @@
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'funcionario_list' %}">Funcionários</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{funcionario.nome_completo}}</spn>
+{% endblock breadcrumb %}
+
+{% block title %}
+    Funcionário | {{funcionario.get_tipo_funcionario_display}}
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas do Funcionário
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    {% if turmas %}
+        <button class="btn btn-success" onclick="openModal()">Atribuir disciplina</button>
+    {% endif %}
+    {% comment %} {% if funcionario.escola.plano_subscricao.nome == 'plus' and not funcionario.utilizador %} {% endcomment %}
+        <button class="btn btn-danger" onclick="confirmarAcesso('{{funcionario.id}}')">
+            Dar acesso
+        </button>
+
+    {% comment %} {% endif %} {% endcomment %}
+
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+
+<style>
+    table{
+        width: 99%;
+    }
+    th{
+        padding: 4px;
+    }
+    td{
+        padding: 4px;
+    }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 10px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
+
+    .modal-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 2000; display: none;
+        align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px; max-width: 420px; width: 90%;
+    text-align: center;
+    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.9) translateY(20px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
+  .modal-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 20px;
+  }
+  .modal-icon.danger {
+    background: rgba(239,68,68,.15); color: var(--accent-danger);
+  }
+  .modal-icon.success{
+      background: rgba(98, 227, 17, 0.15);
+  }
+  .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+  .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+</style>
+<div class="container-fluid">
+    <div class="container-grid">
+        
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Nome Completo:</strong></div>
+                <div class="col-sm-6">{{ funcionario.nome_completo }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Número de B.I:</strong></div>
+                <div class="col-sm-6">{{ funcionario.bi }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Data de nascimento:</strong></div>
+                <div class="col-sm-6">{{ funcionario.data_nascimento }}</div>
+            </div>
+             <div class="row mb-3">
+                <div class="col-sm-6"><strong>Idade:</strong></div>
+                <div class="col-sm-6">{{ funcionario.idade }} Anos</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Género:</strong></div>
+                <div class="col-sm-6">{{ funcionario.get_genero_display}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Telefone:</strong></div>
+                <div class="col-sm-6">{{ funcionario.telefone }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Email:</strong></div>
+                <div class="col-sm-6">{{ funcionario.email }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Endereço:</strong></div>
+                <div class="col-sm-6">{{ funcionario.endereco|default:"Sem Informações" }}</div>
+            </div>  
+        </div>
+
+        <div class="card card-info">
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Tipo de contrato:</strong></div>
+                <div class="col-sm-7">{{ funcionario.get_tipo_contrato_display|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Especialidade:</strong></div>
+                <div class="col-sm-7">{{ funcionario.especialidade }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Número de agente:</strong></div>
+                <div class="col-sm-7">{{ funcionario.numero_agente }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Nível acadêmico:</strong></div>
+                <div class="col-sm-7">{{ funcionario.get_nivel_academico_display }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Instituição de formação:</strong></div>
+                <div class="col-sm-7">{{ funcionario.instituicao_formacao|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Anos de experiências:</strong></div>
+                <div class="col-sm-7">{{ funcionario.anos_experiencia|default:"Sem Informações" }}</div>
+            </div>   
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Carga horária semanal:</strong></div>
+                <div class="col-sm-7">{{ funcionario.carga_horaria_semanal|default:"Sem Informações" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Status:</strong></div>
+                <div class="col-sm-7">{{ funcionario.get_status_display|default:"Sem Informações" }}</div>
+            </div>
+         
+        </div>
+    </div>
+
+    
+    {% if funcionario.tipo_funcionario == 'Professor' %}
+
+        <div class="card mt-2">
+
+            <h6>Disciplina do Professor</h6>
+            <hr>
+
+            {% for disc in disciplinas_atribuidas %}
+                <div class="row mb-3">
+                    <div class="col-sm-9" style="display: flex; flex-direction: column">
+                        {{ disc.disciplina.nome}}
+                        <small class="text-muted">Turma: {{ disc.turma.designacao }}</small>
+                    </div>
+
+                </div>
+            {%empty%}
+                    <div colspan="6" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <br>Nenhuma disciplina vinculada a este professor.
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="card mt-2">
+            <h6>Horário do professores</h6>
+            {% for h in horario %}
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Turma:</strong></div>
+                    <div class="col-sm-9">{{ h.turma}}</div> 
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Disciplina:</strong></div>
+                    <div class="col-sm-9">{{ h.disciplina}}</div> 
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Dia da semana:</strong></div>
+                    <div class="col-sm-9">{{ h.get_dia_semana_display}}</div> 
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Hora início/ Hora Fim:</strong></div>
+                    <div class="col-sm-9">{{ h.hora_inicio}} / {{h.hora_fim}}</div> 
+                </div>
+                <hr>
+            {%empty%}
+                    <div colspan="6" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <br>Nenhum horário vinculado a este professor.
+                </div>
+            {% endfor %}
+
+        </div>
+    {% endif %}
+   
+</div>
+
+<div class="modal-backdrop" id="acessModal">
+  <div class="modal-box" >
+
+    {% csrf_token %}
+
+    <div class="modal-icon success">
+      <i class="bi bi-check2"></i>
+    </div>
+    <h3 class="modal-title">Confirmar Atribuição de Acesso</h3>
+    <p class="modal-body-text">
+      Ceder o acesso ao professor <strong>{{ funcionario.nome_completo }}</strong>
+    </p>
+
+    <div id="sms" style="color: red;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline-secondary" onclick="closeModal()">Cancelar</button>
+      <button  class="btn btn-outline-success" id="confirmaAcesso">
+        <i class="bi bi-check"></i> Atribuir
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="atribuirModal">
+    <div class="modal-box" id="formDelete">
+        
+        {% csrf_token %}
+
+        <p class="modal-title" id="title">Associar a disciplina ao professor</p>
+
+        
+        <div class="input-group mt-2 mb-2">
+            <select name="turma" id="turma" class="form-control" style="padding: 10px 5px;">
+                <option value="">Selecione o Turma</option>
+                {% for turma in turmas %}
+                    <option value="{{turma.id}}">{{turma}}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="input-group mb-2">
+            <select name="disciplina" id="disciplina" class="form-control" style="padding: 10px 5px;">
+                <option value="">Selecione Disciplina</option>
+                {% for d in disciplinas %}
+                    <option value="{{d.id}}">{{d}}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="sms_save" style="color: red; margin-top: 30px;"></div>
+        
+        <div class="modal-actions">
+        <button type="reset" class="btn btn-secundary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-success" id="confirmSaveBtn" onclick="handleSubmit('{{funcionario.id}}')">
+            <i class="fas fa-save"></i> Salvar
+        </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // modal
+    let itemparadeletar = null
+    let escola = null
+
+    function confirmarAcesso(id) {
+
+        itemparadeletar = id
+        document.getElementById('acessModal').classList.add('open');
+
+    }
+
+    function closeModal() {
+        const sms = document.getElementById('sms');
+        sms.innerText = ''
+        document.getElementById('acessModal').classList.remove('open');
+        window.location.reload()
+    }
+
+    document.getElementById('acessModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal()
+            window.location.reload()
+        };
+    });
+
+    document.getElementById('confirmaAcesso').addEventListener('click', async(e)=>{
+    e.preventDefault()
+
+    const sms = document.getElementById('sms');
+
+
+    try {
+    const response = await fetch(`/api/atribuir-acesso-professor/${itemparadeletar}/`, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+        },
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        sms.innerText = data.message || `Acesso concedido ao professor!`;
+        sms.style.color = "green";
+
+    } else {
+        const data = await response.json();
+        sms.innerText = data.message || "Erro ao conceder acesso!";
+        sms.style.color = "red";
+    }
+
+    } catch (error) {
+      console.log(error);
+      sms.innerText = "Erro de conexão com o servidor.";
+      sms.style.color = "red";
+    }
+    })
+
+
+function openModal() {
+
+    document.getElementById('atribuirModal').classList.add('open');
+}
+
+let tipo = ''
+let turma_id = ''
+
+function openModalEdit(disc, id, disc_id, turma_nome, turm_id, carga) {
+    const title = document.getElementById('title')
+    const turma = document.getElementById('turma')
+    const disciplina = document.getElementById('disciplina')
+
+    turma.innerHTML += `<option value="${turm_id}" selected>${turma_nome}</option>`
+    disciplina.innerHTML += `<option value="${disc_id}" selected>${disc}</option>`
+
+    tipo = 'edit'
+    turma_id = id
+
+    title.innerText = ''
+
+    title.innerText = `Retirar essa disciplina do (a) ${disc}  e Atribuir a outro professor ou alterar outros dados!`
+
+    title.style.fontSize = '10pt'
+    title.style.color = 'red'
+
+    document.getElementById('atribuirModal').classList.add('open');
+}
+function closeModal() {
+
+    location.reload()
+    document.getElementById('atribuirModal').classList.remove('open');
+}
+document.getElementById('atribuirModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+const handleSubmit = async(id)=>{
+
+    const turma = document.getElementById('turma')
+    const disciplina = document.getElementById('disciplina')
+
+    const sms = document.getElementById('sms_save')
+
+    if(!turma.value || !disciplina.value){
+
+        alert("Todos os campos são obrigatórios")
+
+        return 
+    }
+
+    try {
+        const response = await fetch(`/funcionarios/${id}/?action=${tipo}&uuid=${turma_id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                disciplina: disciplina.value,
+                turma: turma.value,
+            })
+        });
+        if (response.ok) {
+            
+            sms.innerText = "Disciplina atribuida com sucesso!";
+            sms.style.color = "green";
+            
+        } else {
+            
+            const data = await response.json();
+            sms.innerText = data.error || "Erro ao atribuir disciplina ao professor!";
+            sms.style.color = "red";
+        }
+
+        } catch (error) {
+            
+            sms.innerText = "Erro de conexão com o servidor.";
+            sms.style.color = "red";
+        }
+}
+</script>
+
+{% endblock %}
+

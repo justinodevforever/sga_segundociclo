@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+</head>
+<body>
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h3 style="margin-left: 20px;" >Lista dos estudantes da turma {{turma.turma}} Ano lectivo {{turma.ano_letivo.ano}} </h3>
+
+            <form action="{% url "listar_turma_estudantes" id_turma%}" method="get" 
+                class="btn-group btn-group-sm">
+
+                <select name="nome_filter" id="nome_filter" class="form-control" style="border-radius: 4px 0px 0px 4px; width: 200px;">
+                    {% for ano_letivo in ano_letivos %}
+                        <option value="{{ano_letivo.id}}">{{ano_letivo.ano}}</option>
+                    {% endfor %}
+                </select>
+
+                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+
+            </form>
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+                <h1 style="margin-left: 20px;" class="text-warning"></h1>
+
+                 <a href="/listar_turma/" class="btn" style="background: #3B82F6; color: #fff;">
+                    lista
+                </a>
+            
+            </div>
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number" 
+                    id="per_page" 
+                    name="per_page" 
+                    class="form-control form-control-sm" 
+                    min="1" 
+                    max="200" 
+                    value="{{ per_page|default:20 }}" 
+                    onchange="this.form.submit()"
+                    
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome completo
+                                    <a href="?order_by=turma{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                                    >
+                                        <i class="bi bi-arrow-down-up"></i>
+                                    </a>
+                                    <a href="/listar_turma_estudantes/{{id_turma}}/?{% if nome_filter %}nome_filter={{ nome_filter|urlencode  }}{% endif %}"> <i class="bi bi-eraser" style="font-size: 1.1rem; margin-left: 5px;"></i></a>
+                                </th>
+                                
+                                <th>B.I</th>
+                                <th>Telefone</th>
+                                <th>Status da matrícula</th>
+                                <th>Total de disciplinas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for matricula in matriculas %}
+                            <tr>
+                                <td><a href="{% url "detalhes_turma_estudantes" matricula.estudante.id id_turma%}">{{ matricula.estudante.nome_completo }}</a></td>
+                                <td>{{ matricula.estudante.bi }}</td>
+                                <td>{{ matricula.estudante.telefone }}</td>
+
+                                {% if matricula.status_matricula == 'cancelada' %}
+
+                                    <td><span class="text-danger">{{ matricula.get_status_matricula_display }}</span></td>
+
+                                {% elif matricula.status_matricula == 'ativa' %}
+
+                                    <td><span class="text-warning">{{ matricula.get_status_matricula_display }}</span></td>
+
+                                {% elif matricula.status_matricula == 'finalizada' %}
+
+                                    <td><span class="text-success">{{ matricula.get_status_matricula_display }}</span></td>
+
+                                {% elif matricula.status_matricula == 'desistente' %}
+
+                                    <td><span class="text-danger">{{ matricula.get_status_matricula_display }}</span></td>
+
+                                {% endif %}
+                                
+                                <td>{{ total_disciplina|default:"0" }}</td>
+                                
+                            
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if not matriculas %}
+                        <button onclick="confirmardelecao('{{turma.id}}')"
+                            class="btn btn-outline-danger" title="Deletar">
+                            Eliminar
+                        </button>
+                    {% endif %}
+                </div>
+
+                {% if matriculas.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                        {% if matriculas.has_previous %}
+                            <li class="page-item">
+                                
+                                <a class="page-link" href="?page={{ matriculas.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Anterior</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in matriculas.paginator.page_range %}
+                            {% if matriculas.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% if matriculas.has_next %}
+                        
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ matriculas.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="sr-only">Próximo</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
+            <h3>confirmar exclusão</h3>
+            <p id="mensagemconfirmacao">Tem certeza que deseja deletar esta turma?</p>
+
+            <div id="sms" style="color: red;"></div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="fecharmodal()" id="fechar" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
+                    sair
+                </button>
+                <button onclick="deletarItem()" class="btn btn-danger">
+                    confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemparadeletar = null;
+        const sms = document.getElementById('sms');
+        
+        function confirmardelecao(itemid) {
+            itemparadeletar = itemid;
+            document.getElementById('modalconfirmacao').style.display = 'block';
+        }
+        
+        function fecharmodal() {
+            document.getElementById('modalconfirmacao').style.display = 'none';
+            itemparadeletar = null;
+        }
+        
+        async function deletarItem() {
+            
+
+            try {
+            const response = await fetch(`/delete_turma/${itemparadeletar}/`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+                
+            });
+
+            if (response.ok) {
+                sms.innerText = "Turma eliminada com sucesso!";
+                sms.style.color = "green";
+                window.location.href = `http://${location.host}/listar_turma`
+              
+            } else {
+                const data = await response.json();
+                sms.innerText = data.error || "Erro ao deletar o item!";
+                sms.style.color = "red";
+            }
+
+            } catch (error) {
+                console.log(error);
+                sms.innerText = "Erro de conexão com o servidor.";
+                sms.style.color = "red";
+            }
+        }
+        
+        
+        document.getElementById('modalconfirmacao').onclick = (e)=>{
+            if (e.target === this) {
+                fecharmodal();
+            }
+        }
+    </script>
+</body>
+</html>
+{% endblock  %}
