@@ -1,5 +1,6 @@
 
 from django import forms
+import os
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from datetime import date
@@ -8,6 +9,77 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from app.db.models import *
 from app.financa.models import ConfiguracaoFinanceira
+
+
+
+
+
+class DadosEscolaForm(forms.ModelForm):
+    EXT_PERMITIDAS = {".png", ".jpg", ".jpeg", ".webp"}
+    TAMANHO_MAX = 2 * 1024 * 1024  # 2 MB
+
+    class Meta:
+        model = TenantConfiguracao
+        fields = ["nome", "nif", "telefone", "email", "endereco", "logo", "insignia"]
+        labels = {
+            "nome": "Nome da escola",
+            "nif": "NIF",
+            "insignia": "Insígnia",
+            "telefone": "Telefone",
+            "email": "E-mail",
+            "endereco": "Endereço",
+            "logo": "Logótipo",
+        }
+        widgets = {
+            "nome": forms.TextInput(attrs={"class": "cfg-input", "placeholder": "Ex.: Complexo Escolar Esperança"}),
+            "nif": forms.TextInput(attrs={"class": "cfg-input", "placeholder": "Ex.: 5000123456"}),
+            "telefone": forms.TextInput(attrs={"class": "cfg-input", "placeholder": "+244 9XX XXX XXX"}),
+            "email": forms.EmailInput(attrs={"class": "cfg-input", "placeholder": "geral@escola.ao"}),
+            "endereco": forms.Textarea(attrs={"class": "cfg-input", "rows": 3,
+                                              "placeholder": "Bairro, rua, município, província"}),
+            "logo": forms.FileInput(attrs={"class": "cfg-input", "accept": "image/png,image/jpeg,image/webp"}),
+            "insignia": forms.FileInput(attrs={"class": "cfg-input", "accept": "image/png,image/jpeg,image/webp"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nome in ("nome", "nif", "telefone", "endereco"):
+            self.fields[nome].required = True
+        self.fields["email"].required = False
+        self.fields["logo"].required = False
+        self.fields["insignia"].required = False
+        self.fields["logo"].help_text = "PNG, JPG ou WEBP, até 2 MB. Deixe em branco para manter o actual."
+        self.fields["insignia"].help_text = "PNG, JPG ou WEBP, até 2 MB. Deixe em branco para manter o actual."
+        
+
+    def clean_nif(self):
+        return (self.cleaned_data.get("nif") or "").strip().upper()
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+
+        # sem novo ficheiro: mantém o existente
+        if not logo or not hasattr(logo, "content_type"):
+            return logo
+        ext = os.path.splitext(logo.name)[1].lower()
+        if ext not in self.EXT_PERMITIDAS:
+            raise forms.ValidationError("Formato inválido. Use PNG, JPG ou WEBP.")
+        if logo.size > self.TAMANHO_MAX:
+            raise forms.ValidationError("O ficheiro excede 2 MB.")
+        return logo
+    
+    def clean_insignia(self):
+        insignia = self.cleaned_data.get("insignia")
+        
+        # sem novo ficheiro: mantém o existente
+        if not insignia or not hasattr(insignia, "content_type"):
+            return insignia
+        ext = os.path.splitext(insignia.name)[1].lower()
+        if ext not in self.EXT_PERMITIDAS:
+            raise forms.ValidationError("Formato inválido. Use PNG, JPG ou WEBP.")
+        if insignia.size > self.TAMANHO_MAX:
+            raise forms.ValidationError("O ficheiro excede 2 MB.")
+        return insignia
 
 class ConfiguracaoForm(forms.Form):
 

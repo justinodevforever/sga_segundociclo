@@ -6,7 +6,7 @@ urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('dashboard/', dashboard_diretor, name='dashboard_diretor'),
     
-    path("director/configuracoes/", ConfiguracoesEscolaView.as_view(), name="configuracoes_escola"),
+    path("configuracoes/", ConfiguracoesEscolaView.as_view(), name="configuracoes_escola"),
     
 
     path('usarios/', usuario_list, name='usuario_list'),

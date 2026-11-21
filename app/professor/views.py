@@ -1066,12 +1066,12 @@ class HorarioView(ProfessorRequiredMixin, TemplateView):
         professor = self.get_professor()
         ano_lectivo = _get_ano_atual()
 
-        horarios_qs = HorarioAula.objects.filter(professor=professor)
+        horarios_qs = HorarioAula.objects.filter(atribuicao__professor=professor)
         if ano_lectivo:
-            horarios_qs = horarios_qs.filter(turma__ano_lectivo=ano_lectivo)
+            horarios_qs = horarios_qs.filter(atribuicao__turma__ano_lectivo=ano_lectivo)
         horarios = list(
             horarios_qs
-            .select_related("turma", "disciplina", "turma__classe")   # `periodo` é CharField: não entra em select_related
+            .all()  # `periodo` é CharField: não entra em select_related
             .order_by("hora_inicio", "dia_semana")
         )
 

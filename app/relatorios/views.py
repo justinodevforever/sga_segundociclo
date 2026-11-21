@@ -1,7 +1,6 @@
 from decimal import Decimal, ROUND_HALF_UP
 from types import SimpleNamespace
 
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
@@ -336,6 +335,8 @@ def mini_pauta_selecao(request):
 @require_GET
 def mini_pauta(request, turma_id, disciplina_id):
     
+    escola = TenantConfiguracao.objects.all().first()
+    
     turma = get_object_or_404(
         Turma.objects.select_related("ano_lectivo", "curso", "classe"), pk=turma_id
     )
@@ -486,8 +487,8 @@ def mini_pauta(request, turma_id, disciplina_id):
         "classe_txt": f"{turma.classe.designacao}.ª",
         "professor": atrib.professor.nome_completo if atrib else "",
         "director": director.nome_completo if director else "",
-        "escola": getattr(settings, "ESCOLA_NOME", ""),
-        "escola_local": getattr(settings, "ESCOLA_LOCALIDADE", "Luanda"),
+        "escola": escola.nome,
+        "escola_local": escola.endereco,
         "cab_trim": cab_trim, "linhas": linhas, "sel": sel,
         "mostrar_final": sel == "todos",
         "provisoria": provisoria,

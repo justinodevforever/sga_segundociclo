@@ -17,6 +17,9 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from xhtml2pdf import pisa
 from django.contrib.staticfiles import finders
+from pathlib import Path
+
+from app.db.models import *
 
 NUM = (int, float, Decimal)
 
@@ -279,28 +282,52 @@ def exportar_xlsx(rel, esc, filename):
 
 def dados_escola() -> dict:
     
+    escola = TenantConfiguracao.objects.all().first()
+    
     base = {
-        "nome": "Nome da Instituição",
-        "endereco": "",
-        "telefone": "",
-        "email": "",
-        "nif": "",
-        "logo": None,
+        "nome": escola.nome,
+        "endereco": escola.endereco,
+        "telefone": escola.telefone,
+        "email": escola.email,
+        "nif": escola.nif,
+        "logo": escola.logo.url,
+        "insignia": escola.insignia.url,
     }
-    base.update(getattr(settings, "ESCOLA", {}))
+    
     base["logo_uri"] = _ficheiro_para_data_uri(base.get("logo"))
+    base["insignia_uri"] = _ficheiro_para_data_uri(base.get("insignia"))
     return base
 
 
 def _ficheiro_para_data_uri(caminho_static):
     if not caminho_static:
         return None
-    caminho = finders.find(caminho_static)
-    if not caminho:
+
+    caminho = str(caminho_static)
+
+    # Verificar se é um ficheiro MEDIA
+    if caminho.startswith(settings.MEDIA_URL):
+        caminho_relativo = caminho[len(settings.MEDIA_URL):].lstrip("/")
+        caminho = Path(settings.MEDIA_ROOT) / caminho_relativo
+
+    # Se não for MEDIA, procurar em STATIC
+    else:
+        caminho = finders.find(caminho.lstrip("/"))
+
+        if not caminho:
+            return None
+
+    caminho = Path(caminho)
+
+    if not caminho.is_file():
         return None
-    mime = mimetypes.guess_type(caminho)[0] or "image/png"
+
+    mime = mimetypes.guess_type(str(caminho))[0] or "image/png"
+
     with open(caminho, "rb") as f:
-        return f"data:{mime};base64,{base64.b64encode(f.read()).decode()}"
+        conteudo = base64.b64encode(f.read()).decode("utf-8")
+
+    return f"data:{mime};base64,{conteudo}"
 
 
 def qr_data_uri(texto: str):

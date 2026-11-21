@@ -269,6 +269,7 @@ class TenantConfiguracao(models.Model):
     nif = models.CharField(max_length=400, null=True)
 
     logo = models.FileField(upload_to='logos', null=True)
+    insignia = models.FileField(upload_to='logos', null=True)
     periodo_exame = models.BooleanField(default=False)
     periodo_prova_1_trimestre = models.BooleanField(default=False)
     periodo_prova_2_trimestre = models.BooleanField(default=False)

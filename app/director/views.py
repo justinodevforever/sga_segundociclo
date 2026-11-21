@@ -1,6 +1,5 @@
 import json
 import uuid
-from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Avg, Q
@@ -172,7 +171,6 @@ def _atribuicao_form_view(request, instance=None):
                         plano.save()
                                         
             except IntegrityError as e:
-                print(e)
                 messages.error(request, "Erro Já existe um plano curricular com está disciplina, curso, classe e ano lectivo")
                 return render(request, "docentes/atribuicao_form.html", {
                         "secao": "atribuicoes", "form": form, "obj": instance, "plano_map": _plano_map(), "plano": plano 
@@ -221,10 +219,13 @@ def _horario_form_view(request, instance=None):
 class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
     template_name = "configuracoes/configuracoes_escola.html"
 
-    # ---------- GET ----------
+    # Passos
+    S_ESCOLA, S_ANO, S_TRIM, S_CAL, S_AVAL, S_FIN, S_INT = 1, 2, 3, 4, 5, 6, 7
+    TOTAL_STEPS = 7
+
     def get(self, request):
         try:
-            step = min(max(int(request.GET.get("step", 1)), 1), 6)
+            step = min(max(int(request.GET.get("step", 1)), 1), self.TOTAL_STEPS)
         except ValueError:
             step = 1
         return render(request, self.template_name, self._contexto(step))
@@ -244,25 +245,27 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             "form": RegraAvaliacaoForm(instance=regras.get(c.pk), prefix=f"c{c.pk.hex[:8]}"),
         } for c in classes]
 
-        # Estado de cada passo + lista de verificação
+        S = self
         ok = {
-            1: ano is not None,
-            2: len(trimestres) == 3 and any(t.activo for t in trimestres),
-            3: any(getattr(tenant, f) for f in (
+            S.S_ESCOLA: bool(tenant.nome and tenant.nif and tenant.telefone and tenant.endereco),
+            S.S_ANO: ano is not None,
+            S.S_TRIM: len(trimestres) == 3 and any(t.activo for t in trimestres),
+            S.S_CAL: any(getattr(tenant, f) for f in (
                 "periodo_inscricao", "periodo_matricula", "periodo_confirmacao")),
-            4: bool(classes) and len(regras) >= len(classes),
-            5: bool(cfg_fin and cfg_fin.valor_propina_padrao > 0),
-            6: bool(tenant.email_remetente or tenant.multicaixa_entity or tenant.sms_provider),
+            S.S_AVAL: bool(classes) and len(regras) >= len(classes),
+            S.S_FIN: bool(cfg_fin and cfg_fin.valor_propina_padrao > 0),
+            S.S_INT: bool(tenant.email_remetente or tenant.multicaixa_entity or tenant.sms_provider),
         }
         checklist = [
-            {"step": 1, "ok": ok[1], "txt": "Ano lectivo actual definido"},
-            {"step": 2, "ok": len(trimestres) == 3, "txt": "3 trimestres criados"},
-            {"step": 2, "ok": any(t.activo for t in trimestres), "txt": "Trimestre activo seleccionado"},
-            {"step": 4, "ok": ok[4], "txt": f"Regras de avaliação ({len(regras)}/{len(classes)} classes)"},
-            {"step": 5, "ok": ok[5], "txt": "Propina padrão definida"},
-            {"step": 6, "ok": ok[6], "txt": "Pelo menos uma integração configurada"},
+            {"step": S.S_ESCOLA, "ok": ok[S.S_ESCOLA], "txt": "Dados da escola preenchidos"},
+            {"step": S.S_ANO, "ok": ok[S.S_ANO], "txt": "Ano lectivo actual definido"},
+            {"step": S.S_TRIM, "ok": len(trimestres) == 3, "txt": "3 trimestres criados"},
+            {"step": S.S_TRIM, "ok": any(t.activo for t in trimestres), "txt": "Trimestre activo seleccionado"},
+            {"step": S.S_AVAL, "ok": ok[S.S_AVAL], "txt": f"Regras de avaliação ({len(regras)}/{len(classes)} classes)"},
+            {"step": S.S_FIN, "ok": ok[S.S_FIN], "txt": "Propina padrão definida"},
+            {"step": S.S_INT, "ok": ok[S.S_INT], "txt": "Pelo menos uma integração configurada"},
         ]
-        obrigatorios = [ok[1], ok[2], ok[4], ok[5]]
+        obrigatorios = [ok[S.S_ESCOLA], ok[S.S_ANO], ok[S.S_TRIM], ok[S.S_AVAL], ok[S.S_FIN]]
         progresso = int(sum(obrigatorios) / len(obrigatorios) * 100)
 
         fin_initial = {}
@@ -273,12 +276,14 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
         return {
             "secao": "configuracoes",
             "step": step,
+            "total_steps": self.TOTAL_STEPS,
             "ano": ano,
             "anos": anos,
             "trimestres": trimestres,
             "tenant": tenant,
             "cfg_fin": cfg_fin,
             "regras_lista": regras_lista,
+            "form_escola": DadosEscolaForm(instance=tenant),
             "form_ano": AnoLectivoForm(prefix="ano"),
             "form_tri": TrimestreForm(prefix="tri", ano=ano),
             "form_cal": CalendarioForm(instance=tenant),
@@ -294,6 +299,7 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
     # ---------- POST ----------
     def post(self, request):
         acoes = {
+            "escola_salvar": self._escola_salvar,
             "ano_salvar": self._ano_salvar,
             "ano_activar": self._ano_activar,
             "trimestre_salvar": self._trimestre_salvar,
@@ -308,33 +314,49 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             "integracoes_salvar": self._integracoes_salvar,
         }
         handler = acoes.get(request.POST.get("acao"))
-        step = 1
+        step = self.S_ESCOLA
         if handler is None:
             messages.error(request, "Acção inválida.")
         else:
             try:
                 with transaction.atomic():
-                    step = handler(request) or 1
+                    step = handler(request) or self.S_ESCOLA
             except Exception as exc:  # não expor detalhes técnicos ao utilizador
                 messages.error(request, "Não foi possível concluir a operação. Tente novamente.")
                 import logging
                 logging.getLogger(__name__).exception("Configurações: %s", exc)
         return redirect(f"{reverse('configuracoes_escola')}?step={step}")
 
-    # ---------- Passo 1: Ano lectivo ----------
+    # ---------- Passo 1: Dados da escola ----------
+    def _escola_salvar(self, request):
+        tenant = _tenant()
+        logo_antigo = tenant.logo.name if tenant.logo else None
+        form = DadosEscolaForm(request.POST, request.FILES, instance=tenant)
+        if not form.is_valid():
+            messages.error(request, _erros(form))
+            return self.S_ESCOLA
+        tenant = form.save()
+        # remove o ficheiro anterior se foi substituído
+        if logo_antigo and "logo" in request.FILES and logo_antigo != tenant.logo.name:
+            tenant.logo.storage.delete(logo_antigo)
+        _log(request, f"Dados da escola actualizados: {tenant.nome}", tenant)
+        messages.success(request, "Dados da escola guardados.")
+        return self.S_ANO
+
+    # ---------- Passo 2: Ano lectivo ----------
     def _ano_salvar(self, request):
         pk = request.POST.get("ano_id")
         instancia = AnoLectivo.objects.filter(pk=pk).first() if pk else None
         form = AnoLectivoForm(request.POST, instance=instancia, prefix="ano")
         if not form.is_valid():
             messages.error(request, _erros(form))
-            return 1
+            return self.S_ANO
         ano = form.save()
         if not AnoLectivo.objects.filter(e_atual=True).exists():
             self._definir_actual(ano)
         _log(request, f"Ano lectivo {'actualizado' if instancia else 'criado'}: {ano.designacao}", ano)
         messages.success(request, f"Ano lectivo {ano.designacao} guardado.")
-        return 2 if not instancia else 1
+        return self.S_TRIM if not instancia else self.S_ANO
 
     def _definir_actual(self, ano):
         AnoLectivo.objects.exclude(pk=ano.pk).update(e_atual=False)
@@ -348,13 +370,13 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
         ano = AnoLectivo.objects.filter(pk=request.POST.get("ano_id")).first()
         if not ano:
             messages.error(request, "Ano lectivo não encontrado.")
-            return 1
+            return self.S_ANO
         self._definir_actual(ano)
         _log(request, f"Ano lectivo actual alterado para {ano.designacao}", ano)
         messages.success(request, f"{ano.designacao} é agora o ano lectivo actual.")
-        return 1
+        return self.S_ANO
 
-    # ---------- Passo 2: Trimestres ----------
+    # ---------- Passo 3: Trimestres ----------
     def _ano_actual_ou_erro(self, request):
         ano = AnoLectivo.objects.filter(e_atual=True).first()
         if not ano:
@@ -364,24 +386,24 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
     def _trimestre_salvar(self, request):
         ano = self._ano_actual_ou_erro(request)
         if not ano:
-            return 1
+            return self.S_ANO
         designacao = request.POST.get("tri-designacao")
         existente = Trimestre.objects.filter(ano_lectivo=ano, designacao=designacao).first()
         form = TrimestreForm(request.POST, instance=existente, prefix="tri", ano=ano)
         if not form.is_valid():
             messages.error(request, _erros(form))
-            return 2
+            return self.S_TRIM
         tri = form.save(commit=False)
         tri.ano_lectivo = ano
         tri.save()
         _log(request, f"Trimestre {tri.designacao} guardado ({ano.designacao})", tri)
         messages.success(request, f"{tri.designacao}.º trimestre guardado.")
-        return 2
+        return self.S_TRIM
 
     def _trimestre_gerar(self, request):
         ano = self._ano_actual_ou_erro(request)
         if not ano:
-            return 1
+            return self.S_ANO
         total = (ano.data_fim - ano.data_inicio).days + 1
         parte = total // 3
         criados = 0
@@ -397,35 +419,35 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             Trimestre.objects.filter(ano_lectivo=ano, designacao=1).update(activo=True)
         _log(request, f"Trimestres gerados automaticamente ({criados} novos)", ano)
         messages.success(request, f"{criados} trimestre(s) gerado(s) com datas distribuídas igualmente.")
-        return 2
+        return self.S_TRIM
 
     def _trimestre_activar(self, request):
         ano = self._ano_actual_ou_erro(request)
         if not ano:
-            return 1
+            return self.S_ANO
         tri = Trimestre.objects.filter(pk=request.POST.get("trimestre_id"), ano_lectivo=ano).first()
         if not tri:
             messages.error(request, "Trimestre não encontrado.")
-            return 2
+            return self.S_TRIM
         Trimestre.objects.filter(ano_lectivo=ano).update(activo=False)
         tri.activo = True
         tri.save(update_fields=["activo"])
         _log(request, f"Trimestre activo: {tri.designacao}.º", tri)
         messages.success(request, f"{tri.designacao}.º trimestre definido como activo.")
-        return 2
+        return self.S_TRIM
 
     def _trimestre_lancamento(self, request):
         tri = Trimestre.objects.filter(pk=request.POST.get("trimestre_id")).first()
         if not tri:
             messages.error(request, "Trimestre não encontrado.")
-            return 2
+            return self.S_TRIM
         tri.lancamento_aberto = not tri.lancamento_aberto
         tri.save(update_fields=["lancamento_aberto"])
         _log(request, f"Lançamento de notas {'aberto' if tri.lancamento_aberto else 'fechado'} — {tri.designacao}.º trimestre", tri)
         messages.success(request, f"Lançamento de notas {'aberto' if tri.lancamento_aberto else 'fechado'}.")
-        return 2
+        return self.S_TRIM
 
-    # ---------- Passo 3: Calendário ----------
+    # ---------- Passo 4: Calendário ----------
     def _calendario_salvar(self, request):
         form = CalendarioForm(request.POST, instance=_tenant())
         if form.is_valid():
@@ -434,49 +456,50 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             messages.success(request, "Calendário do sistema actualizado.")
         else:
             messages.error(request, _erros(form))
-        return 3
+        return self.S_CAL
 
+    # ---------- Passo 5: Avaliação ----------
     def _regra_salvar(self, request):
         ano = self._ano_actual_ou_erro(request)
         classe = Classe.objects.filter(pk=request.POST.get("classe_id")).first()
         if not ano or not classe:
             messages.error(request, "Ano lectivo ou classe inválidos.")
-            return 4
+            return self.S_AVAL
         existente = RegraAvaliacao.objects.filter(ano_lectivo=ano, classe=classe).first()
         form = RegraAvaliacaoForm(request.POST, instance=existente, prefix=f"c{classe.pk.hex[:8]}")
         if not form.is_valid():
             messages.error(request, f"{classe}: {_erros(form)}")
-            return 4
+            return self.S_AVAL
         regra = form.save(commit=False)
         regra.ano_lectivo, regra.classe = ano, classe
         regra.save()
         _log(request, f"Regras de avaliação guardadas — {classe}.ª classe ({ano.designacao})", regra)
         messages.success(request, f"Regras da {classe}.ª classe guardadas.")
-        return 4
+        return self.S_AVAL
 
     def _regra_padrao(self, request):
         """Cria regras com os valores por defeito para classes ainda sem regra."""
         ano = self._ano_actual_ou_erro(request)
         if not ano:
-            return 1
+            return self.S_ANO
         n = 0
         for c in Classe.objects.all():
             _, novo = RegraAvaliacao.objects.get_or_create(ano_lectivo=ano, classe=c)
             n += int(novo)
         _log(request, f"Regras padrão criadas para {n} classe(s)", ano)
         messages.success(request, f"Regras padrão criadas para {n} classe(s). Ajuste-as conforme necessário.")
-        return 4
+        return self.S_AVAL
 
-    # ---------- Passo 5: Financeiro ----------
+    # ---------- Passo 6: Financeiro ----------
     def _financeiro_salvar(self, request):
         ano = self._ano_actual_ou_erro(request)
         if not ano:
-            return 1
+            return self.S_ANO
         existente = ConfiguracaoFinanceira.objects.filter(ano_lectivo=ano).first()
         form = FinanceiroForm(request.POST, instance=existente)
         if not form.is_valid():
             messages.error(request, _erros(form))
-            return 5
+            return self.S_FIN
         cfg = form.save(commit=False)
         cfg.ano_lectivo = ano
         cfg.save()
@@ -485,23 +508,23 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
         tenant.save(update_fields=["dia_vencimento_propina"])
         _log(request, f"Configuração financeira guardada ({ano.designacao})", cfg)
         messages.success(request, "Configuração financeira guardada.")
-        return 5
+        return self.S_FIN
 
     def _financeiro_aplicar_turmas(self, request):
         ano = self._ano_actual_ou_erro(request)
         cfg = ConfiguracaoFinanceira.objects.filter(ano_lectivo=ano).first() if ano else None
         if not cfg:
             messages.warning(request, "Guarde primeiro a configuração financeira.")
-            return 5
+            return self.S_FIN
         turmas = Turma.objects.filter(ano_lectivo=ano, activo=True)
         n1 = turmas.filter(preco_propina__isnull=True).update(preco_propina=cfg.valor_propina_padrao)
         n2 = turmas.filter(preco_matricula__isnull=True).update(preco_matricula=cfg.taxa_matricula)
         _log(request, f"Preços padrão aplicados às turmas (propina: {n1}, matrícula: {n2})", cfg)
         messages.success(request, f"Preços aplicados: propina em {n1} turma(s), matrícula em {n2}. "
                                   f"Turmas com preço já definido não foram alteradas.")
-        return 5
+        return self.S_FIN
 
-    # ---------- Passo 6: Integrações ----------
+    # ---------- Passo 7: Integrações ----------
     def _integracoes_salvar(self, request):
         form = IntegracoesForm(request.POST, instance=_tenant())
         if form.is_valid():
@@ -510,7 +533,8 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             messages.success(request, "Integrações guardadas.")
         else:
             messages.error(request, _erros(form))
-        return 6
+        return self.S_INT
+
 
 
 configuracoes_escola = ConfiguracoesEscolaView.as_view()
@@ -3131,6 +3155,8 @@ def horario_pdf(request, turma_id):
     """Horário semanal da turma em PDF (xhtml2pdf). ?download=1 força o descarregamento."""
     turma = get_object_or_404(_turmas_qs(), pk=turma_id)
     horarios = _horarios_da_turma(turma)
+    
+    escola = TenantConfiguracao.objects.all().first()
 
     html = get_template("docentes/horario_pdf.html").render({
         "turma": turma,
@@ -3140,7 +3166,7 @@ def horario_pdf(request, turma_id):
         "dias": DIAS,
         "agora": timezone.localtime(),
         "utilizador": request.user.nome_completo or request.user.get_username(),
-        "escola_nome": getattr(settings, "NOME_ESCOLA", "Escola"),
+        "escola_nome": escola.nome,
     })
 
     buffer = BytesIO()

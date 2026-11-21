@@ -350,15 +350,15 @@
 
 <!-- TAB: Pagamentos -->
 <div class="tab-pane active" id="tab-pagamentos">
-  <div class="tbl-card fade-up delay-3">
-    <div class="tbl-hdr">
+  <div class="tbl-card fade-up delay-3" >
+    <div class="tbl-hdr" >
       <div class="tbl-title"><i class="bi bi-receipt"></i> Pagamentos Registados</div>
       <a href="{% url 'pagamento_create_conta' conta.pk %}" class="btn-action btn-primary" style="padding:7px 14px;">
         <i class="bi bi-plus-lg"></i> Novo
       </a>
     </div>
     {% if pagamentos %}
-    <table class="tbl">
+    <table class="tbl" style="display: flex; flex-direction: column; overflow-x: auto;">
       <thead>
         <tr>
           <th>Recibo</th>

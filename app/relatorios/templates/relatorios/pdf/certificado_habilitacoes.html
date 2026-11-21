@@ -29,20 +29,20 @@
 <body>
 <div class="moldura">
 
-  <table width="100%"><tr>
-    <td width="18%" class="c">
-      {% if inst.logo_uri %}<img src="{{ inst.logo_uri }}" width="62" height="62">{% endif %}
-    </td>
-    <td width="64%" class="c">
+  <table width="100%">
+    <tr >
+   
+    <td width="64%" class="c" style="display: flex; flex-direction: column; align-items: center;">
+      <div class="c" style="margin-bottom: 20px;">
+        {% if inst.insignia_uri %}<img src="{{ inst.insignia_uri }}" width="62" height="62">{% endif %}
+      </div>
       <p class="rep">República de Angola</p>
       <p class="rep">Ministério da Educação</p>
-      <p class="esc">{{ inst.nome }}</p>
-      {% if inst.endereco %}<p class="esc">{{ inst.endereco }}</p>{% endif %}
+      <p class="rep">{{ inst.nome }}</p>
     </td>
-    <td width="18%" class="c">
-      {% if qr %}<img src="{{ qr }}" width="62" height="62">{% endif %}
-    </td>
-  </tr></table>
+
+  </tr>
+</table>
 
   <h1>CERTIFICADO</h1>
   <p class="sub"><b>DE HABILITAÇÕES</b> &mdash; {{ titulo_ciclo }}</p>
@@ -118,7 +118,9 @@
   <p class="rodape c">
     Ref.: {{ referencia }} &nbsp;|&nbsp; Emitido por {{ emitido_por }} &nbsp;|&nbsp;
     Documento válido apenas com assinatura e carimbo. A autenticidade pode ser verificada pelo código QR.
+    
   </p>
+  <p>{% if qr %}<img src="{{ qr }}" width="62" height="62">{% endif %}</p>
 </div>
 </body>
 </html>

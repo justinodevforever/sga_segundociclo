@@ -18,7 +18,7 @@
   .cfg-msg.info    { background:#eff6ff; border-color:#3b82f6; color:#1e40af; }
 
   /* ── Stepper ── */
-  .cfg-stepper { display:grid; grid-template-columns:repeat(6,1fr); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:8px; gap:4px; margin-bottom:20px; box-shadow:var(--shadow); }
+  .cfg-stepper { display:grid; grid-template-columns:repeat(6,1fr); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:8px; gap:4px; margin-bottom:20px; box-shadow:var(--shadow); overflow-x: auto; }
   .cfg-step { border:0; background:transparent; border-radius:10px; padding:12px 8px; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; font-family:inherit; transition:background .15s; }
   .cfg-step:hover { background:#f1f5f9; }
   .cfg-step:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
@@ -100,6 +100,17 @@
   .cfg-check.ok i { color:var(--accent-4); }
   .cfg-check.pend i { color:#cbd5e1; }
 
+  .cfg-stepper { grid-template-columns:repeat(7,1fr); }   /* era repeat(6,1fr) */
+  @media (max-width:640px) {
+    .cfg-stepper { grid-template-columns:repeat(7,minmax(64px,1fr)); overflow-x:auto; }
+  }
+
+  /* ── Logo ── */
+  .cfg-logo { display:flex; gap:18px; align-items:center; padding:14px 16px; border:1px dashed var(--border); border-radius:12px; background:#f8fafc; margin-bottom:18px; flex-wrap:wrap; }
+  .cfg-logo-prev { width:88px; height:88px; border-radius:12px; background:#fff; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; color:#cbd5e1; font-size:2rem; }
+  .cfg-logo-prev img { width:100%; height:100%; object-fit:contain; }
+  .cfg-logo .cfg-field { flex:1; min-width:220px; margin:0; }
+
   @media (max-width:991px) { .cfg-side { position:static; } }
   @media (max-width:640px) {
     .cfg-stepper { grid-template-columns:repeat(6,minmax(64px,1fr)); overflow-x:auto; }
@@ -118,18 +129,67 @@
 <div class="row g-4">
   <div class="col-lg-8">
 
-    {# ── Stepper ── #}
-    <div class="cfg-stepper" role="tablist" aria-label="Passos de configuração">
-      <button type="button" class="cfg-step {% if steps_ok.1 %}done{% endif %}" data-go="1" role="tab"><span class="cfg-step-dot">{% if steps_ok.1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</span><span class="cfg-step-name">Ano Lectivo</span></button>
-      <button type="button" class="cfg-step {% if steps_ok.2 %}done{% endif %}" data-go="2" role="tab"><span class="cfg-step-dot">{% if steps_ok.2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</span><span class="cfg-step-name">Trimestres</span></button>
-      <button type="button" class="cfg-step {% if steps_ok.3 %}done{% endif %}" data-go="3" role="tab"><span class="cfg-step-dot">{% if steps_ok.3 %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}</span><span class="cfg-step-name">Calendário</span></button>
-      <button type="button" class="cfg-step {% if steps_ok.4 %}done{% endif %}" data-go="4" role="tab"><span class="cfg-step-dot">{% if steps_ok.4 %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}</span><span class="cfg-step-name">Avaliação</span></button>
-      <button type="button" class="cfg-step {% if steps_ok.5 %}done{% endif %}" data-go="5" role="tab"><span class="cfg-step-dot">{% if steps_ok.5 %}<i class="bi bi-check-lg"></i>{% else %}5{% endif %}</span><span class="cfg-step-name">Financeiro</span></button>
-      <button type="button" class="cfg-step {% if steps_ok.6 %}done{% endif %}" data-go="6" role="tab"><span class="cfg-step-dot">{% if steps_ok.6 %}<i class="bi bi-check-lg"></i>{% else %}6{% endif %}</span><span class="cfg-step-name">Integrações</span></button>
+   
+    <div class="cfg-stepper" role="tablist" aria-label="Passos de configuração" >
+      <button type="button" class="cfg-step {% if steps_ok.1 %}done{% endif %}" data-go="1" role="tab"><span class="cfg-step-dot">{% if steps_ok.1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</span><span class="cfg-step-name">Escola</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.2 %}done{% endif %}" data-go="2" role="tab"><span class="cfg-step-dot">{% if steps_ok.2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</span><span class="cfg-step-name">Ano Lectivo</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.3 %}done{% endif %}" data-go="3" role="tab"><span class="cfg-step-dot">{% if steps_ok.3 %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}</span><span class="cfg-step-name">Trimestres</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.4 %}done{% endif %}" data-go="4" role="tab"><span class="cfg-step-dot">{% if steps_ok.4 %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}</span><span class="cfg-step-name">Calendário</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.5 %}done{% endif %}" data-go="5" role="tab"><span class="cfg-step-dot">{% if steps_ok.5 %}<i class="bi bi-check-lg"></i>{% else %}5{% endif %}</span><span class="cfg-step-name">Avaliação</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.6 %}done{% endif %}" data-go="6" role="tab"><span class="cfg-step-dot">{% if steps_ok.6 %}<i class="bi bi-check-lg"></i>{% else %}6{% endif %}</span><span class="cfg-step-name">Financeiro</span></button>
+      <button type="button" class="cfg-step {% if steps_ok.7 %}done{% endif %}" data-go="7" role="tab"><span class="cfg-step-dot">{% if steps_ok.7 %}<i class="bi bi-check-lg"></i>{% else %}7{% endif %}</span><span class="cfg-step-name">Integrações</span></button>
     </div>
 
-    {# ═════════ PASSO 1 — ANO LECTIVO ═════════ #}
     <section class="cfg-panel" data-panel="1">
+      <div class="cfg-guide"><i class="bi bi-building"></i><div><strong>Identidade da escola.</strong> Estes dados aparecem em recibos, boletins, declarações e outros documentos emitidos pelo sistema.</div></div>
+
+      <form method="post" enctype="multipart/form-data" class="cfg-card">
+        {% csrf_token %}<input type="hidden" name="acao" value="escola_salvar">
+        <div class="cfg-card-h"><div><h5>Dados da escola</h5><p>Nome, contactos, NIF e logótipo.</p></div></div>
+        <div class="cfg-card-b">
+
+          <div class="cfg-logo">
+            <div class="cfg-logo-prev" id="logoPrev">
+              {% if tenant.logo %}<img src="{{ tenant.logo.url }}" alt="Logótipo actual">{% else %}<i class="bi bi-image"></i>{% endif %}
+            </div>
+            <div class="cfg-field">
+              <label for="{{ form_escola.logo.id_for_label }}">{{ form_escola.logo.label }}</label>
+              {{ form_escola.logo }}
+              <span class="cfg-help">{{ form_escola.logo.help_text }}</span>
+              {% for e in form_escola.logo.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}
+            </div>
+          </div>
+
+          <div class="cfg-logo">
+            <div class="cfg-logo-prev" id="logoPrev">
+              {% if tenant.insignia %}<img src="{{ tenant.insignia.url }}" alt="Insignia actual">{% else %}<i class="bi bi-image"></i>{% endif %}
+            </div>
+            <div class="cfg-field">
+              <label for="{{ form_escola.insignia.id_for_label }}">{{ form_escola.insignia.label }}</label>
+              {{ form_escola.insignia }}
+              <span class="cfg-help">{{ form_escola.insignia.help_text }}</span>
+              {% for e in form_escola.insignia.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}
+            </div>
+          </div>
+
+          <div class="row">
+            {% for f in form_escola %}{% if f.name != 'logo' and f.name != 'insignia'%}
+            <div class="{% if f.name == 'endereco' %}col-12{% elif f.name == 'nome' %}col-md-8{% elif f.name == 'nif' %}col-md-4{% else %}col-md-6{% endif %}">
+              <div class="cfg-field">
+                <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} <span style="color:var(--accent-danger)">*</span>{% endif %}</label>
+                {{ f }}
+                {% for e in f.errors %}<span class="cfg-err">{{ e }}</span>{% endfor %}
+              </div>
+            </div>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
+        <div class="cfg-card-f"><span></span><button class="cfg-btn cfg-btn-primary"><i class="bi bi-save"></i> Guardar dados da escola</button></div>
+      </form>
+    </section>
+
+   
+    <section class="cfg-panel" data-panel="2">
       <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Comece aqui.</strong> O ano lectivo actual é a base de tudo: turmas, matrículas, notas e propinas ficam associados a ele. Só um ano pode estar activo de cada vez.</div></div>
 
       <div class="cfg-card">
@@ -183,8 +243,8 @@
       </form>
     </section>
 
-    {# ═════════ PASSO 2 — TRIMESTRES ═════════ #}
-    <section class="cfg-panel" data-panel="2">
+  
+    <section class="cfg-panel" data-panel="3">
       {% if not ano %}
         <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
       {% else %}
@@ -237,8 +297,8 @@
       {% endif %}
     </section>
 
-    {# ═════════ PASSO 3 — CALENDÁRIO ═════════ #}
-    <section class="cfg-panel" data-panel="3">
+
+    <section class="cfg-panel" data-panel="4">
       <div class="cfg-guide"><i class="bi bi-lightbulb"></i><div><strong>Abra apenas o que está em curso.</strong> Estas janelas controlam o que a secretaria e os professores podem fazer agora. Feche inscrições quando as vagas terminarem e abra exames só no período próprio.</div></div>
       <form method="post" class="cfg-card">
         {% csrf_token %}<input type="hidden" name="acao" value="calendario_salvar">
@@ -261,8 +321,8 @@
       </form>
     </section>
 
-    {# ═════════ PASSO 4 — AVALIAÇÃO ═════════ #}
-    <section class="cfg-panel" data-panel="4">
+  
+    <section class="cfg-panel" data-panel="5">
       {% if not ano %}
         <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
       {% else %}
@@ -302,8 +362,8 @@
       {% endif %}
     </section>
 
-    {# ═════════ PASSO 5 — FINANCEIRO ═════════ #}
-    <section class="cfg-panel" data-panel="5">
+    
+    <section class="cfg-panel" data-panel="6">
       {% if not ano %}
         <div class="cfg-msg warning"><i class="bi bi-exclamation-triangle-fill"></i><div>Defina primeiro o ano lectivo actual (passo 1).</div></div>
       {% else %}
@@ -335,8 +395,8 @@
       {% endif %}
     </section>
 
-    {# ═════════ PASSO 6 — INTEGRAÇÕES ═════════ #}
-    <section class="cfg-panel" data-panel="6">
+
+    <section class="cfg-panel" data-panel="7">
       <div class="cfg-guide"><i class="bi bi-shield-lock"></i><div><strong>As chaves de API ficam protegidas:</strong> nunca são mostradas depois de guardadas. Deixe o campo em branco para manter a chave actual.</div></div>
       <form method="post" class="cfg-card">
         {% csrf_token %}<input type="hidden" name="acao" value="integracoes_salvar">
