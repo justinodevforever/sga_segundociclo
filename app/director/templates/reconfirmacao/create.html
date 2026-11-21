@@ -359,6 +359,18 @@
                                             <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.turma.errors.0 }}</div>
                                         {% endif %}
                                     </div>
+
+                                    <div class="form-field">
+                                        <label class="form-label" for="ano">
+                                            Ano Lectivo  <span class="req">*</span>
+                                        </label>
+
+                                            {{form.ano_letivo}}
+
+                                        {% if form.ano_letivo.errors %}
+                                            <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.ano_letivo.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
 
                                 <div class="form-actions fade-up d6">

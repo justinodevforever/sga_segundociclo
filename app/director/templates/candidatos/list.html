@@ -1,0 +1,168 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+    <span class="current">Lista de Candidatos</span>
+{% endblock breadcrumb %}
+
+{% block title %}
+    <h6>Candidatos</h6>
+{% endblock title %}
+
+{% block sub_title %}
+    Lista de todos candidatos
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-list" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+{% endblock topbar_actions %}
+
+
+{% block content %}
+
+    <style>
+        td, th{
+            align-items: start;
+            text-align: start;
+        }
+    </style>
+
+  
+    <div style="display: flex; width: 100%; align-items: center; justify-content: center; flex-direction: column;">
+
+        <div style="display: flex; width: 97%; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            
+            <form action="" method="get"  style="display: flex; width: 100%; gap: 10px;">
+
+                <input type="search" name="busca" value="{% if busca %}{{busca}}{% endif %}" style="border-radius: 4px 0px 0px 4px;"
+                class="form-control" placeholder="Nome ou B.I">
+
+                <button class="btn btn-primary"><i class="fas fa-filter    "></i></i></button>
+                <a href="/candidatos/" style="background-color: #eee;" class="btn">Limpar</a>
+
+            </form>
+        </div>
+
+        <div class="card" style="display:flex; width: 97%; align-self: center;">
+
+            <div style="display: flex; width: 97%; justify-content: space-between; align-items: center;">
+            <h1 style="margin-left: 20px;" class="text-warning"></h1>
+
+            
+            
+        </div>
+
+            <form method="get" class="form-inline mb-3" style="padding: 12px; height: 7px;">
+                <input style='border: 1px solid orange; width: 70px;'
+                    type="number" 
+                    id="per_page" 
+                    name="per_page" 
+                    class="form-control form-control-sm" 
+                    min="1" 
+                    max="200" 
+                    value="{{ per_page|default:20 }}" 
+                    onchange="this.form.submit()"
+                    
+                >
+            </form>
+
+            <div class="card-body" style="border-radius: 4px;">
+                <div class="table-responsive">
+                    <table class="table table-hover" style="font-size: 10pt;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    Nome Completo
+                                    
+                                    <a href="?order_by=nome_completo{% if nome_filter %}&nome_filter={{ nome_filter|urlencode  }}{% endif %}"
+                                    >
+                                    <i class="bi bi-chevron-expand sort-icon"></i>
+                                    </a>
+                                </th>
+
+                                <th>B.I</th>
+                                
+                                <th>Data de nascimento</th>
+                                <th>Género</th>
+                            
+                                <th>Opções</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for candidato in candidatos %}
+                            <tr>
+                                <td>
+                                    {{ candidato.nome_completo }}
+                                    
+                                </td>
+                                <td>{{ candidato.bi }}</td>
+                                <td>{{ candidato.data_nascimento|date:'d/m/Y' }}</td>
+                                <td>{{ candidato.get_genero_display }}</td>
+                                
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url "candidato_detail" candidato.id %}" 
+                                            class="btn btn-outline-primary" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        
+                                        <a href="{% url "candidato_update" candidato.id %}" 
+                                            class="btn btn-outline-warning" title="Editar">
+                                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                                        </a>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <br>Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if inscricoes.has_other_pages %}
+                    <ul class="pagination justify-content-center">
+                            {% if inscricoes.has_previous %}
+                                <li class="page-item">
+
+                                    <a class="page-link" href="?page={{ candidatos.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                        <span class="sr-only">Anterior</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in candidatos.paginator.page_range %}
+                                {% if candidatos.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}&per_page={{per_page}}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        {% if candidatos.has_next %}
+
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ candidatos.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                    <span aria-hidden="true">&raquo;</span>
+                                    <span class="sr-only">Próximo</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock  %}

@@ -285,6 +285,17 @@
                                     {% endif %}
                                 </div>
 
+                                <div class="form-field">
+                                    <label class="form-label" for="e_ultimo">
+                                        É último ano? <span class="req">*</span>
+                                    </label>
+                                    {{form.e_ultimo}}
+                                    
+                                    {% if form.e_ultimo.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.e_ultimo.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
                             </div>
 
                         </div>

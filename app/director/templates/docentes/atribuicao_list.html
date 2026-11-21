@@ -1,0 +1,177 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+  <a href="#">Académico</a><i class="bi bi-chevron-right"></i>
+  <span class="current">Atribuição de Disciplinas</span>
+{% endblock breadcrumb %}
+
+{% block icon %}<i class="bi bi-person-video3"></i>{% endblock icon %}
+{% block title %}Atribuição de Disciplinas{% endblock %}
+{% block sub_title %}Defina que professor lecciona cada disciplina em cada turma{% endblock %}
+
+{% block topbar_actions %}
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'horario_turma' %}" class="fx-btn fx-btn-light"><i class="bi bi-calendar3-week"></i> Horários</a>
+    <a href="{% url 'atribuicao_create' %}" class="fx-btn fx-btn-primary"><i class="bi bi-plus-lg"></i> Nova atribuição</a>
+  </div>
+{% endblock topbar_actions %}
+
+{% block content %}
+{% include "docentes/_ui.html" %}
+
+<style>
+  .at-person { display:flex; align-items:center; gap:12px; }
+  .at-av { width:38px; height:38px; border-radius:11px; background:linear-gradient(135deg,#dbeafe,#ede9fe); color:#3730a3; font-weight:700; font-size:.78rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .at-name { font-weight:600; font-size:.85rem; line-height:1.25; }
+  .at-sub { font-size:.72rem; color:var(--text-muted); }
+  .at-filter { display:grid; grid-template-columns:1.6fr 1fr 1.6fr 1fr auto; gap:14px; align-items:end; }
+  @media (max-width:1100px) { .at-filter { grid-template-columns:1fr 1fr; } }
+  @media (max-width:575px) { .at-filter { grid-template-columns:1fr; } }
+  .aulas-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:700; text-decoration:none; }
+  .aulas-pill.ok { background:#d1fae5; color:#065f46; }
+  .aulas-pill.none { background:#fef3c7; color:#92400e; }
+  .at-search { position:relative; }
+  .at-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:.85rem; }
+  .at-search input { padding-left:36px; }
+</style>
+
+<!-- Estatísticas -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="stat-card sc-blue">
+    <div class="stat-icon"><i class="bi bi-link-45deg"></i></div>
+    <div class="stat-value">{{ stats.total }}</div><div class="stat-label">Atribuições</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-purple">
+    <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+    <div class="stat-value">{{ stats.professores }}</div><div class="stat-label">Professores com turmas</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-green">
+    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="stat-value">{{ stats.turmas }}</div><div class="stat-label">Turmas cobertas</div></div></div>
+  <div class="col-6 col-lg-3"><div class="stat-card sc-warn">
+    <div class="stat-icon"><i class="bi bi-book-fill"></i></div>
+    <div class="stat-value">{{ stats.disciplinas }}</div><div class="stat-label">Disciplinas atribuídas</div></div></div>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="fx-card mb-4">
+  <div class="fx-card-body">
+    <div class="at-filter">
+      <div class="form-field">
+        <label class="form-label">Pesquisar</label>
+        <div class="at-search">
+          <i class="bi bi-search"></i>
+          <input type="text" name="q" value="{{ q }}" class="form-control-custom" placeholder="Professor, disciplina ou turma...">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Ano lectivo</label>
+        <select name="ano" class="form-control-custom">
+          <option value="">Todos</option>
+          {% for a in anos %}<option value="{{ a.pk }}" {% if ano_id == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.designacao }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="f_turma">Turma</label>
+        <select name="turma" id="f_turma" class="js-search-select" data-placeholder="Todas as turmas" data-search="Pesquisar turma...">
+          <option value="">Todas as turmas</option>
+          {% for t in turmas %}<option value="{{ t.pk }}" {% if turma_id == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.designacao }} · {{ t.classe.designacao }}.ª {{ t.curso.nome_abreviado|default:t.curso.nome }} · {{ t.get_periodo_display }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Estado</label>
+        <select name="status" class="form-control-custom">
+          <option value="">Todos</option>
+          <option value="ativa" {% if status == 'ativa' %}selected{% endif %}>Activa</option>
+          <option value="inativa" {% if status == 'inativa' %}selected{% endif %}>Inactiva</option>
+        </select>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="fx-btn fx-btn-primary" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+        <a href="{% url 'atribuicao_list' %}" class="fx-btn fx-btn-light" title="Limpar filtros"><i class="bi bi-arrow-counterclockwise"></i></a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Tabela -->
+<div class="table-card">
+  <div class="card-hdr">
+    <h6 class="section-title mb-0">Professores e disciplinas</h6>
+    <span class="tag tag-blue">{{ page_obj.paginator.count }} registo{{ page_obj.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Professor</th><th>Disciplina</th><th>Turma</th><th>Ano lectivo</th>
+          <th class="text-center">Horário</th><th>Estado</th><th class="text-end">Acções</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in page_obj %}
+        <tr>
+          <td>
+            <div class="at-person">
+              <div class="at-av">{{ a.professor.nome_completo|slice:":2"|upper }}</div>
+              <div>
+                <div class="at-name">{{ a.professor.nome_completo }}</div>
+                <div class="at-sub">{{ a.professor.especialidade|default:"Sem especialidade" }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="at-name">{{ a.disciplina.nome }}</div>
+            <div class="at-sub">{{ a.disciplina.nome_abreviado }} · {{ a.disciplina.get_componente_display }}</div>
+          </td>
+          <td>
+            <div class="at-name">{{ a.turma.designacao }} — {{ a.turma.classe.designacao }}.ª</div>
+            <div class="at-sub">{{ a.turma.curso.nome_abreviado|default:a.turma.curso.nome }} · {{ a.turma.get_periodo_display }}</div>
+          </td>
+          <td>{{ a.turma.ano_lectivo.designacao }}</td>
+          <td class="text-center">
+            <a href="{% url 'horario_turma' %}?turma={{ a.turma_id }}" class="aulas-pill {% if a.total_aulas %}ok{% else %}none{% endif %}">
+              <i class="bi {% if a.total_aulas %}bi-calendar-check{% else %}bi-exclamation-circle{% endif %}"></i>
+              {% if a.total_aulas %}{{ a.total_aulas }} aula{{ a.total_aulas|pluralize }}{% else %}Sem horário{% endif %}
+            </a>
+          </td>
+          <td><span class="tag {% if a.status == 'ativa' %}tag-green{% else %}tag-gray{% endif %}">{{ a.get_status_display }}</span></td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{% url 'horario_create' %}?atribuicao={{ a.pk }}&turma={{ a.turma_id }}" class="fx-icon-btn" title="Marcar aula no horário"><i class="bi bi-calendar-plus"></i></a>
+              <a href="{% url 'atribuicao_update' a.pk %}" class="fx-icon-btn" title="Editar"><i class="bi bi-pencil-square"></i></a>
+              <button type="button" class="fx-icon-btn danger js-delete" title="Remover"
+                      data-url="{% url 'atribuicao_delete' a.pk %}"
+                      data-msg="Remover {{ a.disciplina.nome }} de {{ a.professor.nome_completo }} na turma {{ a.turma.designacao }}? Os horários associados também serão eliminados.">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="fx-empty">
+            <i class="bi bi-person-video3"></i>
+            <b>Nenhuma atribuição encontrada</b>
+            Ajuste os filtros ou atribua a primeira disciplina a um professor.
+            <div class="mt-3"><a href="{% url 'atribuicao_create' %}" class="fx-btn fx-btn-primary"><i class="bi bi-plus-lg"></i> Nova atribuição</a></div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
+    <small class="text-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</small>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a></li>{% endif %}
+      {% for n in page_range %}
+        {% if n == ellipsis %}<li class="page-item disabled"><span class="page-link">…</span></li>
+        {% else %}<li class="page-item {% if n == page_obj.number %}active{% endif %}"><a class="page-link" href="?{{ querystring }}&page={{ n }}">{{ n }}</a></li>{% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a></li>{% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock content %}

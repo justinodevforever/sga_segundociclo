@@ -1,585 +1,480 @@
-{% extends 'base.html' %}
+{% extends 'director/base.html' %}
+
+{% block breadcrumb %}
+    <a href="{% url 'inscricao_list' %}">Inscrições</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <span class="current">Ficha de Inscrição</span>
+
+{% endblock breadcrumb %}
+
+{% block title %}
+    <h6 >Ficha de Inscrição</h6>
+    
+{% endblock title %}
+
+{% block sub_title %}
+    Preencha todos os campos obrigatórios (*) para salvar informações
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-plus" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a href="{% url 'inscricao_list' %}" class="btn btn-primary"> <i class="fa fa-list-alt" aria-hidden="true"></i> Lista</a>
+{% endblock topbar_actions %}
+
 
 {% block content %}
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        {% load static %}
-        <script src="{% static 'js/jquery.inputmask.min.js' %}"></script>
-        <style>
-     
-            :root {
-            --primary-blue: #1E3A8A;
-            --medium-blue: #3B82F6;
-            --light-blue: #60A5FA;
-            --bg-gray: #F3F4F6;
-            --text-dark: #1F2937;
-            --text-gray: #6B7280;
-            --white: #FFFFFF;
-            --border-gray: #E5E7EB;
-            --hover-blue: #1E40AF;
-            --sidebar-width: 260px;
-            --topbar-height: 64px;
+  
+    {% load static %}
+       
+    <style>
+
+        textarea{
+            height: 40px;
         }
 
+        /* ── FORM LAYOUT ── */
+        .form-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        align-items: start;
+        }
+        @media (max-width: 1050px) { .form-layout { grid-template-columns: 1fr; } }
 
-            .container-criar_professor {
-                display: flex;
-                flex-direction: column;
-                width: 80%;
-                background: var(--branco);
-                border-radius: 10px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                margin-bottom: 10px;
-            }
+        /* ── SECTION CARD ── */
+        .section-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: box-shadow .2s;
+        }
+        .section-card:focus-within {
+        box-shadow: 0 0 0 2px rgba(59,130,246,.18);
+        border-color: rgba(59,130,246,.3);
+        }
+        .section-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px;
+        }
+        .sch-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
+        }
+        .sch-blue   { background: rgba(59,130,246,.12);  color: var(--accent); }
+        .sch-cyan   { background: rgba(6,182,212,.12);   color: var(--accent-2); }
+        .sch-green  { background: rgba(16,185,129,.12);  color: var(--accent-4); }
+        .sch-purple { background: rgba(139,92,246,.12);  color: var(--accent-3); }
+        .sch-warn   { background: rgba(245,158,11,.12);  color: var(--accent-warn); }
 
-            .header {
-                display: flex;
-                width: 100%;
-                justify-content: space-between;
-                background: var(--primary-blue);
-                padding: 40px ;
-                text-align: center;
-                position: relative;
-                border-radius: 10px 10px 0px 0px;
-            }
+        .section-card-title {
+        font-family: 'Syne', sans-serif;
+        font-size: .9rem; font-weight: 700;
+        }
+        .section-card-body { padding: 20px; }
 
-            .header h1 {
-                color: var(--white);
-                font-size: 2em;
-                margin-bottom: 10px;
-            }
+        /* ── FORM GRID ── */
+        .fg-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .fg-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .fg-2, .fg-3 { grid-template-columns: 1fr; } }
+        .fg-full { grid-column: 1 / -1; }
 
-            .header p {
-                color: var(--primary-blue);
-                font-size: 0.95em;
-            }
+        /* ── FORM FIELD ── */
+        .form-field { display: flex; flex-direction: column; gap: 6px; }
 
-            .profile-picture-section {
-                padding: 40px;
-                text-align: center;
-                background: var(--border-gray);
-                border-bottom: 3px solid var(--primary-blue);
-            }
+        .form-label {
+        font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: var(--text-muted);
+        display: flex; align-items: center; gap: 5px;
+        }
+        .form-label .req { color: var(--accent-danger); font-size: .85rem; }
+        .form-label .opt {
+        font-size: .62rem; background: rgba(100,116,139,.15);
+        color: var(--text-muted); padding: 1px 6px; border-radius: 4px;
+        font-weight: 600; letter-spacing: 0; text-transform: none;
+        }
 
-            .profile-picture-wrapper {
-                position: relative;
-                display: inline-block;
-            }
+        .form-control-custom {
+        width: 100%;
+        background: var(--bg-base);
+        border: 1.5px solid var(--border);
+        border-radius: 9px;
+        color: var(--text-main);
+        padding: 10px 14px;
+        font-size: .875rem;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s, background .2s;
+        font-family: 'DM Sans', sans-serif;
+        }
+        .form-control-custom::placeholder { color: var(--text-muted); }
+        .form-control-custom:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+        background: var(--bg-card);
+        }
+        .form-control-custom:hover:not(:focus) {
+        border-color: rgba(100,116,139,.5);
+        }
+        .form-control-custom.is-invalid {
+        border-color: var(--accent-danger);
+        box-shadow: 0 0 0 3px rgba(239,68,68,.1);
+        }
+        .form-control-custom.is-valid {
+        border-color: var(--accent-4);
+        box-shadow: 0 0 0 3px rgba(16,185,129,.1);
+        }
 
-            .profile-picture {
-                width: 150px;
-                height: 150px;
-                border-radius: 50%;
-                border: 5px solid var(--primary-blue);
-                object-fit: cover;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            }
+        textarea.form-control-custom { resize: vertical; min-height: 88px; }
 
-            .change-photo-btn {
-                position: absolute;
-                bottom: 5px;
-                right: 5px;
-                background: var(--primary-blue);
-                color: var(--medium-blue);
-                border: none;
-                width: 45px;
-                height: 45px;
-                border-radius: 50%;
-                cursor: pointer;
-                font-size: 1.2em;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-                transition: all 0.3s ease;
-            }
+        select.form-control-custom {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 36px;
+        cursor: pointer;
+        }
+        select.form-control-custom option {
+        background: var(--bg-card); color: var(--text-main);
+        }
 
-            .change-photo-btn:hover {
-                transform: scale(1.1);
-                background: var(--medium-blue);
-                color: var(--primary-blue);
-            }
+        .form-hint {
+        font-size: .72rem; color: var(--text-muted);
+        display: flex; align-items: center; gap: 4px;
+        }
+        .form-hint i { font-size: .75rem; }
 
-            .form-section {
-              
-                padding: 40px;
-            }
+        .invalid-feedback {
+        font-size: .72rem; color: var(--accent-danger);
+        display: flex; align-items: center; gap: 4px;
+        }
 
-            .form-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 25px;
-                margin-bottom: 25px;
-            }
+        /* ── INPUT WITH ICON ── */
+        .input-icon-wrap { position: relative; }
+        .input-icon-wrap i.prefix {
+        position: absolute; left: 12px; top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted); font-size: .9rem;
+        pointer-events: none;
+        }
+        .input-icon-wrap .form-control-custom { padding-left: 36px; }
 
-            .form-group {
-                display: flex;
-                flex-direction: column;
-            }
+        /* ── FORM ACTIONS ── */
+        .form-actions {
+        display: flex; align-items: center; justify-content: flex-end;
+        gap: 12px; padding-top: 4px;
+        flex-wrap: wrap;
+        }
 
-            .form-group.full-width {
-                grid-column: 1 / -1;
-            }
+        .btn-submit {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: linear-gradient(135deg, var(--accent), #2563eb);
+        color: #fff; border: none; border-radius: 10px;
+        padding: 12px 28px; font-size: .9rem; font-weight: 700;
+        cursor: pointer; text-decoration: none;
+        transition: opacity .2s, transform .15s, box-shadow .2s;
+        font-family: 'DM Sans', sans-serif;
+        }
+        .btn-submit:hover {
+        opacity: .92; transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(59,130,246,.45);
+        }
+        .btn-submit:active { transform: translateY(0); }
 
-            .form-group label {
-                color: var(--text-gray);
-                font-weight: 600;
-                margin-bottom: 8px;
-                font-size: 0.95em;
-            }
+        .btn-cancel {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--bg-hover); color: var(--text-muted);
+        border: 1px solid var(--border); border-radius: 10px;
+        padding: 12px 20px; font-size: .88rem; font-weight: 600;
+        cursor: pointer; text-decoration: none;
+        transition: all .18s; font-family: 'DM Sans', sans-serif;
+        }
+        .btn-cancel:hover { color: var(--text-main); background: var(--border); }
 
-            .form-group input,
-            .form-group textarea,
-            .form-group select {
-                padding: 12px 15px;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                font-size: 1em;
-                transition: all 0.3s ease;
-                font-family: inherit;
-            }
-
-            .form-group input:focus,
-            .form-group textarea:focus,
-            .form-group select:focus {
-                outline: none;
-                border-color: var(--medium-blue);
-                box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
-            }
-
-            .form-group textarea {
-                resize: vertical;
-                min-height: 100px;
-            }
-
-            .section-title {
-                color: var(--medium-blue);
-                font-size: 1.3em;
-                margin: 30px 0 20px 0;
-                padding-bottom: 10px;
-                border-bottom: 2px solid var(--primary-blue);
-                display: flex;
-                align-items: center;
-            }
-
-            .section-title::before {
-                content: '';
-                width: 4px;
-                height: 24px;
-                background: var(--primary-blue);
-                margin-right: 12px;
-            }
         
-            .password-toggle {
-                display: flex;
-                align-items: center;
-                margin-top: 10px;
-                color: var(--azul-medio);
-                font-size: 0.9em;
-                cursor: pointer;
-            }
 
-            .password-toggle input[type="checkbox"] {
-                margin-right: 8px;
-            }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-            @media (max-width: 768px) {
-                .form-grid {
-                    grid-template-columns: 1fr;
-                }
+        .alert-info {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--primary-blue);
+            color: var(--medium-blue);
+        }
+    </style>
 
-                .header h1 {
-                    font-size: 1.5em;
-                }
+    <div style="container-fluid">
+        
+        <form action="" method="post" >
 
-                .form-section {
-                    padding: 30px 20px;
-                }
-
-                .button-group {
-                    flex-direction: column;
-                }
-            }
-
-            .alert {
-                padding: 15px 20px;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .alert-info {
-                background: rgba(255, 193, 7, 0.1);
-                border-left: 4px solid var(--primary-blue);
-                color: var(--medium-blue);
-            }
-        </style>
-    </head>
-    <body >
-        <div style="display: flex; justify-content: center; width: 100%; height: 100%">
-
+            {% csrf_token %}       
+        
+            {% if sucesso %}
             
-            <form action="{% url "aluno_update" aluno.id %}" method="post" class="container-criar_professor">
-
-                <div class="header d-flex justify-content-between ">
-                    <h3 class="text-warning">Atualização do estudante</h3>
-                    
-                    <a href="/alunos/" class="btn btn-primary" style="width: 100px;">Listar</a>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>{{sucesso}}</strong>
+                    <button type="button" class="btn-close"
+                    data-bs-dismiss="alert" aria-label="close"
+                    ></button>
                 </div>
+            {% elif erro %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>{{erro}}</strong>
+                    <button type="button" class="btn-close"
+                    data-bs-dismiss="alert" aria-label="close"
+                    ></button>
+                </div>
+            {% endif %}
 
-                {% csrf_token %}
+            <div class="form-layout">
 
-                
-            
-                <div class="form-section" >
+                <div>
 
-                    <div class="alert alert-info">
-                        <span>ℹ️</span>
-                        <span>Preencha todos os campos obrigatórios para salvar as alterações</span>
+                    <div class="section-card fade-up d2" id="sec-1">
+
+                        <div class="section-card-header">
+                            <div class="sch-icon sch-blue"><i class="bi bi-buildings-fill"></i></div>
+                            <span class="section-card-title">1. Informações pessoais</span>
+                        </div>
+
+                        <div class="section-card-body">
+                            <div class="fg-3" style="margin-bottom:16px;">
+
+                                <div class="form-field">
+                                    <label class="form-label" for="nome_completo">
+                                    Nome Completo <span class="req">*</span>
+                                    </label>
+                                    {{form.nome_completo}}
+                                    
+                                    {% if form.nome_completo.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.nome_completo.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="data_nascimento">
+                                        Data de nascimento<span class="req">*</span>
+                                    </label>
+                                    {{form.data_nascimento}}
+                                    
+                                    {% if form.data_nascimento.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.data_nascimento.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="genero">
+                                        Gênero<span class="req">*</span>
+                                    </label>
+                                    {{form.genero}}
+                                    
+                                    {% if form.genero.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.genero.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                    
+                            </div>
+
+                            <div class="fg-3" style="margin-bottom:16px;">
+
+                                <div class="form-field">
+                                    <label class="form-label" for="naturalidade">
+                                    Naturalidade <span class="req">*</span>
+                                    </label>
+                                    {{form.naturalidade}}
+                                    
+                                    {% if form.naturalidade.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.naturalidade.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="provincia">
+                                        Província<span class="req">*</span>
+                                    </label>
+                                    {{form.provincia}}
+                                    
+                                    {% if form.provincia.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.provincia.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="municipio">
+                                        Município<span class="req">*</span>
+                                    </label>
+                                    {{form.municipio}}
+                                    
+                                    {% if form.municipio.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.municipio.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                    
+                            </div>
+
+                            <div class="fg-3" style="margin-bottom:16px;">
+
+                                <div class="form-field">
+                                    <label class="form-label" for="bi">
+                                        Nº de B.I <span class="req">*</span>
+                                    </label>
+                                    <div class="input-icon-wrap">
+                                        {{form.bi}}
+                                    </div>
+
+                                    {% if form.bi.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.bi.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="emitido_em">
+                                        Local da emissão do B.I <span class="req">*</span>
+                                    </label>
+                                    <div class="input-icon-wrap">
+                                        {{form.emitido_em}}
+                                    </div>
+
+                                    {% if form.emitido_em.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.emitido_em.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="data_emissao_bi">
+                                        Data da emissão<span class="req">*</span>
+                                    </label>
+                                    {{form.data_emissao_bi}}
+                                    
+                                    {% if form.data_emissao_bi.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.data_emissao_bi.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-field">
+                                    <label class="form-label" for="data_expiracao_bi">
+                                        Data de expiração<span class="req">*</span>
+                                    </label>
+                                    {{form.data_expiracao_bi}}
+                                    
+                                    {% if form.data_expiracao_bi.errors %}
+                                    <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.data_expiracao_bi.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                
+                            
+                            </div>
+                        </div>
                     </div>
-                    
-                
-                    {% if sucesso %}
-                    
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <strong>{{sucesso}}</strong>
-                            <button type="button" class="btn-close"
-                            data-bs-dismiss="alert" aria-label="close"
-                            ></button>
-                        </div>
-                    {% elif erro %}
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <strong>{{erro}}</strong>
-                            <button type="button" class="btn-close"
-                            data-bs-dismiss="alert" aria-label="close"
-                            ></button>
-                        </div>
-                    {% endif %}
 
-                    <div class="form-grid">
-
+                    <div class="section-card fade-up d3" id="sec-2">
                         
-                        <div class="form-group">
-
-                            <label for="nome_completo">
-                                
-                                <span >
-                                    Nome Completo
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.nome_completo}}
-                                
-                            {% if form.nome_completo.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.nome_completo.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-                        <div class="form-group">
-
-                            <label for="nome_pai">
-                                
-                                <span >
-                                    Filho de:
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.nome_pai}}
-                                
-                            {% if form.nome_pai.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.nome_pai.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-                        <div class="form-group">
-
-                            <label for="nome_mae">
-                                
-                                <span >
-                                    E de:
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.nome_mae}}
-                                
-                            {% if form.nome_mae.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.nome_mae.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-                        <div class="form-group">
-
-                            <label for="naturalidade">
-                                
-                                <span >
-                                    Natural:
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.naturalidade}}
-                                
-                            {% if form.naturalidade.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.naturalidade.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-                        <div class="form-group">
-
-                            <label for="provincia">
-                                
-                                <span >
-                                    Província:
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.provincia}}
-                                
-                            {% if form.provincia.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.provincia.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-                        <div class="form-group">
-
-                            <label for="municipio">
-                                
-                                <span >
-                                    Município:
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                           {{form.municipio}}
-                                
-                            {% if form.municipio.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.municipio.errors}}
-                                </div>
-                            {% endif %}
-                            
+                        <div class="section-card-header">
+                            <div class="sch-icon sch-cyan"><i class="fa fa-users" aria-hidden="true"></i></div>
+                            <span class="section-card-title">2. Afilhação</span>
                         </div>
 
-                        <div class="form-group">
+                        <div class="section-card-body">
                             
-                            <label for="data_nascimento">
+                            <div class="fg-2" style="margin-bottom:16px;">
 
-                                <span >
-                                   Data de nascimento: 
-                                    <span class="text-danger">*</span>
-                                </span>
-                            </label>
-
-                            {{form.data_nascimento}}
-
-                            {% if form.data_nascimento.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.data_nascimento.errors}}
+                                <div class="form-field">
+                                    <label class="form-label" for="nome_pai">
+                                        Nome do pai  <span class="req">*</span>
+                                    </label>
+                                        {{form.nome_pai}}
+                                    {% if form.nome_pai.errors %}
+                                        <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.nome_pai.errors.0 }}</div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
-                            
-                        </div>
 
-                        <div class="form-group">
+                                <div class="form-field">
+                                    <label class="form-label" for="nome_mae">
+                                        Nome da mãe  <span class="req">*</span>
+                                    </label>
+                                        {{form.nome_mae}}
 
-                            <label for="telefone">
-                    
-                                Telefone
-                                 
-                            </label>
-
-                            {{form.telefone}}
-
-                            {% if form.telefone.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.telefone.errors}}
+                                    {% if form.nome_mae.errors %}
+                                        <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.nome_mae.errors.0 }}</div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
-
+                            </div>
                         </div>
-
-                        <div class="form-group">
-
-                            <label for="bi">
-
-                                B.I
-                                <span class="text-danger">*</span>  
-                            </label>
-
-                            {{form.bi}}
-
-                            {% if form.bi.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.bi.errors}}
-                                </div>
-                            {% endif %}
-
-                        </div>
-
-                        <div class="form-group">
-
-                            <label for="data_emissao_bi">
-
-                                Data da emissão
-                                <span class="text-danger">*</span>
-                            </label>
-
-                            {{form.data_emissao_bi}}
-
-                            {% if form.data_emissao_bi.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.data_emissao_bi.errors}}
-                                </div>
-                            {% endif %}
-
-                        </div>
-
-                        <div class="form-group">
-                            
-                            <label for="genero">
-
-                                <span >
-                                    Género 
-                                    <span class="text-danger">*</span>
-                                </span>
-                    
-                            </label>
-                            {{form.genero}}
-
-                            {% if form.genero.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.genero.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-
-                        <div class="form-group">
-                            
-                            <label for="endereco_completo">
-
-                                <span >
-                                    Endereço completo 
-                                </span>
-                    
-                            </label>
-                            {{form.endereco_completo}}
-
-                            {% if form.endereco_completo.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.endereco_completo.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-
-                        <div class="form-group">
-                            
-                            <label for="bairro">
-
-                                <span >
-                                    Bairro 
-                                </span>
-                    
-                            </label>
-                            {{form.bairro}}
-
-                            {% if form.bairro.errors %}
-                                <div class="text-danger" style="margin-bottom: -40px; ">
-                                    {{form.bairro.errors}}
-                                </div>
-                            {% endif %}
-                            
-                        </div>
-
-                        
                     </div>
-                    
-                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
 
-                        <button type="submit" class="btn btn-success" style="width: 80%; ">
-                            Cadastrar
+
+                    <div class="section-card fade-up d3" id="sec-2">
+
+                        <div class="section-card-header">
+                            <div class="sch-icon sch-cyan"><i class="bi bi-telephone-fill"></i></div>
+                            <span class="section-card-title">3. Contactos & Endereço</span>
+                        </div>
+
+                        <div class="section-card-body">
+                            
+                            <div class="fg-2" style="margin-bottom:16px;">
+
+                                <div class="form-field">
+                                    <label class="form-label" for="telefone">
+                                        Telefone  <span class="opt">opcional</span>
+                                    </label>
+                                    <div class="input-icon-wrap">
+                                        <i class="bi bi-phone-fill prefix"></i>
+                                        {{form.telefone}}
+                                    </div>
+
+                                    {% if form.telefone.errors %}
+                                        <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.telefone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                 <div class="form-field">
+                                    <label class="form-label" for="bairro">
+                                        Bairro <span class="opt">opcional</span>
+                                    </label>
+                                    <div class="input-icon-wrap ">
+                                        <i class="fa fa-address-card prefix" aria-hidden="true"></i>
+                                        {{form.bairro}}
+                                    </div>
+
+                                    {% if form.bairro.errors %}
+                                        <div class="invalid-feedback"><i class="bi bi-exclamation-circle"></i> {{ form.bairro.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="form-actions fade-up d6" style="padding: 20px;">
+
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fa fa-plus" aria-hidden="true"></i> Cadastrar
                         </button>
-
                     </div>
 
                 </div>
 
-            </form>
-        </div>
-        <script>
-            function formatCurrency(input, min, max) {
-                // Remove tudo que não for número ou vírgula/ponto
-                let value = input.value.replace(/[^\d.,]/g, '').replace(',', '.');
-                console.log(value)
+                
+                </div>
 
-                // Se não for número válido
-                if (isNaN(value) || value === "") {
-                    input.value = "";
-                    return;
-                }
+        </form>
+    </div>
 
-                let num = parseFloat(value);
-
-                // Verifica limites
-                if (num < min || num > max) {
-                    alert(`Valor fora do intervalo permitido (${min} - ${max})`);
-                    input.value = "";
-                    return;
-                }
-
-
-
-                // Formata como moeda (pt-BR usa vírgula como decimal)
-                input.value = num.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 3
-                });
-
-
-            }
-
-            function formatDecimalPeso(input, min, max) {
-              let value = input.value.replace(',', '.');
-              if (isNaN(value)) {
-                input.value = "";
-                return;
-              }
-              let num = parseFloat(value).toFixed(3); 
-
-              if (num < min || num > max) {
-                alert("Valor fora do intervalo permitido");
-                input.value = "";
-              } else {
-                input.value = num;
-              }
-            }
-            
-            document.getElementById("la").addEventListener("blur", function(){
-                formatDecimalPeso(this, 1, 9999999);
-            });
-            
-            document.getElementById("valor").addEventListener("blur", function(){
-              formatCurrency(this, 0, 9999999999999999);
-            });
-            </script>
-            
-    </body>
-    </html>
 {% endblock content %}

@@ -1,0 +1,71 @@
+
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+    <td width="12%" align="left">
+        {% if escola.logo_uri %}<img src="{{ escola.logo_uri }}" width="48" height="48" />{% endif %}
+    </td>
+    <td width="62%" align="center">
+        <div class="cab-escola">{{ escola.nome }}</div>
+        <div class="cab-peq">
+            {% if escola.endereco %}{{ escola.endereco }}{% endif %}
+            {% if escola.telefone %} &nbsp;|&nbsp; Tel: {{ escola.telefone }}{% endif %}
+            {% if escola.email %} &nbsp;|&nbsp; {{ escola.email }}{% endif %}
+            {% if escola.nif %} &nbsp;|&nbsp; NIF: {{ escola.nif }}{% endif %}
+        </div>
+    </td>
+    <td width="26%" align="right">
+        <table cellpadding="0" cellspacing="0" align="right">
+        <tr>
+            <td class="ref-box">
+                <div class="ref-lab">Nº DO COMPROVATIVO</div>
+                <div class="ref-num">{{ referencia }}</div>
+            </td>
+            {% if qr %}<td style="padding-left: 4pt;"><img src="{{ qr }}" width="38" height="38" /></td>{% endif %}
+        </tr>
+        </table>
+    </td>
+</tr>
+</table>
+
+<div style="font-size: 3pt;">&nbsp;</div>
+
+
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+    <td width="72%" class="barra">{{ titulo|upper }}</td>
+    <td width="28%" class="{% if tipo == 'inst' %}via-inst{% else %}via-cli{% endif %}">{{ via|upper }}</td>
+</tr>
+</table>
+
+<div style="font-size: 4pt;">&nbsp;</div>
+
+
+{% for s in seccoes %}
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td colspan="4" class="sec-t">{{ s.titulo }}</td></tr>
+    {% for r in s.linhas %}
+    <tr>
+        <td class="l">{{ r.0 }}</td><td class="v">{{ r.1 }}</td>
+        <td class="l">{{ r.2 }}</td><td class="v">{{ r.3 }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<div style="font-size: 4pt;">&nbsp;</div>
+{% endfor %}
+
+
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td colspan="5" height="9mm">&nbsp;</td></tr>
+<tr>
+    <td width="42%" class="ass-linha"><strong> {{request.user.nome_completo}} </strong></td>
+    <td width="16%">&nbsp;</td>
+    <td width="42%" class="ass-linha">
+        <strong> {{nome_completo}} </strong>
+    </td>
+</tr>
+</table>
+
+<div style="font-size: 4pt;">&nbsp;</div>
+<div class="aviso">{{ aviso }}</div>
+<div style="font-size: 3pt;">&nbsp;</div>
+<div class="rodape">Emitido em {{ emitido_em }} por {{ emitido_por }} &nbsp;|&nbsp; Documento processado por computador</div>

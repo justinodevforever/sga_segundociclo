@@ -3,11 +3,11 @@ from .views import *
 
 urlpatterns = [
     
-    path('', dashboard_diretor, name='dashboard_diretor'),
+    path('', dashboard, name='dashboard'),
+    path('dashboard/', dashboard_diretor, name='dashboard_diretor'),
     
     path("director/configuracoes/", ConfiguracoesEscolaView.as_view(), name="configuracoes_escola"),
     
-    path('dashboard/', dashboard, name='dashboard'),
 
     path('usarios/', usuario_list, name='usuario_list'),
     path('usarios/<uuid:usuario_id>/', usuario_datail, name='usuario_datail'),
@@ -68,15 +68,23 @@ urlpatterns = [
     path('trimestres/<uuid:trimestre_id>/', trimestre_detail, name='trimestre_detail'),
     path('trimestres/<uuid:trimestre_id>/excluir/', trimestre_delete, name='trimestre_delete'),
 
-    # path('financeiro/', financeiro_dashboard, name='financeiro_dashboard'),
-    # path('financeiro/contas/', financeiro_contas_list, name='financeiro_contas_list'),
-    # path('financeiro/contas/<uuid:conta_id>/', financeiro_conta_detail, name='financeiro_conta_detail'),
+    path("atribuicoes/", atribuicao_list, name="atribuicao_list"),
+    path("atribuicoes/nova/", atribuicao_create, name="atribuicao_create"),
+    path("atribuicoes/<int:pk>/editar/", atribuicao_update, name="atribuicao_update"),
+    path("atribuicoes/<int:pk>/eliminar/", atribuicao_delete, name="atribuicao_delete"),
+
+    # Horários
+    path("horarios/", horario_turma_list, name="horario_turma"),
+    path("horarios/novo/", horario_create, name="horario_create"),
+    path("horarios/<uuid:pk>/editar/", horario_update, name="horario_update"),
+    path("horarios/<uuid:pk>/eliminar/", horario_delete, name="horario_delete"),
+    path("horarios/turma/<uuid:turma_id>/pdf/", horario_pdf, name="horario_pdf"),
 
     
     path('horarios/turma/<uuid:turma_id>/', horario_turma, name='horario_turma'),
     path('horarios/professor/', horario_professor, name='horario_professor'),
     path('horarios/professor/<uuid:professor_id>/', horario_professor, name='horario_professor_detail'),
-    path('horarios/turma/<uuid:turma_id>/criar/', horario_create, name='horario_create'),
+    path('horarios/turma/<uuid:turma_id>/criar/', horario_create1, name='horario_create'),
  
     
     # path('configuracoes/escola/', configuracoes_escola, name='configuracoes_escola'),

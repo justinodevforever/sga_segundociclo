@@ -21,7 +21,7 @@ from ..db.decorators import role_required
 def _turmas_permitidas(user):
     if user.is_staff:
         return Turma.objects.select_related("curso", "ano_lectivo")
-    return (Turma.objects.filter(atribuicaodocente__professor__utilizador=user)
+    return (Turma.objects.filter(atribuicao__professor__utilizador=user)
             .select_related("curso", "ano_lectivo").distinct())
 
 
@@ -218,10 +218,11 @@ def lancar_exame(request, turma_id, disciplina_id):
 
 @login_required
 def pauta_trimestral(request, turma_id, trimestre_id):
+    print('$$$$$$$$$$$$$$$$$$$')
     turma = _turma_ou_403(request.user, turma_id)
     trimestre = get_object_or_404(Trimestre, pk=trimestre_id, ano_lectivo=turma.ano_lectivo)
     disciplinas = list(Disciplina.objects.filter(
-        planocurricular__curso=turma.curso, planocurricular__classe=turma.classe).order_by("nome"))
+        atribuicao__turma__curso=turma.curso, atribuicao__turma__classe=turma.classe).order_by("nome"))
     regra = obter_regra(turma.ano_lectivo, turma.classe)
     res = {(r.matricula_id, r.disciplina_id): r for r in ResultadoTrimestral.objects.filter(
         matricula__turma=turma, trimestre=trimestre)}

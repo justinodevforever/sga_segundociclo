@@ -14,17 +14,17 @@
   <div class="p-3">
     <div class="row g-3">
       {% if form.aluno %}
-      <div class="col-12">
-        <div class="form-field">
-          <label class="form-label" for="aluno_busca">Aluno <span class="req">*</span></label>
-          <div class="input-icon-wrap"><i class="bi bi-search prefix"></i>
-            <input type="text" id="aluno_busca" class="form-control-custom" value="{{ aluno_nome }}"
-                   placeholder="Escreva o nome, nº de processo ou B.I. (mín. 2 letras)" autocomplete="off"></div>
-          {{ form.aluno }}
-          {% for e in form.aluno.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-hint"><i class="bi bi-info-circle"></i> Escolha o aluno na lista que aparece ao escrever.</div>
+        <div class="col-12">
+          <div class="form-field">
+            <label class="form-label" for="aluno_busca">Aluno <span class="req">*</span></label>
+            <div class="input-icon-wrap"><i class="bi bi-search prefix"></i>
+              <input type="text" id="aluno_busca" class="form-control-custom" value="{{ aluno_nome }}"
+                    placeholder="Escreva o nome, nº de processo ou B.I. (mín. 2 letras)" autocomplete="off"></div>
+            {{ form.aluno }}
+            {% for e in form.aluno.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-hint"><i class="bi bi-info-circle"></i> Escolha o aluno na lista que aparece ao escrever.</div>
+          </div>
         </div>
-      </div>
       {% endif %}
       {% for field in form %}{% if not field.is_hidden %}
       <div class="col-md-6">

@@ -29,7 +29,9 @@
 {% endblock %}
 
 {% block topbar_actions %}
+
   {% if conta %}
+  
     <a href="{% url 'conta_detail' conta.pk %}" class="btn-action btn-secondary">
       <i class="bi bi-arrow-left"></i> Cancelar
     </a>

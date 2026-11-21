@@ -226,18 +226,6 @@
   .empty-state p { font-size: .82rem; color: var(--text-sub); }
 </style>
 
-{% if messages %}
-  {% for message in messages %}
-  <div style="background:{% if message.tags == 'success' %}#d1fae5{% else %}#fef3c7{% endif %};
-              border-left:4px solid {% if message.tags == 'success' %}#059669{% else %}#f59e0b{% endif %};
-              border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:10px;
-              font-size:.83rem; margin-bottom:16px;" class="fade-up">
-    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% else %}exclamation-triangle{% endif %}"
-       style="color:{% if message.tags == 'success' %}#059669{% else %}#d97706{% endif %};"></i>
-    {{ message }}
-  </div>
-  {% endfor %}
-{% endif %}
 
 <!-- Banner de perfil -->
 <div class="perfil-banner fade-up">

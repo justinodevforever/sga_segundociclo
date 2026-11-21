@@ -93,10 +93,11 @@ class PagamentoForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        conta_aluno_id = kwargs.pop('conta_aluno_id', None)
+        conta = kwargs.pop('conta', None)
         super().__init__(*args, **kwargs)
-        if conta_aluno_id:
-            self.fields['conta_aluno'].initial = conta_aluno_id
+        if conta:
+            self.fields['conta_aluno'].initial = conta.id
+            self.fields['valor'].initial = conta.valor_propina_mensal
             self.fields['conta_aluno'].widget = forms.HiddenInput()
         self.fields['data_pagamento'].initial = timezone.now().date()
 

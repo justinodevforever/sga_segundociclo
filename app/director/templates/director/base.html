@@ -774,7 +774,7 @@
 
     <!-- ═══ PRINCIPAL ═══ -->
     <div class="nav-label">Principal</div>
-    <a href="{% url 'dashboard_diretor' %}" class="nav-link {% if secao == 'dashboard_director' %}active{% endif %}">
+    <a href="{% url 'dashboard_diretor' %}" class="nav-link {% if secao == 'dashboard' %}active{% endif %}">
       <i class="bi bi-grid-1x2"></i> Dashboard
     </a>
 
@@ -782,7 +782,7 @@
     <div class="nav-label">Académico</div>
 
     <!-- Gestão de Alunos -->
-    <div class="nav-group {% if secao == 'inscricoes' or secao == 'matriculas' or secao == 'confirmacoes' or secao == 'alunos' or secao == 'turmas' %}open{% endif %}">
+    <div class="nav-group {% if secao == 'inscricoes' or secao == 'candidatos' or secao == 'matriculas' or secao == 'confirmacoes' or secao == 'alunos' or secao == 'turmas' %}open{% endif %}">
       <button type="button" class="nav-group-toggle" aria-expanded="false">
         <span class="ng-icon"><i class="bi bi-person-badge"></i></span>
         Gestão de Alunos
@@ -790,10 +790,13 @@
       </button>
       <div class="nav-submenu">
         <div class="nav-submenu-inner">
-          <a href="{% url 'inscricao_create' %}" class="nav-link {% if secao == 'inscricoes' %}active{% endif %}">
+          <a href="{% url 'candidato_list' %}" class="nav-link {% if secao == 'candidatos' %}active{% endif %}">
+            <i class="bi bi-clipboard-plus"></i> Candidatos
+          </a>
+          <a href="{% url 'inscricao_list' %}" class="nav-link {% if secao == 'inscricoes' %}active{% endif %}">
             <i class="bi bi-clipboard-plus"></i> Inscrições
           </a>
-          <a href="{% url 'matricula_create' %}" class="nav-link {% if secao == 'matriculas' %}active{% endif %}">
+          <a href="{% url 'matricula_list' %}" class="nav-link {% if secao == 'matriculas' %}active{% endif %}">
             <i class="bi bi-journal-check"></i> Matrículas
           </a>
           <a href="{% url 'confirmar' %}" class="nav-link {% if secao == 'confirmacoes' %}active{% endif %}">
@@ -810,7 +813,7 @@
     </div>
 
     <!-- Estrutura Escolar -->
-    <div class="nav-group {% if secao == 'ano_letivos' or secao == 'disciplinas' or secao == 'periodos' or secao == 'trimestres' or secao == 'cursos' or secao == 'classes' %}open{% endif %}">
+    <div class="nav-group {% if secao == 'ano_letivos' or secao == 'horarios' or secao == 'atribuicoes' or secao == 'disciplinas' or secao == 'periodos' or secao == 'trimestres' or secao == 'cursos' or secao == 'classes' %}open{% endif %}">
       <button type="button" class="nav-group-toggle" aria-expanded="false">
         <span class="ng-icon"><i class="bi bi-diagram-3"></i></span>
         Estrutura Escolar
@@ -824,16 +827,16 @@
           <a href="{% url 'trimestre_list' %}" class="nav-link {% if secao == 'trimestres' %}active{% endif %}">
             <i class="bi bi-calendar3-range"></i> Trimestres
           </a>
-          <a href="{% url 'periodo_list' %}" class="nav-link {% if secao == 'periodos' %}active{% endif %}">
-            <i class="bi bi-hourglass-split"></i> Períodos
-          </a>
           <a href="{% url 'curso_list' %}" class="nav-link {% if secao == 'cursos' %}active{% endif %}">
-            <i class="bi bi-journal-bookmark-fill"></i> Cursos
+            <i class="bi bi-calendar3-range"></i> Cursos
           </a>
           <a href="{% url 'disciplina_list' %}" class="nav-link {% if secao == 'disciplinas' %}active{% endif %}">
             <i class="bi bi-book-fill"></i> Disciplinas
           </a>
-          <a href="#" class="nav-link {% if secao == 'horarios' %}active{% endif %}">
+          <a href="{% url 'atribuicao_list' %}" class="nav-link {% if secao == 'atribuicoes' %}active{% endif %}">
+            <i class="bi bi-person-video3"></i> Atribuição de Disciplinas
+          </a>
+          <a href="{% url 'horario_turma' %}" class="nav-link {% if secao == 'horarios' %}active{% endif %}">
             <i class="bi bi-calendar3"></i> Horários
           </a>
           <a href="{% url 'classe_list' %}" class="nav-link {% if secao == 'classes' %}active{% endif %}">
@@ -999,7 +1002,7 @@
 
   <div style="padding: 18px 26px 0;">
     <nav class="breadcrumb-bar fade-up d1">
-      <a href="/director/dashboard/"><i class="bi bi-house-fill"></i> Início</a>
+      <a href="/"><i class="bi bi-house-fill"></i> Início</a>
       <i class="bi bi-chevron-right"></i>
       {% block breadcrumb %}{% endblock breadcrumb %}
     </nav>

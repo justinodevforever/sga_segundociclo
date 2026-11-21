@@ -1,15 +1,15 @@
 {% extends "director/base.html" %}
 
 {% block breadcrumb %}
-    <span class="current">Lista de alunos</span>
+    <span class="current">Lista de Matrículas</span>
 {% endblock breadcrumb %}
 
 {% block title %}
-    <h6>Alunos</h6>
+    <h6>Matrículas</h6>
 {% endblock title %}
 
 {% block sub_title %}
-    Lista de todos alunos cadastrados
+    Lista de todas matrículas
 {% endblock sub_title %}
 
 {% block icon %}
@@ -17,7 +17,7 @@
 {% endblock icon %}
 
 {% block topbar_actions %}
-    <a href="" class="btn btn-primary"><i class="fa fa-plus" aria-hidden="true" > Nova</i></a>
+    <a href="{% url 'matricula_create' %}" class="btn btn-primary"><i class="fa fa-plus" aria-hidden="true" > </i>Nova</a>
 {% endblock topbar_actions %}
 
 
@@ -35,27 +35,22 @@
 
         <div style="display: flex; width: 97%; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             
-            <form action="/matriculas/" method="get"  style="display: flex; width: 100%; gap: 10px;">
+            <form action="" method="get"  style="display: flex; width: 100%; gap: 10px;">
 
-                <input type="search" name="busca" style="border-radius: 4px 0px 0px 4px;"
-                class="form-control" placeholder="Nome, nº matricula, nº de processo">
+                <input type="search" name="busca" value="{% if busca %}{{busca}}{% endif %}" style="border-radius: 4px 0px 0px 4px;"
+                class="form-control" placeholder="Nome ou B.I">
 
+                <select name="ano_lectivo" id="ano_lectivo" class="form-control">
+                    <option value="">Todos anos lectivos</option>
 
-                <select name="ano_lectivo" id="ano_lectivo" class="form-control" 
-                style="border-radius: 4px 0px 0px 4px; ">
                     {% for ano in anos_lectivos %}
-                        <option value="{{ano.id}}" {% if ano.activo == True %}selected{% endif %}>{{ano}}</option>
+                        <option value="{{ano.id}}" {% if ano.id == ano_lectivo_id %}selected{% endif %}>{{ano.designacao}}</option>
                     {% endfor %}
                 </select>
 
-
-                <select name="turma" id="turma" class="form-control" style="border-radius: 4px 0px 0px 4px;">
-                    {% for turma in turmas %}
-                        <option value="{{turma.id}}" >{{turma}}</option>
-                    {% endfor %}
-                </select>
 
                 <button class="btn btn-primary"><i class="fas fa-filter    "></i></i></button>
+                <a href="/inscricoes/" style="background-color: #eee;" class="btn">Limpar</a>
 
             </form>
         </div>
@@ -97,38 +92,51 @@
                                     </a>
                                 </th>
                                 
-                                <th>Data de nascimento</th>
-                                <th>Género</th>
-                                <th>Telefone</th>
+                                <th>B.I</th>
+                                <th>Curso</th>
+                                <th>Estado</th>
                             
                                 <th>Opções</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for funcionario in funcionarios %}
+                            {% for matricula in matriculas %}
                             <tr>
-                                <td>{{ funcionario.nome_completo }}</td>
-                                <td>{{ funcionario.data_nascimento|date:'d/m/Y' }}</td>
-                                <td>{{ funcionario.get_genero_display }}</td>
-                                <td>{{ funcionario.telefone }}</td>
+                                <td>{{ matricula.aluno.nome_completo }}</td>
+                                <td>{{ matricula.aluno.bi }}</td>
+                                <td>{{ matricula.turma.curso.nome }}</td>
+                                {% if matricula.status == 'Concluída' %}
+                                    <td style="color: blue;">{{ matricula.get_status_display }}</td>
+                                {% elif matricula.status == 'Cancelada' %}
+                                    <td style="color: red;">{{ matricula.get_status_display }}</td>
+                                {% elif matricula.status == 'Activa' %}
+                                    <td style="color: green;">Activa</td>
+                                {% elif matricula.status == 'Transferida' %}
+                                    <td style="color: orange;">{{ matricula.get_status_display }}</td>
+                                {% elif matricula.status == 'Desistente' %}
+                                    <td style="color: red;">{{ matricula.get_status_display }}</td>
+                                {% elif matricula.status == 'Trancamento' %}
+                                    <td style="color: orangered;">{{ matricula.get_status_display }}</td>
+                                {% endif %}
+                                
                                 
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url "funcionario_detail" funcionario.id %}" 
+                                        <a href="{% url "matricula_detail" matricula.id %}" 
                                             class="btn btn-outline-primary" title="Ver detalhes">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         
-                                        <a href="{% url "funcionario_edit" funcionario.id %}" 
+                                        <a href="{% url "matricula_update" matricula.id %}" 
                                             class="btn btn-outline-warning" title="Editar">
                                             <i class="fa fa-pencil" aria-hidden="true"></i>
                                         </a>
-
-                                        <button onclick="confirmardelecao('{{funcionario.id}}')"
-                                        class="btn btn-outline-danger" title="Deletar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                        
+                                        {% if matricula.status == 'Activa' %}
+                                            <a href="{% url "comprovativo_matricula" matricula.id %}" target="_blank"
+                                            class="btn btn-outline-danger" title="Comprovativo">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -144,20 +152,20 @@
                     </table>
                 </div>
 
-                {% if funcionarios.has_other_pages %}
+                {% if inscricoes.has_other_pages %}
                     <ul class="pagination justify-content-center">
-                            {% if funcionarios.has_previous %}
+                            {% if inscricoes.has_previous %}
                                 <li class="page-item">
 
-                                    <a class="page-link" href="?page={{ funcionarios.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
+                                    <a class="page-link" href="?page={{ inscricoes.previous_page_number }}&per_page={{per_page}}" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                         <span class="sr-only">Anterior</span>
                                     </a>
                                 </li>
                             {% endif %}
 
-                            {% for num in funcionarios.paginator.page_range %}
-                                {% if funcionarios.number == num %}
+                            {% for num in inscricoes.paginator.page_range %}
+                                {% if inscricoes.number == num %}
                                     <li class="page-item active">
                                         <span class="page-link">{{ num }}</span>
                                     </li>
@@ -167,10 +175,10 @@
                                     </li>
                                 {% endif %}
                             {% endfor %}
-                        {% if funcionarios.has_next %}
+                        {% if inscricoes.has_next %}
 
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ funcionarios.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
+                                <a class="page-link" href="?page={{ inscricoes.next_page_number }}&per_page={{per_page}}" aria-label="Próximo">
                                     <span aria-hidden="true">&raquo;</span>
                                     <span class="sr-only">Próximo</span>
                                 </a>
@@ -181,88 +189,4 @@
             </div>
         </div>
     </div>
-
-    <div id="modalconfirmacao" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 300px;">
-            <h3>confirmar exclusão</h3>
-            <p id="mensagemconfirmacao">Tem certeza que deseja deletar este professor?</p>
-
-            <input type="password" class="form-control" autocomplete="new-password"
-                id="password" placeholder="Confirme sua senha" name="password" required>
-                
-            <div id="sms" style="color: red;"></div>
-            
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="fecharmodal()" class="btn" style="background: #6c757d; color: white; margin-right: 10px;">
-                    sair
-                </button>
-                <button onclick="deletarItem()" class="btn btn-danger">
-                    confirmar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let itemparadeletar = null;
-        
-        function confirmardelecao(itemid) {
-            itemparadeletar = itemid;
-            document.getElementById('modalconfirmacao').style.display = 'block';
-        }
-        
-        function fecharmodal() {
-            document.getElementById('modalconfirmacao').style.display = 'none';
-            itemparadeletar = null;
-            location.reload()
-        }
-        
-        async function deletarItem() {
-            const passwordInput = document.getElementById('password');
-            const sms = document.getElementById('sms');
-
-            if (!passwordInput || passwordInput.value.trim() === '') {
-            alert('O campo senha é obrigatório!');
-            return;
-            }
-
-            const password = passwordInput.value;
-
-            try {
-            const response = await fetch(`/funcionarios/${itemparadeletar}/excluir/`, {
-                method: 'POST',
-                headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                password: password
-                })
-            });
-
-            if (response.ok) {
-                sms.innerText = "Funcionário eliminado com sucesso!";
-                sms.style.color = "green";
-              
-            } else {
-                const data = await response.json();
-                sms.innerText = data.error || "Erro ao deletar o item!";
-                sms.style.color = "red";
-            }
-
-            } catch (error) {
-            console.log(error);
-            sms.innerText = "Erro de conexão com o servidor.";
-            sms.style.color = "red";
-            }
-        }
-        
-        
-        document.getElementById('modalconfirmacao').onclick = (e)=>{
-            if (e.target === this) {
-                fecharmodal();
-            }
-        }
-    </script>
-
 {% endblock  %}

@@ -1,0 +1,144 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+  <a href="#">Académico</a><i class="bi bi-chevron-right"></i>
+  <a href="{% url 'horario_turma' %}">Horários</a><i class="bi bi-chevron-right"></i>
+  <span class="current">{% if obj %}Editar aula{% else %}Nova aula{% endif %}</span>
+{% endblock breadcrumb %}
+
+{% block icon %}<i class="bi bi-calendar-plus-fill"></i>{% endblock icon %}
+{% block title %}{% if obj %}Editar aula{% else %}Marcar aula no horário{% endif %}{% endblock %}
+{% block sub_title %}{% if turma %}Turma {{ turma.designacao }} — {{ turma.classe.designacao }}.ª {{ turma.curso.nome_abreviado|default:turma.curso.nome }}{% else %}Escolha a atribuição, o dia e a hora da aula{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% if turma %}{% url 'horario_turma' %}?turma={{ turma.pk }}{% else %}{% url 'horario_turma' %}{% endif %}" class="fx-btn fx-btn-light"><i class="bi bi-arrow-left"></i> Voltar ao horário</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+{% include "docentes/_ui.html" %}
+
+<style>
+  .day-picker { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  .day-picker input { position:absolute; opacity:0; pointer-events:none; }
+  .day-chip { display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 6px; border:1.5px solid var(--border); border-radius:12px; cursor:pointer; background:#fff; transition:all .15s; user-select:none; }
+  .day-chip b { font-size:.95rem; }
+  .day-chip small { font-size:.62rem; color:var(--text-muted); }
+  .day-chip:hover { border-color:#93c5fd; background:#f8fbff; }
+  .day-picker input:checked + .day-chip { background:linear-gradient(135deg,#2563eb,#1d4ed8); border-color:#1d4ed8; color:#fff; box-shadow:0 6px 18px rgba(37,99,235,.3); }
+  .day-picker input:checked + .day-chip small { color:rgba(255,255,255,.75); }
+  .day-picker input:focus-visible + .day-chip { outline:3px solid rgba(37,99,235,.35); outline-offset:2px; }
+  .dur-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .dur-chip { border:1px dashed #93c5fd; background:#eff6ff; color:#1d4ed8; font-size:.72rem; font-weight:600; padding:4px 11px; border-radius:99px; cursor:pointer; }
+  .dur-chip:hover { background:#dbeafe; }
+  .ex-day { font-size:.68rem; font-weight:700; color:var(--text-muted); margin:12px 0 6px; }
+  .ex-item { display:flex; gap:10px; align-items:center; padding:7px 10px; border-radius:9px; font-size:.78rem; margin-bottom:5px; }
+  .ex-time { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ex-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ex-name small { display:block; font-size:.68rem; opacity:.8; }
+</style>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="fx-card">
+        <div class="fx-card-head"><h6 class="fx-card-title"><i class="bi bi-clock-history"></i> Dados da aula</h6></div>
+        <div class="fx-card-body">
+
+          {% if form.non_field_errors %}
+            <div class="fx-alert error"><i class="bi bi-x-octagon-fill"></i>
+              <div>{% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div></div>
+          {% endif %}
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="{{ form.atribuicao.id_for_label }}">Disciplina e professor <span class="req">*</span></label>
+            {{ form.atribuicao }}
+            <div class="form-hint"><i class="bi bi-info-circle"></i> Pesquise pela disciplina, pelo professor ou pela turma.</div>
+            {% for e in form.atribuicao.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-field mb-4">
+            <span class="form-label">Dia da semana <span class="req">*</span></span>
+            <div class="day-picker">
+              {% for value, label in form.dia_semana.field.choices %}{% if value %}
+                <label style="position:relative;margin:0">
+                  <input type="radio" name="dia_semana" value="{{ value }}" {% if form.dia_semana.value == value %}checked{% endif %}>
+                  <span class="day-chip" title="{{ label }}"><b>{{ label|slice:":3" }}</b><small>{{ label|cut:"-feira" }}</small></span>
+                </label>
+              {% endif %}{% endfor %}
+            </div>
+            {% for e in form.dia_semana.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-sm-4 form-field">
+              <label class="form-label" for="{{ form.hora_inicio.id_for_label }}">Hora de início <span class="req">*</span></label>
+              {{ form.hora_inicio }}
+              {% for e in form.hora_inicio.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-4 form-field">
+              <label class="form-label" for="{{ form.hora_fim.id_for_label }}">Hora de fim <span class="req">*</span></label>
+              {{ form.hora_fim }}
+              {% for e in form.hora_fim.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-4 form-field">
+              <label class="form-label" for="{{ form.sala.id_for_label }}">Sala <span class="opt">opcional</span></label>
+              <div class="input-icon-wrap"><i class="bi bi-door-open prefix"></i>{{ form.sala }}</div>
+              <div class="form-hint">Vazio = sala da turma</div>
+              {% for e in form.sala.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12" style="margin-top:0">
+              <div class="form-hint"><i class="bi bi-magic"></i> Duração rápida a partir da hora de início:</div>
+              <div class="dur-chips">
+                <button type="button" class="dur-chip" data-min="45">45 min</button>
+                <button type="button" class="dur-chip" data-min="90">90 min (2 tempos)</button>
+                <button type="button" class="dur-chip" data-min="135">135 min (3 tempos)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-3 border-top d-flex gap-2 flex-wrap justify-content-end" style="background:#f8fafc;border-radius:0 0 16px 16px">
+          <a href="{% if turma %}{% url 'horario_turma' %}?turma={{ turma.pk }}{% else %}{% url 'horario_turma' %}{% endif %}" class="fx-btn fx-btn-light">Cancelar</a>
+          {% if not obj %}<button type="submit" name="adicionar_outra" value="1" class="fx-btn fx-btn-soft"><i class="bi bi-plus-circle"></i> Guardar e adicionar outra</button>{% endif %}
+          <button type="submit" class="fx-btn fx-btn-primary"><i class="bi bi-check2-circle"></i> Guardar aula</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="fx-card" style="position:sticky;top:84px">
+        <div class="fx-card-head"><h6 class="fx-card-title"><i class="bi bi-calendar3-week"></i> Aulas já marcadas</h6>
+          {% if turma %}<span class="tag tag-blue">{{ turma.designacao }}</span>{% endif %}</div>
+        <div class="fx-card-body pt-1" style="max-height:480px;overflow-y:auto">
+          {% regroup existentes by get_dia_semana_display as por_dia %}
+          {% for g in por_dia %}
+            <div class="ex-day">{{ g.grouper }}</div>
+            {% for h in g.list %}
+              <div class="ex-item" style="background:{{ h.bg }};color:{{ h.fg }}">
+                <span class="ex-time">{{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fim|time:"H:i" }}</span>
+                <span class="ex-name">{{ h.atribuicao.disciplina.nome }}<small>{{ h.atribuicao.professor.nome_completo }}</small></span>
+              </div>
+            {% endfor %}
+          {% empty %}
+            <div class="fx-empty" style="padding:30px 10px"><i class="bi bi-calendar-x"></i>
+              <b>Sem aulas marcadas</b>{% if turma %}Esta é a primeira aula da turma.{% else %}Escolha uma atribuição para começar.{% endif %}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const ini = document.getElementById('{{ form.hora_inicio.id_for_label }}');
+  const fim = document.getElementById('{{ form.hora_fim.id_for_label }}');
+  document.querySelectorAll('.dur-chip').forEach(b => b.addEventListener('click', () => {
+    if (!ini.value) { ini.focus(); return; }
+    const [h, m] = ini.value.split(':').map(Number);
+    const t = h * 60 + m + Number(b.dataset.min);
+    fim.value = String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  }));
+});
+</script>
+{% endblock content %}

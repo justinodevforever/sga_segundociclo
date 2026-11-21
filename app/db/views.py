@@ -17,6 +17,8 @@ from app.director.views import _get_ano_atual
 from django.db import transaction,IntegrityError
 from .permissions import *
 from app.financa.models import *
+from django.db.models import OuterRef, Subquery
+from app.financa.views import _gerar_propinas
 
 
 @login_required
@@ -37,7 +39,6 @@ def dashboard(request):
 
 @login_required
 def dashboard_diretor(request):
-  
     
     ano_lectivo_activo = AnoLectivo.objects.filter(e_atual=True).first()
     
@@ -83,41 +84,6 @@ def dashboard_diretor(request):
     
     return render(request, 'dashboard/diretor.html', context)
 
-
-@login_required
-def dashboard_professor(request):
-    
-    professor = request.user.funcionario
-    ano_lectivo_activo = AnoLectivo.objects.filter(e_atual=True).first()
-    
-    minhas_turmas = AtribuicaoDocente.objects.filter(
-        professor=professor,
-        ano_lectivo=ano_lectivo_activo
-    ).select_related('turma', 'disciplina').distinct()
-    
-    
-    hoje = timezone.now()
-    dia_semana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'][hoje.weekday()]
-    
-    aulas_hoje = HorarioAula.objects.filter(
-        professor=professor,
-        dia_semana=dia_semana
-    ).select_related('turma', 'disciplina').order_by('hora_inicio')
-    
-    avaliacoes_pendentes = Avaliacao.objects.filter(
-        professor=professor,
-    ).annotate(
-        notas_lancadas=Count('nota')
-    ).order_by('-data_realizacao')[:10]
-    
-    context = {
-        'minhas_turmas': minhas_turmas,
-        'aulas_hoje': aulas_hoje,
-        'avaliacoes_pendentes': avaliacoes_pendentes,
-        'total_turmas': minhas_turmas.count(),
-    }
-    
-    return render(request, 'dashboard/professor.html', context)
 
 
 @login_required
@@ -176,14 +142,321 @@ def _get_inscricao_aprovada(bi:str, curso):
         ).first()
     )
 
+@login_required
+def inscricao_list(request):
+
+    ano_letivo = _get_ano_atual()
+    
+    inscricoes = Inscricao.objects.filter(
+        ano_lectivo=ano_letivo,
+    ).select_related(
+        'candidato', 'ano_lectivo'
+    ).order_by('-data_inscricao')
+    
+    ano_lectivo_id = request.GET.get('ano_lectivo')
+    print(ano_lectivo_id)
+    busca = request.GET.get('busca')
+    
+    if ano_lectivo_id:
+        inscricoes = inscricoes.filter(ano_lectivo_id=ano_lectivo_id)
+
+    
+    if busca:
+        inscricoes = inscricoes.filter(
+            Q(candidato__nome_completo__icontains=busca) |
+            Q(candidato__bi__icontains=busca) 
+        )
+    
+    order_by = request.GET.get('nome_completo', '-data_inscricao')
+    inscricoes = inscricoes.order_by(order_by)
+
+    per_page = request.GET.get('per_page', 20)
+    page = request.GET.get('page')
+
+    paginator = Paginator(inscricoes, per_page)
+    inscricoes_page = paginator.get_page(page)
+
+    anos_lectivos = AnoLectivo.objects.all()
+    
+
+    context = {
+        'secao': 'inscricoes',
+        'inscricoes': inscricoes_page,
+        'anos_lectivos': anos_lectivos,
+        'total': inscricoes.count(),
+        'per_page': per_page,
+        'busca': busca,
+        'ano_lectivo_id': ano_lectivo_id,
+    }
+    
+    return render(request, 'inscricoes/list.html', context)
+
+
+@login_required
+def inscricao_create(request):
+   
+    
+    form = InscricaoForm()
+    
+    if request.method == 'POST':
+        form = InscricaoForm(request.POST)
+        
+        if form.is_valid():
+
+            if transaction.atomic():
+
+                inscricao, candidato = form.save()
+
+                
+                candidato.save()
+
+                inscricao.candidato = candidato
+                inscricao.inscrito_por = request.user
+
+                inscricao.save()
+
+            context = {
+                'secao': 'inscricoes',
+                'sucesso': f'Inscrição  feita com sucesso!',
+                'form': form
+            }
+            return redirect('inscricao_list')
+            
+        else:
+            context = {
+                'secao': 'inscricoes',
+                'erro': f'Erro, ao realizar matrícula!',
+                'form': form
+            }
+            return render( request, 'inscricoes/create.html', context)
+    
+    context = {
+        'secao': 'inscricoes',
+        'form': form,
+        
+    }
+    
+    return render(request, 'inscricoes/create.html', context)
+
+@login_required
+def inscricao_update(request, inscricao_id):
+   
+    inscricao = Inscricao.objects.get(id=inscricao_id)
+    form = EditarInscricaoForm(inscricao=inscricao)
+    
+    if request.method == 'POST':
+        form = EditarInscricaoForm(request.POST, inscricao=inscricao)
+        
+        if form.is_valid():
+
+            if transaction.atomic():
+
+                inscricao, candidato = form.save()
+            
+                candidato.save()
+
+                inscricao.save()
+
+            context = {
+                'secao': 'inscricoes',
+                'sucesso': f'Inscrição actualizada com sucesso!',
+                'inscricao': inscricao,
+                'form': form
+            }
+            return redirect('inscricao_detail', inscricao_id=inscricao_id)
+            
+        else:
+            context = {
+                'secao': 'inscricoes',
+                'erro': f'Erro, ao atualizar a inscrição!',
+                'inscricao': inscricao,
+                'form': form,
+            }
+            return render( request, 'inscricoes/update.html', context)
+    
+    context = {
+        'secao': 'inscricoes',
+        'form': form,
+        'inscricao': inscricao,
+        
+    }
+    
+    return render(request, 'inscricoes/update.html', context)
+
+
+@login_required
+def inscricao_detail(request, inscricao_id):
+   
+    inscricao = get_object_or_404(
+        Inscricao.objects.select_related(
+            'candidato', 'ano_lectivo', 'inscrito_por'
+        ),
+        id=inscricao_id,
+        
+    )
+    
+    context = {
+        'secao': 'inscricoes',
+        'inscricao': inscricao,
+    }
+    
+    return render(request, 'inscricoes/detail.html', context)
+
+@login_required
+@role_required('director','secretario')
+def aprovar_inscricao(request, inscricao_id):
+    
+    inscricao = Inscricao.objects.get(id=inscricao_id)
+    
+    inscricao.status = Inscricao.Status.APROVADA
+    
+    messages.success(request, 'Inscricão Aprovada Com Sucesso!')
+    inscricao.save()
+    
+    return redirect('inscricao_list')
+
+@login_required
+@role_required('director','secretario')
+def reprovar_inscricao(request, inscricao_id):
+    
+    inscricao = Inscricao.objects.get(id=inscricao_id)
+    
+    inscricao.status = Inscricao.Status.REPROVADA
+    inscricao.save()
+    
+    messages.success(request, 'Inscricão Reprovada Com Sucesso!')
+    
+    return redirect('inscricao_list')
+
+@login_required
+@role_required('director','secretario')
+@require_http_methods(['POST'])
+def inscricao_delete(request, inscricao_id:uuid):
+
+    try:
+        inscricao = get_object_or_404(Inscricao, id=inscricao_id)
+        inscricao.delete()
+        return JsonResponse({'message': 'Inscrição eliminada com sucesso!'}, status=200)
+    except Exception as e:
+        return JsonResponse({'message': 'Houve erro ao eliminar a inscrição'}, status=500)
+    
+
+@login_required
+def candidato_list(request):
+
+    
+    candidatos = Candidato.objects.all().distinct('bi')
+    
+    busca = request.GET.get('busca')
+    
+    
+    if busca:
+        candidatos = candidatos.filter(
+            Q(nome_completo__icontains=busca) |
+            Q(bi__icontains=busca) 
+        )
+    
+    per_page = request.GET.get('per_page', 20)
+    page = request.GET.get('page')
+
+    paginator = Paginator(candidatos, per_page)
+    candidatos_page = paginator.get_page(page)
+    
+    context = {
+        'secao': 'candidatos',
+        'candidatos': candidatos_page,
+        'total': candidatos.count(),
+        'per_page': per_page,
+        'busca': busca,
+    }
+    
+    return render(request, 'candidatos/list.html', context)
+
+
+@login_required
+def candidato_update(request, candidato_id):
+   
+    candidato = Candidato.objects.get(id=candidato_id)
+    form = EditarCandidatoForm(candidato=candidato)
+    
+    if request.method == 'POST':
+        form = EditarCandidatoForm(request.POST, candidato=candidato)
+        
+        if form.is_valid():
+
+            if transaction.atomic():
+
+                candidato = form.save()
+            
+                candidato.save()
+
+
+            context = {
+                'secao': 'inscricoes',
+                'sucesso': f'Inscrição actualizada com sucesso!',
+                'candidato': candidato,
+                'form': form
+            }
+            return redirect('candidato_detail', candidato_id=candidato_id)
+            
+        else:
+            context = {
+                'secao': 'inscricoes',
+                'erro': f'Erro, ao atualizar a inscrição!',
+                'candidato': candidato,
+                'form': form,
+            }
+            return render( request, 'inscricoes/update.html', context)
+    
+    context = {
+        'secao': 'candidatos',
+        'form': form,
+        'candidato': candidato,
+        
+    }
+    
+    return render(request, 'candidatos/update.html', context)
+
+
+@login_required
+def candidato_detail(request, candidato_id):
+   
+    candidato = get_object_or_404(
+        Candidato,
+        id=candidato_id,
+    )
+    
+    context = {
+        'secao': 'candidatos',
+        'candidato': candidato,
+    }
+    
+    return render(request, 'candidatos/detail.html', context)
+
 
 @login_required
 def matricula_list(request):
     
+   
+    ultima_matricula = Matricula.objects.filter(
+        aluno_id=OuterRef('aluno_id')
+    ).exclude(
+        tipo_matricula='inscricao'
+    ).order_by(
+        '-data_matricula',
+        '-id'
+    )
+
     matriculas = Matricula.objects.filter(
-        ~Q(tipo_matricula='inscricao')
+        id=Subquery(
+            ultima_matricula.values('id')[:1]
+        )
     ).select_related(
-        'aluno', 'ano_lectivo', 'turma', 'turma__curso', 'turma__classe'
+        'aluno',
+        'ano_lectivo',
+        'turma',
+        'turma__curso',
+        'turma__classe'
     ).order_by('-data_matricula')
     
     ano_lectivo_id = request.GET.get('ano_lectivo')
@@ -199,8 +472,7 @@ def matricula_list(request):
     if busca:
         matriculas = matriculas.filter(
             Q(aluno__nome_completo__icontains=busca) |
-            Q(numero_matricula__icontains=busca) |
-            Q(aluno__numero_processo__icontains=busca)
+            Q(aluno__bi__icontains=busca)
         )
     
     order_by = request.GET.get('nome_completo', '-data_matricula')
@@ -214,9 +486,9 @@ def matricula_list(request):
 
     anos_lectivos = AnoLectivo.objects.all()
     turmas = Turma.objects.filter( activo=True)
-    
 
     context = {
+        'secao': 'matriculas',
         'matriculas': matriculas_page,
         'anos_lectivos': anos_lectivos,
         'turmas': turmas,
@@ -233,7 +505,6 @@ def matricula_list(request):
 @login_required
 def matricula_create(request):
    
-    
     cursos = Curso.objects.all()
     
     context = {
@@ -357,6 +628,16 @@ def matricula_create(request):
                         matricula.matriculado_por = request.user
 
                         matricula.save()
+                        
+                        conta = ContaAluno(
+                            aluno = aluno,
+                            ano_lectivo = matricula.ano_lectivo,
+                            valor_propina_mensal = matricula.turma.preco_propina
+                        )
+                        
+                        conta.save()
+                        
+                        _gerar_propinas(conta,request)
 
                         if matricula.turma.vagas_disponiveis:
                             matricula.turma.vagas_disponiveis -= 1
@@ -367,7 +648,7 @@ def matricula_create(request):
                             sucesso=f'O estudante {inscricao.candidato.nome_completo} matriculado com sucesso!'
                         )
 
-                        return render(request, 'matriculas/create.html', context)
+                        return redirect('matricula_list')
 
                 except IntegrityError as e:
 
@@ -399,47 +680,40 @@ def matricula_create(request):
 def matricula_update(request, matricula_id):
    
     matricula = Matricula.objects.get(id=matricula_id)
-    form = MatriculaEditForm(matricula=matricula)
     
+    turmas = Turma.objects.filter(
+            ano_lectivo=matricula.ano_lectivo,
+            curso     =matricula.turma.curso   
+    )
     if request.method == 'POST':
-        form = MatriculaEditForm(request.POST, matricula=matricula)
         
-        if form.is_valid():
+        try:
+            
+            turma = request.POST.get('turma_id')
 
-            turma = Turma.objects.get(id=matricula.turma.id)
+            matricula.turma.id=turma
 
-            matr, aluno = form.save()
-
-            aluno.save()
-
-            matr.save()
-
-            if matr.turma.id != turma.id:
-                turma_nova = Turma.objects.get(id=matr.turma.id)
-                turma.vagas_disponiveis += 1
-                turma_nova.vagas_disponiveis -= 1
-
-                turma_nova.save()
-                turma.save()
+            matricula.save()
 
             context = {
-                'sucesso': f'Erro, ao atualizar a matrícula!',
+                'sucesso': f'Turma atualizada com sucesso!',
                 'matricula': matricula,
-                'form': form
             }
             return redirect('matricula_detail', matricula_id=matricula.id)
             
-        else:
+        except Exception as e:
             context = {
-                'erro': f'Erro, ao atualizar a matrícula!',
+                'erro': f'Erro, ao atualizar a turma!',
+                'secao': 'matriculas',
                 'matricula': matricula,
-                'form': form,
+                'turmas': turmas
             }
             return render( request, 'matriculas/update.html', context)
     
     context = {
-        'form': form,
+        'secao': 'matriculas',
         'matricula': matricula,
+        'turmas': turmas
         
     }
     
@@ -457,11 +731,10 @@ def matricula_detail(request, matricula_id):
         id=matricula_id
     )
     
-    encarregados = matricula.aluno.encarregados.all()
     
     context = {
         'matricula': matricula,
-        'encarregados': encarregados,
+        'secao': 'matriculas',
     }
     
     return render(request, 'matriculas/detail.html', context)
@@ -469,7 +742,6 @@ def matricula_detail(request, matricula_id):
 @login_required
 def matricula_update_status(request) -> HttpResponse:
 
-    
     cursos = Curso.objects.all()
 
     status = request.GET.get('t')
@@ -831,7 +1103,11 @@ def transferencia_matricula(request, matricula_id:uuid) -> HttpResponse:
 
     return render(request, 'matriculas/matricula_update.html', context)
 
-
+@login_required
+def reconfirmacao_list(request):
+    
+    
+    return render(request, "reconfirmacao/list.html")
 @login_required
 def confirmar(request) -> HttpResponse:
     
@@ -869,9 +1145,10 @@ def confirmar(request) -> HttpResponse:
                 return render(request, 'reconfirmacao/create.html', context)
 
             matricula = Matricula.objects.filter(
-                status=Matricula.Status.ACTIVA,
-                aluno__bi=bi,
-                turma__curso_id=curso
+                Q(status=Matricula.Status.ACTIVA) |
+                Q(status=Matricula.Status.CONCLUIDA) &
+                Q(aluno__bi=bi) &
+                Q(turma__curso_id=curso)
             ).first()
 
             if matricula == None:
@@ -885,8 +1162,10 @@ def confirmar(request) -> HttpResponse:
                 curso=matricula.turma.curso,
                 ano_lectivo=ano_letivo
             )
+            
+            ano_letivos = AnoLectivo.objects.all().order_by('e_atual')
 
-            form = ConfirmacaoForm(turmas=turmas)
+            form = ConfirmacaoForm(turmas=turmas, ano_letivos=ano_letivos)
 
             context.update(
                 step='confirmar',
@@ -924,6 +1203,17 @@ def confirmar(request) -> HttpResponse:
                         mat.matriculado_por = request.user
 
                         mat.save()
+                        
+                        conta = ContaAluno(
+                            aluno = mat.aluno,
+                            ano_lectivo = mat.ano_lectivo,
+                            valor_propina_mensal = mat.turma.preco_propina
+                        )
+                        
+                        conta.save()
+                        
+                        _gerar_propinas(conta,request)
+                        
 
                         if mat.turma.vagas_disponiveis:
                             mat.turma.vagas_disponiveis -= 1
@@ -937,6 +1227,7 @@ def confirmar(request) -> HttpResponse:
                         return render(request, 'reconfirmacao/create.html', context)
 
                 except IntegrityError as e:
+                    print(e)
 
                     context.update(
                         form=form,
@@ -965,8 +1256,6 @@ def confirmar(request) -> HttpResponse:
 @require_http_methods(['POST'])
 def confirmar_matricula(request, aluno_id:uuid) -> HttpResponse:
 
-    
-
     ano_lectivo = _get_ano_atual()
 
     turma = request.POST.get('turma')
@@ -991,179 +1280,6 @@ def confirmar_matricula(request, aluno_id:uuid) -> HttpResponse:
 
     return redirect('aluno_detail', aluno_id=aluno_id)
 
-@login_required
-def inscricao_list(request):
-   
-    
-
-    ano_letivo = _get_ano_atual()
-    
-    inscricoes = Inscricao.objects.filter(
-        ano_lectivo=ano_letivo,
-    ).select_related(
-        'candidato', 'ano_lectivo'
-    ).order_by('-data_inscricao')
-    
-    ano_lectivo_id = request.GET.get('ano_lectivo')
-    busca = request.GET.get('busca')
-    
-    if ano_lectivo_id:
-        inscricoes = inscricoes.filter(ano_lectivo_id=ano_lectivo_id)
-
-    
-    if busca:
-        inscricoes = inscricoes.filter(
-            Q(aluno__nome_completo__icontains=busca)
-        )
-    
-    order_by = request.GET.get('nome_completo', '-data_inscricao')
-    inscricoes = inscricoes.order_by(order_by)
-
-    per_page = request.GET.get('per_page', 20)
-    page = request.GET.get('page')
-
-    paginator = Paginator(inscricoes, per_page)
-    inscricoes_page = paginator.get_page(page)
-
-    anos_lectivos = AnoLectivo.objects.all()
-    
-
-    context = {
-        'secao': 'inscricoes',
-        'inscricoes': inscricoes_page,
-        'anos_lectivos': anos_lectivos,
-        'total': inscricoes.count(),
-        'per_page': per_page,
-        'busca': busca,
-        'ano_lectivo_id': ano_lectivo_id,
-    }
-    
-    return render(request, 'inscricoes/list.html', context)
-
-
-@login_required
-def inscricao_create(request):
-   
-    
-    form = InscricaoForm()
-    
-    if request.method == 'POST':
-        form = InscricaoForm(request.POST)
-        
-        if form.is_valid():
-
-            if transaction.atomic():
-
-                inscricao, candidato = form.save()
-
-                
-                candidato.save()
-
-                inscricao.candidato = candidato
-                inscricao.inscrito_por = request.user
-
-                inscricao.save()
-
-            context = {
-                'secao': 'inscricoes',
-                'sucesso': f'Inscrição  feita com sucesso!',
-                'form': form
-            }
-            return render( request, 'inscricoes/create.html', context)
-            
-        else:
-            context = {
-                'secao': 'inscricoes',
-                'erro': f'Erro, ao realizar matrícula!',
-                'form': form
-            }
-            return render( request, 'inscricoes/create.html', context)
-    
-    context = {
-        'secao': 'inscricoes',
-        'form': form,
-        
-    }
-    
-    return render(request, 'inscricoes/create.html', context)
-
-@login_required
-def inscricao_update(request, inscricao_id):
-   
-    inscricao = Inscricao.objects.get(id=inscricao_id)
-    form = EditarInscricaoForm(inscricao=inscricao)
-    
-    if request.method == 'POST':
-        form = EditarInscricaoForm(request.POST, inscricao=inscricao)
-        
-        if form.is_valid():
-
-            if transaction.atomic():
-
-                inscricao, candidato = form.save()
-            
-                candidato.save()
-
-                inscricao.save()
-
-            context = {
-                'secao': 'inscricoes',
-                'sucesso': f'Inscrição actualizada com sucesso!',
-                'inscricao': inscricao,
-                'form': form
-            }
-            return redirect('inscricao_detail', inscricao_id=inscricao_id)
-            
-        else:
-            context = {
-                'secao': 'inscricoes',
-                'erro': f'Erro, ao atualizar a inscrição!',
-                'inscricao': inscricao,
-                'form': form,
-            }
-            return render( request, 'inscricoes/update.html', context)
-    
-    context = {
-        'secao': 'inscricoes',
-        'form': form,
-        'inscricao': inscricao,
-        
-    }
-    
-    return render(request, 'inscricoes/update.html', context)
-
-
-@login_required
-def inscricao_detail(request, inscricao_id):
-
-    
-   
-    inscricao = get_object_or_404(
-        Inscricao.objects.select_related(
-            'candidato', 'ano_lectivo', 'inscrito_por'
-        ),
-        id=inscricao_id,
-        
-    )
-    
-    context = {
-        'secao': 'inscricoes',
-        'inscricao': inscricao,
-    }
-    
-    return render(request, 'inscricoes/detail.html', context)
-
-@login_required
-@role_required('director','secretario')
-@require_http_methods(['POST'])
-def inscricao_delete(request, inscricao_id:uuid):
-
-    try:
-        inscricao = get_object_or_404(Inscricao, id=inscricao_id)
-        inscricao.delete()
-        return JsonResponse({'message': 'Inscrição eliminada com sucesso!'}, status=200)
-    except Exception as e:
-        return JsonResponse({'message': 'Houve erro ao eliminar a inscrição'}, status=500)
 
 @login_required
 def avaliacao_list(request):

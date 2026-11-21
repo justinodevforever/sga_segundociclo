@@ -1,0 +1,166 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+  <a href="#">Académico</a><i class="bi bi-chevron-right"></i>
+  <a href="{% url 'atribuicao_list' %}">Atribuição de Disciplinas</a><i class="bi bi-chevron-right"></i>
+  <span class="current">{% if obj %}Editar{% else %}Nova atribuição{% endif %}</span>
+{% endblock breadcrumb %}
+
+{% block icon %}<i class="bi bi-person-plus-fill"></i>{% endblock icon %}
+{% block title %}{% if obj %}Editar atribuição{% else %}Nova atribuição{% endif %}{% endblock %}
+{% block sub_title %}Escolha a turma, a disciplina e o professor responsável{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'atribuicao_list' %}" class="fx-btn fx-btn-light"><i class="bi bi-arrow-left"></i> Voltar à lista</a>
+{% endblock topbar_actions %}
+
+{% block content %}
+{% include "docentes/_ui.html" %}
+
+<style>
+  .sum-row { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px dashed #e2e8f0; }
+  .sum-row:last-child { border-bottom:none; }
+  .sum-ic { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.95rem; }
+  .sum-lbl { font-size:.68rem; color:var(--text-muted); font-weight:600; }
+  .sum-val { font-size:.85rem; font-weight:600; color:var(--text-main); line-height:1.35; word-break:break-word; }
+  .sum-val.empty { color:var(--text-muted); font-weight:400; font-style:italic; }
+  .step-dot { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:.7rem; font-weight:700; align-items:center; justify-content:center; margin-right:6px; }
+  .plano-switch { display:flex; align-items:center; gap:8px; font-size:.76rem; color:var(--text-sub); cursor:pointer; margin-top:2px; }
+</style>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="fx-card">
+        <div class="fx-card-head">
+          <h6 class="fx-card-title"><i class="bi bi-diagram-3"></i> Dados da atribuição</h6>
+        </div>
+        <div class="fx-card-body">
+
+          {% if form.non_field_errors %}
+            <div class="fx-alert error"><i class="bi bi-x-octagon-fill"></i><div>{% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div></div>
+          {% endif %}
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="{{ form.turma.id_for_label }}"><span class="step-dot">1</span> Turma <span class="req">*</span></label>
+            {{ form.turma }}
+            <div class="form-hint"><i class="bi bi-info-circle"></i> Escreva o nome, classe ou curso para encontrar a turma.</div>
+            {% for e in form.turma.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="{{ form.disciplina.id_for_label }}"><span class="step-dot">2</span> Disciplina <span class="req">*</span></label>
+            {{ form.disciplina }}
+            <div class="form-hint"><i class="bi bi-info-circle"></i> <span id="discHint">Seleccione primeiro a turma para ver as disciplinas do plano curricular.</span></div>
+            <label class="plano-switch"><input type="checkbox" id="todasDisc"> Mostrar todas as disciplinas (ignorar plano curricular)</label>
+            {% for e in form.disciplina.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="{{ form.professor.id_for_label }}"><span class="step-dot">3</span> Professor <span class="req">*</span></label>
+            {{ form.professor }}
+            <div class="form-hint"><i class="bi bi-info-circle"></i> Apenas funcionários activos que não sejam administrativos.</div>
+            {% for e in form.professor.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="carga_horaria"><span class="step-dot">4</span> Carga Horária <span class="req">*</span></label>
+            <input type="number" 
+              value="{% if plano %}{{plano.carga_horaria_semanal}}{% endif %}"
+              name="carga_horaria" 
+              placeholder="Carga Horária" 
+              class="form-control-custom" r
+              equired>
+            
+          </div>
+
+          <div class="form-field mb-4">
+            <label class="form-label" for="tem_exame"><span class="step-dot">5</span> Tem Exme? </label>
+            <input 
+              type="checkbox"  
+              {% if plano.tem_exame_nacional %}checked{% endif %} 
+              name="tem_exame" 
+              class="form-control-custom"
+            >
+            <div class="form-hint" style="color: red;"><i class="bi bi-info-circle"></i> Apenas para classe com exame!</div>
+            {% for e in form.professor.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="form-field" style="max-width:260px">
+            <label class="form-label" for="{{ form.status.id_for_label }}">Estado</label>
+            {{ form.status }}
+            {% for e in form.status.errors %}<div class="fx-error"><i class="bi bi-exclamation-circle"></i>{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+        <div class="p-3 border-top d-flex gap-2 flex-wrap justify-content-end" style="background:#f8fafc;border-radius:0 0 16px 16px">
+          <a href="{% url 'atribuicao_list' %}" class="fx-btn fx-btn-light">Cancelar</a>
+          {% if not obj %}<button type="submit" name="salvar_novo" value="1" class="fx-btn fx-btn-soft"><i class="bi bi-plus-circle"></i> Guardar e adicionar outra</button>{% endif %}
+          <button type="submit" class="fx-btn fx-btn-primary"><i class="bi bi-check2-circle"></i> Guardar atribuição</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="fx-card" style="position:sticky;top:84px">
+        <div class="fx-card-head"><h6 class="fx-card-title"><i class="bi bi-eye"></i> Resumo</h6></div>
+        <div class="fx-card-body py-2">
+          <div class="sum-row"><div class="sum-ic" style="background:#dbeafe;color:#1d4ed8"><i class="bi bi-people-fill"></i></div>
+            <div><div class="sum-lbl">Turma</div><div class="sum-val empty" id="sumTurma">Não seleccionada</div></div></div>
+          <div class="sum-row"><div class="sum-ic" style="background:#d1fae5;color:#059669"><i class="bi bi-book-fill"></i></div>
+            <div><div class="sum-lbl">Disciplina</div><div class="sum-val empty" id="sumDisc">Não seleccionada</div></div></div>
+          <div class="sum-row"><div class="sum-ic" style="background:#ede9fe;color:#7c3aed"><i class="bi bi-person-workspace"></i></div>
+            <div><div class="sum-lbl">Professor</div><div class="sum-val empty" id="sumProf">Não seleccionado</div></div></div>
+        </div>
+        <div class="px-3 pb-3">
+          <div class="fx-alert info mb-0" style="font-size:.76rem"><i class="bi bi-lightbulb-fill"></i>
+            <span>Depois de guardar, pode marcar as aulas desta atribuição no horário da turma.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+{{ plano_map|json_script:"plano-map" }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const plano = JSON.parse(document.getElementById('plano-map').textContent);
+  const selT = document.getElementById('{{ form.turma.id_for_label }}');
+  const selD = document.getElementById('{{ form.disciplina.id_for_label }}');
+  const selP = document.getElementById('{{ form.professor.id_for_label }}');
+  const chk  = document.getElementById('todasDisc');
+  const hint = document.getElementById('discHint');
+
+  function txt(sel) { const o = sel.options[sel.selectedIndex]; return o && o.value ? o.text.replace(/ · /g, ' — ') : ''; }
+  function resumo() {
+    [[selT, 'sumTurma', 'Não seleccionada'], [selD, 'sumDisc', 'Não seleccionada'], [selP, 'sumProf', 'Não seleccionado']].forEach(([s, id, vazio]) => {
+      const el = document.getElementById(id), t = txt(s);
+      el.textContent = t || vazio; el.classList.toggle('empty', !t);
+    });
+  }
+  function filtrar() {
+    const ids = plano[selT.value] || [];
+    const usar = selT.value && ids.length && !chk.checked;
+    let n = 0;
+    [...selD.options].forEach(o => {
+      if (!o.value) return;
+      const ok = !usar || ids.includes(o.value);
+      o.hidden = !ok; o.disabled = !ok;
+      if (ok) n++;
+    });
+    const cur = selD.options[selD.selectedIndex];
+    if (cur && cur.disabled) selD.value = '';
+    selD.dispatchEvent(new Event('ss:refresh'));
+    hint.textContent = !selT.value ? 'Seleccione primeiro a turma para ver as disciplinas do plano curricular.'
+      : usar ? n + ' disciplina(s) no plano curricular desta turma.'
+      : (ids.length ? 'A mostrar todas as disciplinas.' : 'Esta turma não tem plano curricular definido: a mostrar todas as disciplinas.');
+    resumo();
+  }
+  selT.addEventListener('change', filtrar);
+  chk.addEventListener('change', filtrar);
+  selD.addEventListener('change', resumo);
+  selP.addEventListener('change', resumo);
+  filtrar();
+});
+</script>
+{% endblock content %}

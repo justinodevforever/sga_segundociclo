@@ -262,7 +262,13 @@ class TenantConfiguracao(models.Model):
         AnoLectivo, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="+", verbose_name=_("Ano Lectivo Activo"),
     )
+    endereco = models.TextField(null=True)
+    nome = models.CharField(max_length=400, null=True)
+    telefone = models.CharField(max_length=400, null=True)
+    email = models.EmailField(null=True)
+    nif = models.CharField(max_length=400, null=True)
 
+    logo = models.FileField(upload_to='logos', null=True)
     periodo_exame = models.BooleanField(default=False)
     periodo_prova_1_trimestre = models.BooleanField(default=False)
     periodo_prova_2_trimestre = models.BooleanField(default=False)
@@ -331,7 +337,6 @@ class PessoaMixin(models.Model):
         return today.year - self.data_nascimento.year - (
             (today.month, today.day) < (self.data_nascimento.month, self.data_nascimento.day)
         )
-
 
 class Diretor( PessoaMixin, TimestampMixin):
 
@@ -456,6 +461,7 @@ class Classe(models.Model):
     )
     designacao = models.PositiveSmallIntegerField(choices=TipoClasse.choices)
     ordem = models.IntegerField(blank=True, null=True, verbose_name=_("Ordem"))
+    e_ultimo = models.BooleanField(default=False)
 
     class Meta:
         db_table = "classe"
@@ -497,14 +503,15 @@ class Disciplina( TimestampMixin, SoftDeleteMixin):
 
 class PlanoCurricular(models.Model):
     
+    ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.SET_NULL, null=True)
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name="plano")
-    classe = classe = models.ForeignKey(Classe, on_delete=models.CASCADE, verbose_name=_("Classe"), related_name='Plano')
+    classe = models.ForeignKey(Classe, on_delete=models.CASCADE, verbose_name=_("Classe"), related_name='Plano')
     disciplina = models.ForeignKey(Disciplina, on_delete=models.PROTECT)
     carga_horaria_semanal = models.PositiveSmallIntegerField(help_text="Tempos lectivos por semana")
     tem_exame_nacional = models.BooleanField(default=False)
  
     class Meta:
-        unique_together = ("curso", "classe", "disciplina")
+        unique_together = ("ano_lectivo","curso", "classe", "disciplina")
  
     def __str__(self):
         return f"{self.curso} - {self.classe}.ª - {self.disciplina}"
@@ -564,47 +571,6 @@ class Turma( TimestampMixin, SoftDeleteMixin):
         return f"T: {self.designacao} {self.classe}.ª  - {self.curso} ({self.ano_lectivo})"
  
 
-class HorarioAula(models.Model):
-
-    class DiaSemana(models.TextChoices):
-        SEGUNDA = "Segunda", _("Segunda-feira")
-        TERCA = "Terça", _("Terça-feira")
-        QUARTA = "Quarta", _("Quarta-feira")
-        QUINTA = "Quinta", _("Quinta-feira")
-        SEXTA = "Sexta", _("Sexta-feira")
-        SABADO = "Sábado", _("Sábado")
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name="horarios", verbose_name=_("Turma"))
-    disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE, verbose_name=_("Disciplina"))
-    professor = models.ForeignKey(Funcionario, on_delete=models.CASCADE, verbose_name=_("Professor"))
-    dia_semana = models.CharField(max_length=10, choices=DiaSemana.choices, verbose_name=_("Dia da Semana"))
-    hora_inicio = models.TimeField(verbose_name=_("Hora de Início"))
-    hora_fim = models.TimeField(verbose_name=_("Hora de Fim"))
-    sala = models.CharField(max_length=50, blank=True, verbose_name=_("Sala"))
-
-    class Meta:
-        db_table = "horario_aula"
-        verbose_name = _("Horário de Aula")
-        verbose_name_plural = _("Horários de Aulas")
-        indexes = [
-            models.Index(fields=["turma", "dia_semana"], name="idx_horario_turma_dia"),
-            models.Index(fields=["professor", "dia_semana"], name="idx_horario_professor_dia"),
-        ]
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(hora_fim__gt=models.F("hora_inicio")),
-                name="chk_horario_horas_validas",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.dia_semana} {self.hora_inicio}–{self.hora_fim} | {self.turma}"
-
-    def clean(self):
-        if self.hora_inicio and self.hora_fim and self.hora_fim <= self.hora_inicio:
-            raise ValidationError(_("A hora de fim deve ser posterior à hora de início."))
-
 class Aluno( PessoaMixin, TimestampMixin):
 
     class Status(models.TextChoices):
@@ -661,9 +627,16 @@ class Aluno( PessoaMixin, TimestampMixin):
     
  
 class AtribuicaoDocente(models.Model):
+    
+    class Status(models.TextChoices):
+            ATIVA = "ativa", _("Activa")
+            INATIVA = "inativa", _("Inactiva")
+            
     professor = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='atribuicao')
-    turma = models.ForeignKey(Turma, on_delete=models.CASCADE)
+    turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name='atribuicao')
+    ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.SET_NULL, null=True, related_name='atribuicao')
     disciplina = models.ForeignKey(Disciplina, on_delete=models.PROTECT, related_name='atribuicao')
+    status = models.CharField(max_length=20, null=True, choices=Status.choices, default='ativa')
  
     class Meta:
         unique_together = ("turma", "disciplina")
@@ -671,7 +644,43 @@ class AtribuicaoDocente(models.Model):
     def __str__(self):
         return f"{self.professor} - {self.disciplina} - {self.turma}"
 
+class HorarioAula(models.Model):
 
+    class DiaSemana(models.TextChoices):
+        SEGUNDA = "Segunda", _("Segunda-feira")
+        TERCA = "Terça", _("Terça-feira")
+        QUARTA = "Quarta", _("Quarta-feira")
+        QUINTA = "Quinta", _("Quinta-feira")
+        SEXTA = "Sexta", _("Sexta-feira")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    atribuicao = models.ForeignKey(AtribuicaoDocente, on_delete=models.CASCADE, verbose_name=_("Disciplina"))
+    dia_semana = models.CharField(max_length=10, choices=DiaSemana.choices, verbose_name=_("Dia da Semana"))
+    hora_inicio = models.TimeField(verbose_name=_("Hora de Início"))
+    hora_fim = models.TimeField(verbose_name=_("Hora de Fim"))
+    sala = models.CharField(max_length=50, blank=True, verbose_name=_("Sala"))
+
+    class Meta:
+        db_table = "horario_aula"
+        verbose_name = _("Horário de Aula")
+        verbose_name_plural = _("Horários de Aulas")
+        indexes = [
+            models.Index(fields=["atribuicao", "dia_semana"], name="idx_horario_atribuicao_dia"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(hora_fim__gt=models.F("hora_inicio")),
+                name="chk_horario_horas_validas",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.dia_semana} {self.hora_inicio}–{self.hora_fim} | {self.atribuicao.turma}"
+
+    def clean(self):
+        if self.hora_inicio and self.hora_fim and self.hora_fim <= self.hora_inicio:
+            raise ValidationError(_("A hora de fim deve ser posterior à hora de início."))
+        
 class Candidato( PessoaMixin, TimestampMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -975,9 +984,6 @@ class ResultadoAnual(models.Model):
         return f"{self.matricula.aluno} {self.disciplina}: {self.nota_final}"
         
 
-# --------------------------------------------------------------------------
-# Assiduidade, reclamações e auditoria
-# --------------------------------------------------------------------------
 class Falta(models.Model):
     matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, related_name="faltas")
     disciplina = models.ForeignKey(Disciplina, on_delete=models.PROTECT)
@@ -1015,10 +1021,7 @@ class HistoricoNota(models.Model):
     utilizador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     data = models.DateTimeField(auto_now_add=True)
  
- 
-# --------------------------------------------------------------------------
-# Sinais: recálculo automático em cascata
-# --------------------------------------------------------------------------
+
 @receiver([post_save, post_delete], sender=AvaliacaoContinua)
 def _actualiza_mac(sender, instance, **kw):
     r, _ = ResultadoTrimestral.objects.get_or_create(

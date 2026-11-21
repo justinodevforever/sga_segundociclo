@@ -117,44 +117,6 @@ def doc_declaracao(f):
     return "relatorios/pdf/declaracao.html", {"mat": m, "aluno": m.aluno, "turma": m.turma, "diretor": _diretor(),
                                               "data_extenso": _data_extenso()}, "portrait"
 
-
-def _grelha(qs, modo):
-    itens = list(qs)
-    if not itens:
-        raise DocumentoErro("Não existem aulas registadas no horário para a selecção feita.")
-    dias = [(v, l) for v, l in HorarioAula.DiaSemana.choices
-            if v != "Sábado" or any(h.dia_semana == v for h in itens)]
-    slots = sorted({(h.hora_inicio, h.hora_fim) for h in itens})
-    linhas = []
-    for ini, fim in slots:
-        cels = []
-        for v, _l in dias:
-            cels.append([{"disc": h.disciplina.nome,
-                          "outro": h.professor.nome_completo if modo == "turma"
-                          else f"{h.turma.classe.designacao}.ª {h.turma.designacao}",
-                          "sala": h.sala} for h in itens
-                         if h.dia_semana == v and h.hora_inicio == ini and h.hora_fim == fim])
-        linhas.append({"hora": f"{ini:%H:%M} - {fim:%H:%M}", "celulas": cels})
-    return [l for _v, l in dias], linhas
-
-
-def doc_horario_turma(f):
-    t = f["turma"]
-    dias, linhas = _grelha(HorarioAula.objects.filter(turma=t).select_related("disciplina", "professor", "turma__classe"), "turma")
-    return "relatorios/pdf/horario.html", {
-        "dias": dias, "linhas": linhas, "titulo_doc": "Horário da Turma",
-        "sub": f"Turma {t.classe.designacao}.ª {t.designacao} | {t.curso.nome} | {t.get_periodo_display()} | {t.ano_lectivo}"}, "landscape"
-
-
-def doc_horario_professor(f):
-    p, ano = f["professor"], f["ano_lectivo"]
-    dias, linhas = _grelha(HorarioAula.objects.filter(professor=p, turma__ano_lectivo=ano)
-                           .select_related("disciplina", "professor", "turma__classe"), "professor")
-    return "relatorios/pdf/horario.html", {
-        "dias": dias, "linhas": linhas, "titulo_doc": "Horário do Professor",
-        "sub": f"{p.nome_completo} | Ano lectivo {ano}"}, "landscape"
-
-
 DOCUMENTOS = {
     "boletim": dict(titulo="Boletim de Notas", icone="bi-card-checklist", fn=doc_boletim,
                     desc="Notas de todas as disciplinas por trimestre (MAC, PP, PT, MT), média final e resultado.",
@@ -168,10 +130,5 @@ DOCUMENTOS = {
     "ficha": dict(titulo="Ficha Individual do Aluno", icone="bi-person-lines-fill", fn=doc_ficha,
                   desc="Dados pessoais, filiação, localização, matrículas e documentos entregues.",
                   campos=("aluno",), obrigatorios=("aluno",)),
-    "horario-turma": dict(titulo="Horário da Turma", icone="bi-calendar3", fn=doc_horario_turma,
-                          desc="Grelha semanal de aulas da turma, com professor e sala.",
-                          campos=("ano_lectivo", "turma"), obrigatorios=("turma",)),
-    "horario-professor": dict(titulo="Horário do Professor", icone="bi-calendar-week", fn=doc_horario_professor,
-                              desc="Grelha semanal de aulas do professor, por turma.",
-                              campos=("ano_lectivo", "professor"), obrigatorios=("ano_lectivo", "professor")),
+    
 }

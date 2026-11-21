@@ -119,7 +119,7 @@ def conta_list(request):
     ano_ale = None
 
     if bi:
-        qs = qs.filter(aluno__bi=bi)
+        qs = qs.filter(aluno__bi__icontains=bi)
     if ano_id:
         qs = qs.filter(ano_lectivo_id=ano_id)
         ano_ale = AnoLectivo.objects.get(id=ano_id)
@@ -244,7 +244,7 @@ def pagamento_create(request, conta_pk=None):
         conta = get_object_or_404(ContaAluno, pk=conta_pk)
 
     if request.method == 'POST':
-        form = PagamentoForm(request.POST, conta_aluno_id=conta_pk)
+        form = PagamentoForm(request.POST, conta=conta)
         if form.is_valid():
             with transaction.atomic():
                 pagamento = form.save(commit=False)
@@ -271,7 +271,7 @@ def pagamento_create(request, conta_pk=None):
             )
             return redirect('recibo_detalhe', numero=pagamento.numero_recibo)
     else:
-        form = PagamentoForm(conta_aluno_id=conta_pk)
+        form = PagamentoForm(conta=conta)
 
     context = {
         'secao': 'financeiro',
@@ -356,6 +356,7 @@ def propinas_conta(request, conta_pk):
         pk=conta_pk
     )
     propinas = conta.propinas.order_by('mes')
+    print(propinas)
     return render(request, 'financeiro/propinas.html', {
         'secao': 'financeiro',
         'conta': conta,

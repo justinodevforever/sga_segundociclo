@@ -1,0 +1,250 @@
+{# Parcial partilhado: estilos, mensagens, modal de eliminar e select com pesquisa #}
+<style>
+  /* ── Cartões e botões ── */
+  .fx-card { background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); }
+  .fx-card-head { padding:16px 22px; border-bottom:1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .fx-card-title { font-size:.92rem; font-weight:700; margin:0; display:flex; align-items:center; gap:10px; color:var(--text-main); }
+  .fx-card-title i { width:30px; height:30px; border-radius:9px; background:#dbeafe; color:#1d4ed8; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; }
+  .fx-card-body { padding:22px; }
+
+  .fx-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:10px; font-size:.82rem; font-weight:600; border:1px solid transparent; cursor:pointer; transition:transform .15s, box-shadow .15s, background .15s; line-height:1.2; text-decoration:none; }
+  .fx-btn:active { transform:translateY(1px); }
+  .fx-btn-primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.28); }
+  .fx-btn-primary:hover { color:#fff; box-shadow:0 6px 20px rgba(37,99,235,.38); transform:translateY(-1px); }
+  .fx-btn-light { background:#fff; border-color:var(--border); color:var(--text-sub); }
+  .fx-btn-light:hover { background:#f1f5f9; color:var(--accent); }
+  .fx-btn-pdf { background:linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; box-shadow:0 4px 14px rgba(220,38,38,.25); }
+  .fx-btn-pdf:hover { color:#fff; transform:translateY(-1px); }
+  .fx-btn-danger { background:#dc2626; color:#fff; }
+  .fx-btn-danger:hover { background:#b91c1c; color:#fff; }
+  .fx-btn-soft { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .fx-btn-soft:hover { background:#dbeafe; color:#1e40af; }
+
+  .fx-icon-btn { width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text-sub); display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; cursor:pointer; transition:all .15s; text-decoration:none; }
+  .fx-icon-btn:hover { background:#eff6ff; color:var(--accent); border-color:#bfdbfe; }
+  .fx-icon-btn.danger:hover { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+
+  .fx-error { font-size:.74rem; color:var(--accent-danger); display:flex; align-items:center; gap:5px; margin-top:2px; }
+  .fx-alert { border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:10px; font-size:.83rem; font-weight:500; margin-bottom:16px; border:1px solid; }
+  .fx-alert.success { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+  .fx-alert.error, .fx-alert.danger { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+  .fx-alert.warning { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+  .fx-alert.info { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; }
+  .fx-empty { text-align:center; padding:54px 20px; color:var(--text-muted); }
+  .fx-empty i { font-size:2.6rem; opacity:.5; display:block; margin-bottom:10px; }
+  .fx-empty b { display:block; color:var(--text-sub); font-size:.95rem; margin-bottom:4px; }
+  .form-control-custom { background:#fff; }
+
+  /* ── Modal de eliminar ── */
+  .fx-modal { position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:3000; padding:16px; }
+  .fx-modal.open { display:flex; }
+  .fx-modal-box { background:#fff; border-radius:18px; padding:30px 28px 24px; width:100%; max-width:410px; text-align:center; box-shadow:var(--shadow-lg); animation:fxPop .22s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes fxPop { from { opacity:0; transform:scale(.92) translateY(14px); } to { opacity:1; transform:none; } }
+  .fx-modal-icon { width:58px; height:58px; border-radius:50%; background:#fee2e2; color:#dc2626; font-size:1.5rem; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+  .fx-modal-box h5 { font-family:inherit; font-size:1.05rem; font-weight:700; margin-bottom:8px; }
+  .fx-modal-box p { font-size:.84rem; color:var(--text-sub); line-height:1.6; margin-bottom:22px; }
+  .fx-modal-actions { display:flex; gap:10px; justify-content:center; }
+
+  /* ── Select com pesquisa ── */
+  .ss { position:relative; width:100%; }
+  .ss-native { display:none !important; }
+  .ss-trigger { width:100%; min-height:42px; display:flex; align-items:center; gap:8px; text-align:left; background:#fff; border:1.5px solid var(--border); border-radius:9px; padding:8px 12px; font-size:.875rem; color:var(--text-main); cursor:pointer; transition:border-color .2s, box-shadow .2s; font-family:inherit; }
+  .ss-trigger:hover { border-color:rgba(100,116,139,.55); }
+  .ss.open .ss-trigger, .ss-trigger:focus-visible { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.14); outline:none; }
+  .ss-trigger.is-invalid { border-color:var(--accent-danger); box-shadow:0 0 0 3px rgba(239,68,68,.1); }
+  .ss-value { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ss-value.placeholder { color:var(--text-muted); }
+  .ss-caret { font-size:.7rem; color:var(--text-muted); transition:transform .2s; }
+  .ss.open .ss-caret { transform:rotate(180deg); color:var(--accent); }
+  .ss-clear { display:none; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-size:.6rem; color:var(--text-muted); background:#f1f5f9; }
+  .ss-clear:hover { background:#fee2e2; color:#dc2626; }
+  .ss.has-value .ss-clear { display:inline-flex; }
+  .ss-panel { display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 14px 40px rgba(15,31,61,.18); z-index:1500; overflow:hidden; }
+  .ss.open .ss-panel { display:block; animation:dropIn .15s ease both; }
+  .ss.up .ss-panel { top:auto; bottom:calc(100% + 6px); }
+  .ss-search { position:relative; padding:10px; border-bottom:1px solid #eef2f7; background:#f8fafc; }
+  .ss-search i { position:absolute; left:22px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:.8rem; }
+  .ss-search input { width:100%; border:1px solid var(--border); border-radius:8px; padding:8px 40px 8px 32px; font-size:.84rem; outline:none; background:#fff; font-family:inherit; }
+  .ss-search input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+  .ss-count { position:absolute; right:20px; top:50%; transform:translateY(-50%); font-size:.66rem; font-weight:700; color:var(--accent); background:#dbeafe; padding:1px 7px; border-radius:99px; }
+  .ss-list { list-style:none; margin:0; padding:6px; max-height:264px; overflow-y:auto; }
+  .ss-item { display:flex; flex-direction:column; gap:1px; padding:8px 12px; border-radius:8px; cursor:pointer; position:relative; }
+  .ss-item.active { background:#eff6ff; }
+  .ss-item.selected { background:#dbeafe; }
+  .ss-item .bi-check2 { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--accent); font-size:1rem; }
+  .ss-main { font-size:.84rem; font-weight:600; color:var(--text-main); padding-right:22px; }
+  .ss-sub { font-size:.72rem; color:var(--text-muted); padding-right:22px; }
+  .ss-item mark { background:#fef08a; color:inherit; border-radius:3px; padding:0 1px; }
+  .ss-empty { text-align:center; padding:22px 10px; color:var(--text-muted); font-size:.8rem; }
+  .ss-empty i { display:block; font-size:1.4rem; margin-bottom:6px; opacity:.6; position:static; transform:none; }
+</style>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="fx-alert {{ m.tags }}">
+      <i class="bi {% if m.tags == 'success' %}bi-check-circle-fill{% elif m.tags == 'error' %}bi-x-octagon-fill{% elif m.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+      {{ m }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="fx-modal" id="fxDeleteModal" aria-hidden="true">
+  <div class="fx-modal-box" role="dialog" aria-modal="true" aria-labelledby="fxDeleteTitle">
+    <div class="fx-modal-icon"><i class="bi bi-trash3-fill"></i></div>
+    <h5 id="fxDeleteTitle">Confirmar eliminação</h5>
+    <p id="fxDeleteMsg">Esta acção não pode ser desfeita.</p>
+    <form method="post" id="fxDeleteForm" class="fx-modal-actions">
+      {% csrf_token %}
+      <button type="button" class="fx-btn fx-btn-light" id="fxDeleteCancel">Cancelar</button>
+      <button type="submit" class="fx-btn fx-btn-danger"><i class="bi bi-trash3"></i> Eliminar</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* ───────── Modal de eliminar ───────── */
+  const modal = document.getElementById('fxDeleteModal');
+  const closeModal = () => modal.classList.remove('open');
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.js-delete');
+    if (b) {
+      document.getElementById('fxDeleteForm').action = b.dataset.url;
+      document.getElementById('fxDeleteMsg').textContent = b.dataset.msg || 'Esta acção não pode ser desfeita.';
+      modal.classList.add('open');
+    }
+    if (e.target === modal || e.target.id === 'fxDeleteCancel') closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  /* ───────── Select com pesquisa ───────── */
+  const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function mark(text, tokens) {
+    const n = norm(text);
+    if (!tokens.length || n.length !== text.length) return esc(text);
+    const ranges = [];
+    tokens.forEach(t => { const i = n.indexOf(t); if (i > -1) ranges.push([i, i + t.length]); });
+    ranges.sort((a, b) => a[0] - b[0]);
+    let out = '', pos = 0;
+    ranges.forEach(([s, e]) => {
+      if (s < pos) return;
+      out += esc(text.slice(pos, s)) + '<mark>' + esc(text.slice(s, e)) + '</mark>';
+      pos = e;
+    });
+    return out + esc(text.slice(pos));
+  }
+
+  function enhance(select) {
+    if (select.dataset.ssReady) return;
+    select.dataset.ssReady = '1';
+
+    const emptyOpt = [...select.options].find(o => !o.value);
+    const placeholder = select.dataset.placeholder || (emptyOpt ? emptyOpt.text : 'Seleccione...');
+    const searchPh = select.dataset.search || 'Escreva para pesquisar...';
+    select.removeAttribute('required');   // a validação é feita no servidor
+
+    const wrap = document.createElement('div');
+    wrap.className = 'ss';
+    select.parentNode.insertBefore(wrap, select);
+    wrap.appendChild(select);
+    select.classList.add('ss-native');
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'ss-trigger';
+    trigger.innerHTML = '<span class="ss-value"></span><span class="ss-clear" title="Limpar"><i class="bi bi-x-lg"></i></span><i class="bi bi-chevron-down ss-caret"></i>';
+    const panel = document.createElement('div');
+    panel.className = 'ss-panel';
+    panel.innerHTML = '<div class="ss-search"><i class="bi bi-search"></i><input type="text" autocomplete="off" placeholder="' + esc(searchPh) + '"><span class="ss-count"></span></div><ul class="ss-list" role="listbox"></ul>';
+    wrap.append(trigger, panel);
+
+    if (select.closest('.form-field') && select.closest('.form-field').querySelector('.fx-error')) trigger.classList.add('is-invalid');
+
+    const input = panel.querySelector('input');
+    const list = panel.querySelector('.ss-list');
+    const count = panel.querySelector('.ss-count');
+    const valueEl = trigger.querySelector('.ss-value');
+    let items = [], active = 0;
+
+    function sync() {
+      const opt = select.options[select.selectedIndex];
+      const has = !!(opt && opt.value);
+      valueEl.textContent = has ? opt.text : placeholder;
+      valueEl.classList.toggle('placeholder', !has);
+      wrap.classList.toggle('has-value', has && !!emptyOpt);
+      trigger.disabled = select.disabled;
+    }
+    function setActive(i, scroll) {
+      active = i;
+      [...list.children].forEach((li, k) => li.classList.toggle('active', k === i));
+      if (scroll && list.children[i]) list.children[i].scrollIntoView({ block: 'nearest' });
+    }
+    function render() {
+      const tokens = norm(input.value).split(/\s+/).filter(Boolean);
+      items = [...select.options].filter(o => o.value && !o.disabled && !o.hidden && tokens.every(t => norm(o.text).includes(t)));
+      count.textContent = items.length;
+      if (!items.length) {
+        list.innerHTML = '<li class="ss-empty"><i class="bi bi-emoji-neutral"></i>Nenhum resultado encontrado</li>';
+        return;
+      }
+      list.innerHTML = items.map((o, i) => {
+        const parts = o.text.split(' · ');
+        const main = parts.shift();
+        return '<li role="option" data-i="' + i + '" class="ss-item' + (o.selected ? ' selected' : '') + '">' +
+          '<span class="ss-main">' + mark(main, tokens) + '</span>' +
+          (parts.length ? '<span class="ss-sub">' + mark(parts.join(' · '), tokens) + '</span>' : '') +
+          (o.selected ? '<i class="bi bi-check2"></i>' : '') + '</li>';
+      }).join('');
+      setActive(Math.max(0, items.findIndex(o => o.selected)), true);
+    }
+    function closeAll() { document.querySelectorAll('.ss.open').forEach(s => s.classList.remove('open')); }
+    function open() {
+      closeAll();
+      const r = trigger.getBoundingClientRect();
+      wrap.classList.toggle('up', window.innerHeight - r.bottom < 360 && r.top > 360);
+      wrap.classList.add('open');
+      input.value = '';
+      render();
+      setTimeout(() => input.focus(), 10);
+    }
+    function close() { wrap.classList.remove('open'); }
+    function choose(i) {
+      if (!items[i]) return;
+      select.value = items[i].value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      trigger.classList.remove('is-invalid');
+      sync(); close(); trigger.focus();
+    }
+
+    trigger.addEventListener('click', e => {
+      if (e.target.closest('.ss-clear')) {
+        select.value = '';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        sync(); return;
+      }
+      wrap.classList.contains('open') ? close() : open();
+    });
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(active + 1, items.length - 1), true); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(active - 1, 0), true); }
+      else if (e.key === 'Enter') { e.preventDefault(); choose(active); }
+      else if (e.key === 'Escape') { close(); trigger.focus(); }
+    });
+    list.addEventListener('click', e => { const li = e.target.closest('.ss-item'); if (li) choose(+li.dataset.i); });
+    list.addEventListener('mousemove', e => { const li = e.target.closest('.ss-item'); if (li) setActive(+li.dataset.i, false); });
+    select.addEventListener('change', sync);
+    select.addEventListener('ss:refresh', () => { sync(); if (wrap.classList.contains('open')) render(); });
+
+    const lbl = select.id && document.querySelector('label[for="' + select.id + '"]');
+    if (lbl) lbl.addEventListener('click', e => { e.preventDefault(); open(); });
+    sync();
+  }
+
+  document.addEventListener('click', e => { if (!e.target.closest('.ss')) document.querySelectorAll('.ss.open').forEach(s => s.classList.remove('open')); });
+  window.fxSearchSelect = enhance;
+  document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('select.js-search-select').forEach(enhance));
+})();
+</script>

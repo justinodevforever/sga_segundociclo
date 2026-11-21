@@ -1,36 +1,223 @@
+import json
+import uuid
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
-from django.http import JsonResponse, HttpResponse
+from io import BytesIO
+from django.http import JsonResponse, HttpResponse, Http404
 from datetime import date, timedelta, timezone
+from datetime import timedelta
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
+from django.template.loader import get_template
+from django.utils.text import slugify
+from django.views.decorators.http import require_POST
+from xhtml2pdf import pisa
+from django.db.utils import IntegrityError
+from django.db import transaction
+from django.contrib import messages
+
 from app.db.decorators import *
 from .forms import *
 from app.db.models import *
 from app.financa.models import *
-import json
-from django.db.utils import IntegrityError
-from django.db import transaction
-from django.contrib import messages
 from .permissions import *
-
-from datetime import timedelta
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.urls import reverse
 from django.views import View
 
 from .utils import DirectorAdminRequiredMixin, _erros, _tenant, _log
+from app.db.models import *
 
-from app.db.models import (
-    AnoLectivo, Classe, LogAuditoria, RegraAvaliacao,
-    TenantConfiguracao, Trimestre, Turma,
-)
 
-# ──────────────────────────────────────────────────────────────
-# View
-# ──────────────────────────────────────────────────────────────
+
+DIAS = list(HorarioAula.DiaSemana.choices)              # [("Segunda", "Segunda-feira"), ...]
+ORDEM_DIA = {valor: i for i, (valor, _lbl) in enumerate(DIAS)}
+
+PALETA = [
+    ("#dbeafe", "#1e40af"), ("#d1fae5", "#065f46"), ("#ede9fe", "#5b21b6"),
+    ("#fef3c7", "#92400e"), ("#fee2e2", "#991b1b"), ("#cffafe", "#155e75"),
+    ("#fce7f3", "#9d174d"), ("#ecfccb", "#3f6212"),
+]
+
+
+def _uuid_ou_404(valor):
+    try:
+        return uuid.UUID(str(valor))
+    except (ValueError, AttributeError, TypeError):
+        raise Http404("Identificador inválido.")
+
+
+def _ano_actual():
+    return AnoLectivo.objects.filter(e_atual=True).first()
+
+
+def _turmas_qs():
+    return Turma.objects.select_related("curso", "classe", "ano_lectivo")
+
+
+def _horarios_da_turma(turma):
+    """Todas as aulas da turma, ordenadas por dia da semana e hora."""
+    qs = HorarioAula.objects.filter(atribuicao__turma=turma).select_related(
+        "atribuicao__disciplina", "atribuicao__professor", "atribuicao__turma",
+    )
+    horarios = sorted(qs, key=lambda h: (ORDEM_DIA.get(h.dia_semana, 99), h.hora_inicio))
+    for h in horarios:
+        h.bg, h.fg = PALETA[h.atribuicao.disciplina_id.int % len(PALETA)]
+    return horarios
+
+
+def _montar_grade(horarios):
+    """Linhas = intervalos de tempo; colunas = dias úteis."""
+    slots = sorted({(h.hora_inicio, h.hora_fim) for h in horarios})
+    grade = []
+    for ini, fim in slots:
+        celulas = [
+            {
+                "dia": valor,
+                "aulas": [h for h in horarios
+                          if h.dia_semana == valor and h.hora_inicio == ini and h.hora_fim == fim],
+            }
+            for valor, _lbl in DIAS
+        ]
+        grade.append({"inicio": ini, "fim": fim, "celulas": celulas})
+    return grade
+
+
+def _legenda(horarios):
+    """Disciplina / professor / nº de aulas semanais (para o PDF)."""
+    acc = {}
+    for h in horarios:
+        a = h.atribuicao
+        item = acc.setdefault(a.pk, {
+            "disciplina": a.disciplina.nome, "professor": a.professor.nome_completo, "aulas": 0,
+        })
+        item["aulas"] += 1
+    return sorted(acc.values(), key=lambda x: x["disciplina"])
+
+
+def _plano_map():
+    """{turma_id: [disciplina_id, ...]} segundo o plano curricular (curso + classe)."""
+    planos = {}
+    for curso_id, classe_id, disc_id in PlanoCurricular.objects.values_list(
+            "curso_id", "classe_id", "disciplina_id"):
+        planos.setdefault((curso_id, classe_id), []).append(str(disc_id))
+    return {
+        str(t_id): planos.get((curso_id, classe_id), [])
+        for t_id, curso_id, classe_id in
+        Turma.objects.filter(activo=True).values_list("id", "curso_id", "classe_id")
+    }
+
+
+
+
+def _atribuicao_form_view(request, instance=None):
+    initial = {} if instance else {k: request.GET[k] for k in ("turma", "disciplina", "professor") if request.GET.get(k)}
+    form = AtribuicaoDocenteForm(request.POST or None, instance=instance, initial=initial)
+    plano = None
+    
+    if instance:
+        plano = PlanoCurricular.objects.filter(
+            ano_lectivo=instance.turma.ano_lectivo,
+            curso=instance.turma.curso,
+            classe=instance.turma.classe,
+            disciplina=instance.disciplina,
+        ).first()
+        
+    
+    if request.method == "POST" and form.is_valid():
+        if transaction.atomic:
+            
+            obj = form.save()
+            
+            try:
+                if not instance:
+                    
+                    PlanoCurricular.objects.create(
+                        ano_lectivo=obj.turma.ano_lectivo,
+                        curso=obj.turma.curso,
+                        classe=obj.turma.classe,
+                        disciplina=obj.disciplina,
+                        carga_horaria_semanal=request.POST.get('carga_horaria'),
+                        tem_exame_nacional= True if request.POST.get('tem_exame') == 'on' else False 
+                    )
+                else:
+                    print(request.POST.get('carga_horaria'), request.POST.get('tem_exame'))
+                    plano = PlanoCurricular.objects.filter(
+                        ano_lectivo=obj.turma.ano_lectivo,
+                        curso=obj.turma.curso,
+                        classe=obj.turma.classe,
+                        disciplina=obj.disciplina,
+                    ).first()
+                    
+                    if not plano:
+                        PlanoCurricular.objects.create(
+                            ano_lectivo=obj.turma.ano_lectivo,
+                            curso=obj.turma.curso,
+                            classe=obj.turma.classe,
+                            disciplina=obj.disciplina,
+                            carga_horaria_semanal=request.POST.get('carga_horaria'),
+                            tem_exame_nacional= True if request.POST.get('tem_exame') == 'on' else False 
+                        )
+                    else:    
+                    
+                        plano.ano_lectivo=obj.turma.ano_lectivo
+                        plano.curso=obj.turma.curso
+                        plano.classe=obj.turma.classe
+                        plano.disciplina=obj.disciplina
+                        plano.carga_horaria_semanal=request.POST.get('carga_horaria')
+                        plano.tem_exame_nacional= True if request.POST.get('tem_exame') == 'on' else False 
+                        plano.save()
+                                        
+            except IntegrityError as e:
+                print(e)
+                messages.error(request, "Erro Já existe um plano curricular com está disciplina, curso, classe e ano lectivo")
+                return render(request, "docentes/atribuicao_form.html", {
+                        "secao": "atribuicoes", "form": form, "obj": instance, "plano_map": _plano_map(), "plano": plano 
+                    })
+            
+            messages.success(request, f"{obj.disciplina.nome} atribuída a {obj.professor.nome_completo} "
+                                    f"na turma {obj.turma.designacao}.")
+            if "salvar_novo" in request.POST:
+                return redirect("atribuicao_create")
+            
+            return redirect("atribuicao_list")
+    return render(request, "docentes/atribuicao_form.html", {
+        "secao": "atribuicoes", "form": form, "obj": instance, "plano_map": _plano_map(), "plano": plano 
+    })
+
+
+
+def _horario_form_view(request, instance=None):
+    turma = None
+    if instance:
+        turma = instance.atribuicao.turma
+    elif request.GET.get("turma"):
+        turma = get_object_or_404(_turmas_qs(), pk=_uuid_ou_404(request.GET["turma"]))
+
+    initial = {}
+    if not instance:
+        for k in ("atribuicao", "dia_semana", "hora_inicio", "hora_fim"):
+            if request.GET.get(k):
+                initial[k] = request.GET[k]
+
+    form = HorarioAulaForm(request.POST or None, instance=instance, initial=initial, turma=turma)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save()
+        messages.success(request, f"Aula de {obj.atribuicao.disciplina.nome} guardada "
+                                  f"({obj.get_dia_semana_display()}, {obj.hora_inicio:%H:%M}–{obj.hora_fim:%H:%M}).")
+        if "adicionar_outra" in request.POST:
+            return redirect(f"{reverse('horario_create')}?turma={obj.atribuicao.turma_id}")
+        return redirect(f"{reverse('horario_turma')}?turma={obj.atribuicao.turma_id}")
+
+    return render(request, "docentes/horario_form.html", {
+        "secao": "horarios", "form": form, "obj": instance, "turma": turma,
+        "existentes": _horarios_da_turma(turma) if turma else [],
+    })
+
+
 class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
     template_name = "configuracoes/configuracoes_escola.html"
 
@@ -249,7 +436,6 @@ class ConfiguracoesEscolaView(DirectorAdminRequiredMixin, View):
             messages.error(request, _erros(form))
         return 3
 
-    # ---------- Passo 4: Avaliação ----------
     def _regra_salvar(self, request):
         ano = self._ano_actual_ou_erro(request)
         classe = Classe.objects.filter(pk=request.POST.get("classe_id")).first()
@@ -932,13 +1118,11 @@ def turma_detail(request, turma_id):
     paginator = Paginator(matriculas, 20)
     matriculas = paginator.page(page)
 
-    horarios = turma.horarios.all().select_related('disciplina', 'professor')
     
     context = {
         'turma': turma,
         'secao': 'turmas',
         'matriculas': matriculas,
-        'horarios': horarios,
         'total_alunos': total_alunos,
         'avaliacoes': avaliacoes
     }
@@ -1306,6 +1490,127 @@ def disciplina_delete(request, disciplina_id):
     disciplina.delete()
 
     return redirect('disciplina_list')
+
+@login_required
+def atribuicao_list(request):
+    ano_id = request.GET["ano"] if "ano" in request.GET else (str(_ano_actual().pk) if _ano_actual() else "")
+    q = request.GET.get("q", "").strip()
+    turma_id = request.GET.get("turma", "")
+    status = request.GET.get("status", "")
+
+    qs = AtribuicaoDocente.objects.select_related(
+        "professor", "disciplina", "turma__curso", "turma__classe", "turma__ano_lectivo")
+    if ano_id:
+        qs = qs.filter(turma__ano_lectivo_id=_uuid_ou_404(ano_id))
+    if turma_id:
+        qs = qs.filter(turma_id=_uuid_ou_404(turma_id))
+    if status in ("ativa", "inativa"):
+        qs = qs.filter(status=status)
+    if q:
+        qs = qs.filter(Q(professor__nome_completo__icontains=q) | Q(disciplina__nome__icontains=q)
+                       | Q(turma__designacao__icontains=q))
+
+    base = qs.order_by()
+    stats = {
+        "total": base.count(),
+        "professores": base.values("professor_id").distinct().count(),
+        "turmas": base.values("turma_id").distinct().count(),
+        "disciplinas": base.values("disciplina_id").distinct().count(),
+    }
+
+    qs = qs.annotate(total_aulas=Count("horarioaula")).order_by(
+        "turma__designacao", "disciplina__nome")
+    paginator = Paginator(qs, 15)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    turmas = _turmas_qs().filter(activo=True)
+    if ano_id:
+        turmas = turmas.filter(ano_lectivo_id=ano_id)
+
+    return render(request, "docentes/atribuicao_list.html", {
+        "secao": "atribuicoes",
+        "page_obj": page_obj,
+        "page_range": list(paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1)),
+        "ellipsis": paginator.ELLIPSIS,
+        "querystring": params.urlencode(),
+        "stats": stats,
+        "anos": AnoLectivo.objects.order_by("-data_inicio"),
+        "turmas": turmas.order_by("classe__designacao", "designacao"),
+        "ano_id": ano_id, "turma_id": turma_id, "status": status, "q": q,
+    })
+
+@login_required
+def atribuicao_create(request):
+    return _atribuicao_form_view(request)
+
+
+@login_required
+def atribuicao_update(request, pk):
+    return _atribuicao_form_view(request, get_object_or_404(AtribuicaoDocente, pk=pk))
+
+
+@login_required
+@require_POST
+def atribuicao_delete(request, pk):
+    obj = get_object_or_404(AtribuicaoDocente.objects.select_related("professor", "disciplina", "turma"), pk=pk)
+    descricao = f"{obj.disciplina.nome} / {obj.professor.nome_completo} ({obj.turma.designacao})"
+    obj.delete()
+    messages.success(request, f"Atribuição removida: {descricao}.")
+    return redirect("atribuicao_list")
+
+
+@login_required
+def horario_turma_list(request):
+    ano_id = request.GET["ano"] if "ano" in request.GET else (str(_ano_actual().pk) if _ano_actual() else "")
+    turma_id = request.GET.get("turma", "")
+
+    turmas = (_turmas_qs().filter(activo=True)
+              .annotate(total_aulas=Count("atribuicao__horarioaula"))
+              .order_by("-ano_lectivo__data_inicio", "classe__designacao", "designacao"))
+    if ano_id:
+        turmas = turmas.filter(ano_lectivo_id=_uuid_ou_404(ano_id))
+
+    ctx = {
+        "secao": "horarios", "turmas": turmas, "dias": DIAS, "ano_id": ano_id,
+        "anos": AnoLectivo.objects.order_by("-data_inicio"), "turma": None,
+    }
+
+    if turma_id:
+        turma = get_object_or_404(_turmas_qs(), pk=_uuid_ou_404(turma_id))
+        horarios = _horarios_da_turma(turma)
+        atribuicoes = AtribuicaoDocente.objects.filter(turma=turma, status="ativa").select_related("disciplina", "professor")
+        com_aulas = {h.atribuicao_id for h in horarios}
+        ctx.update({
+            "turma": turma,
+            "grade": _montar_grade(horarios),
+            "total_aulas": len(horarios),
+            "total_disciplinas": atribuicoes.count(),
+            "total_professores": atribuicoes.values("professor_id").distinct().count(),
+            "sem_horario": [a for a in atribuicoes if a.pk not in com_aulas],
+        })
+    return render(request, "docentes/horario_turma.html", ctx)
+
+@login_required
+def horario_create(request):
+    return _horario_form_view(request)
+
+
+@login_required
+def horario_update(request, pk):
+    return _horario_form_view(request, get_object_or_404(HorarioAula.objects.select_related("atribuicao__turma"), pk=pk))
+
+
+@login_required
+@require_POST
+def horario_delete(request, pk):
+    obj = get_object_or_404(HorarioAula.objects.select_related("atribuicao__turma", "atribuicao__disciplina"), pk=pk)
+    turma_id = obj.atribuicao.turma_id
+    obj.delete()
+    messages.success(request, "Aula removida do horário.")
+    return redirect(f"{reverse('horario_turma')}?turma={turma_id}")
 
 @login_required
 def curso_list(request):    
@@ -1979,7 +2284,7 @@ def aluno_detail(request, aluno_id):
                     aluno = aluno,
                     turma_id = turma,
                     ano_lectivo_id = ano_lectivo,
-                    tipo_matricula = Matricula.TipoMatricula.RENOVACAO,
+                    tipo_matricula = Matricula.TipoMatricula.CONFIRMACAO,
                     status = Matricula.Status.ACTIVA,
                     matriculado_por = request.user,
                 )
@@ -2410,8 +2715,8 @@ def funcionario_detail(request, funcionario_id):
         
     else:
     
-        horario = HorarioAula.objects.filter(professor=funcionario).select_related(
-            'turma', 'disciplina'
+        horario = HorarioAula.objects.filter(atribuicao__professor=funcionario).select_related(
+            'atribuicao__turma', 'atribuicao__disciplina'
         ).order_by('dia_semana', 'hora_inicio')
         
         context = {
@@ -2680,7 +2985,7 @@ def horario_professor(request, professor_id=None):
 
 
 @login_required
-def horario_create(request, turma_id):
+def horario_create1(request, turma_id):
     """Criar horário para turma"""
     turma = get_object_or_404(Turma, id=turma_id)
     
@@ -2819,6 +3124,35 @@ def relatorio_desempenho(request):
         'filtros': {'turma_id': turma_id, 'periodo_id': periodo_id},
     }
     return render(request, 'diretor/relatorios/desempenho.html', context)
+
+
+@login_required
+def horario_pdf(request, turma_id):
+    """Horário semanal da turma em PDF (xhtml2pdf). ?download=1 força o descarregamento."""
+    turma = get_object_or_404(_turmas_qs(), pk=turma_id)
+    horarios = _horarios_da_turma(turma)
+
+    html = get_template("docentes/horario_pdf.html").render({
+        "turma": turma,
+        "grade": _montar_grade(horarios),
+        "legenda": _legenda(horarios),
+        "total_aulas": len(horarios),
+        "dias": DIAS,
+        "agora": timezone.localtime(),
+        "utilizador": request.user.nome_completo or request.user.get_username(),
+        "escola_nome": getattr(settings, "NOME_ESCOLA", "Escola"),
+    })
+
+    buffer = BytesIO()
+    resultado = pisa.CreatePDF(src=html, dest=buffer, encoding="utf-8")
+    if resultado.err:
+        return HttpResponse("Não foi possível gerar o PDF do horário.", status=500)
+
+    nome = f"horario_{slugify(turma.designacao)}_{turma.classe.designacao}a_classe.pdf"
+    resposta = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    disposicao = "attachment" if request.GET.get("download") else "inline"
+    resposta["Content-Disposition"] = f'{disposicao}; filename="{nome}"'
+    return resposta
 
 
 # ══════════════════════════════════════════════

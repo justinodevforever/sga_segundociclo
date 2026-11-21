@@ -1,0 +1,184 @@
+{% extends "director/base.html" %}
+
+{% block breadcrumb %}
+  <a href="#">Académico</a><i class="bi bi-chevron-right"></i>
+  <span class="current">Horários</span>
+{% endblock breadcrumb %}
+
+{% block icon %}<i class="bi bi-calendar3-week-fill"></i>{% endblock icon %}
+{% block title %}Horário por turma{% endblock %}
+{% block sub_title %}Consulte, edite e imprima o horário semanal de cada turma{% endblock %}
+
+{% block topbar_actions %}
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'atribuicao_list' %}" class="fx-btn fx-btn-light"><i class="bi bi-person-video3"></i> Atribuições</a>
+    <a href="{% url 'horario_create' %}{% if turma %}?turma={{ turma.pk }}{% endif %}" class="fx-btn fx-btn-primary"><i class="bi bi-plus-lg"></i> Nova aula</a>
+  </div>
+{% endblock topbar_actions %}
+
+{% block content %}
+{% include "docentes/_ui.html" %}
+
+<style>
+  .hz-filter { display:grid; grid-template-columns:220px 1fr; gap:14px; align-items:end; }
+  @media (max-width:640px) { .hz-filter { grid-template-columns:1fr; } }
+
+  .hz-head { background:linear-gradient(135deg,#0f1f3d 0%,#1d3f7a 70%,#1e40af 100%); color:#fff; border-radius:16px; padding:22px 26px; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:18px; box-shadow:var(--shadow-lg); }
+  .hz-head h4 { font-family:inherit; font-size:1.35rem; font-weight:800; margin:0 0 4px; }
+  .hz-head p { margin:0; font-size:.8rem; color:rgba(255,255,255,.65); }
+  .hz-metrics { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .hz-metric { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); border-radius:10px; padding:6px 13px; font-size:.76rem; font-weight:600; display:flex; align-items:center; gap:7px; }
+
+  .hz-wrap { overflow-x:auto; border-radius:16px; }
+  table.hz { width:100%; min-width:820px; border-collapse:separate; border-spacing:0; background:#fff; border:1px solid var(--border); border-radius:16px; overflow:hidden; table-layout:fixed; }
+  .hz thead th { background:#f8fafc; padding:13px 8px; text-align:center; font-size:.78rem; font-weight:700; color:var(--text-sub); border-bottom:1px solid var(--border); border-left:1px solid #eef2f7; }
+  .hz thead th:first-child { width:94px; border-left:none; }
+  .hz td { border-left:1px solid #eef2f7; border-top:1px solid #eef2f7; padding:7px; vertical-align:top; height:92px; }
+  .hz tbody tr:first-child td { border-top:none; }
+  .hz td.hz-time { border-left:none; background:#f8fafc; text-align:center; vertical-align:middle; width:94px; }
+  .hz-time b { display:block; font-size:.88rem; font-variant-numeric:tabular-nums; }
+  .hz-time span { font-size:.72rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+
+  .aula { position:relative; border-radius:11px; padding:9px 11px; margin-bottom:6px; border-left:4px solid currentColor; height:100%; min-height:76px; }
+  .aula:last-child { margin-bottom:0; }
+  .aula-disc { font-size:.8rem; font-weight:700; line-height:1.25; padding-right:44px; }
+  .aula-prof { font-size:.7rem; opacity:.85; margin-top:3px; line-height:1.25; }
+  .aula-sala { display:inline-flex; align-items:center; gap:4px; font-size:.66rem; font-weight:700; margin-top:5px; background:rgba(255,255,255,.65); padding:1px 7px; border-radius:99px; }
+  .aula-actions { position:absolute; top:6px; right:6px; display:flex; gap:3px; opacity:0; transition:opacity .15s; }
+  .aula:hover .aula-actions, .aula:focus-within .aula-actions { opacity:1; }
+  @media (hover:none) { .aula-actions { opacity:1; } }
+  .aula-actions a, .aula-actions button { width:22px; height:22px; border-radius:6px; border:none; background:rgba(255,255,255,.85); color:#334155; font-size:.7rem; display:flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; }
+  .aula-actions a:hover { color:#1d4ed8; }
+  .aula-actions button:hover { color:#dc2626; }
+
+  .cell-add { display:flex; align-items:center; justify-content:center; height:100%; min-height:76px; border:1.5px dashed transparent; border-radius:11px; color:transparent; font-size:1.1rem; text-decoration:none; transition:all .15s; }
+  .hz td:hover .cell-add { border-color:#bfdbfe; color:#60a5fa; background:#f8fbff; }
+
+  .turma-card { display:flex; align-items:center; gap:14px; padding:16px 18px; border:1px solid var(--border); border-radius:14px; background:#fff; text-decoration:none; color:inherit; transition:all .18s; height:100%; }
+  .turma-card:hover { border-color:#93c5fd; box-shadow:0 8px 24px rgba(37,99,235,.13); transform:translateY(-2px); color:inherit; }
+  .turma-ic { width:46px; height:46px; border-radius:13px; background:#dbeafe; color:#1d4ed8; display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0; font-weight:800; }
+  .turma-n { font-weight:700; font-size:.9rem; line-height:1.25; }
+  .turma-s { font-size:.72rem; color:var(--text-muted); }
+</style>
+
+<!-- Selecção da turma -->
+<form method="get" id="hzForm" class="fx-card mb-4">
+  <div class="fx-card-body">
+    <div class="hz-filter">
+      <div class="form-field">
+        <label class="form-label">Ano lectivo</label>
+        <select name="ano" id="hzAno" class="form-control-custom">
+          <option value="">Todos</option>
+          {% for a in anos %}<option value="{{ a.pk }}" {% if ano_id == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.designacao }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="hzTurma">Turma</label>
+        <select name="turma" id="hzTurma" class="js-search-select" data-placeholder="Pesquisar e seleccionar a turma..." data-search="Pesquisar turma, classe ou curso...">
+          <option value="">Seleccione a turma</option>
+          {% for t in turmas %}<option value="{{ t.pk }}" {% if turma and turma.pk == t.pk %}selected{% endif %}>{{ t.designacao }} — {{ t.classe.designacao }}.ª · {{ t.curso.nome_abreviado|default:t.curso.nome }} · {{ t.get_periodo_display }} · {{ t.ano_lectivo.designacao }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if turma %}
+  <div class="hz-head">
+    <div>
+      <h4>Turma {{ turma.designacao }} — {{ turma.classe.designacao }}.ª classe</h4>
+      <p>{{ turma.curso.nome }} · {{ turma.get_periodo_display }} · Ano lectivo {{ turma.ano_lectivo.designacao }}{% if turma.sala %} · Sala {{ turma.sala }}{% endif %}</p>
+      <div class="hz-metrics">
+        <span class="hz-metric"><i class="bi bi-clock-history"></i> {{ total_aulas }} aula{{ total_aulas|pluralize }} por semana</span>
+        <span class="hz-metric"><i class="bi bi-book"></i> {{ total_disciplinas }} disciplina{{ total_disciplinas|pluralize }}</span>
+        <span class="hz-metric"><i class="bi bi-person-workspace"></i> {{ total_professores }} professor{{ total_professores|pluralize:"es" }}</span>
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'horario_pdf' turma.pk %}" target="_blank" rel="noopener" class="fx-btn fx-btn-pdf"><i class="bi bi-printer-fill"></i> Imprimir PDF</a>
+      <a href="{% url 'horario_pdf' turma.pk %}?download=1" class="fx-btn fx-btn-light"><i class="bi bi-download"></i> Descarregar</a>
+    </div>
+  </div>
+
+  {% if sem_horario %}
+    <div class="fx-alert warning">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <div><b>{{ sem_horario|length }} disciplina{{ sem_horario|length|pluralize }} sem aulas marcadas:</b>
+        {% for a in sem_horario %}<a href="{% url 'horario_create' %}?atribuicao={{ a.pk }}&turma={{ turma.pk }}" style="color:inherit;text-decoration:underline">{{ a.disciplina.nome }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.</div>
+    </div>
+  {% endif %}
+
+  {% if grade %}
+    <div class="hz-wrap">
+      <table class="hz">
+        <thead>
+          <tr><th>Hora</th>{% for valor, label in dias %}<th>{{ label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in grade %}
+          <tr>
+            <td class="hz-time"><b>{{ row.inicio|time:"H:i" }}</b><span>{{ row.fim|time:"H:i" }}</span></td>
+            {% for cell in row.celulas %}
+            <td>
+              {% for h in cell.aulas %}
+                <div class="aula" style="background:{{ h.bg }};color:{{ h.fg }}">
+                  <div class="aula-actions">
+                    <a href="{% url 'horario_update' h.pk %}" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                    <button type="button" class="js-delete" title="Remover"
+                            data-url="{% url 'horario_delete' h.pk %}"
+                            data-msg="Remover a aula de {{ h.atribuicao.disciplina.nome }} ({{ h.get_dia_semana_display }}, {{ h.hora_inicio|time:'H:i' }}–{{ h.hora_fim|time:'H:i' }})?"><i class="bi bi-trash3-fill"></i></button>
+                  </div>
+                  <div class="aula-disc">{{ h.atribuicao.disciplina.nome }}</div>
+                  <div class="aula-prof">{{ h.atribuicao.professor.nome_completo }}</div>
+                  {% if h.sala %}<span class="aula-sala"><i class="bi bi-door-open"></i> {{ h.sala }}</span>{% endif %}
+                </div>
+              {% empty %}
+                <a class="cell-add" title="Marcar aula neste horário"
+                   href="{% url 'horario_create' %}?turma={{ turma.pk }}&dia_semana={{ cell.dia|urlencode }}&hora_inicio={{ row.inicio|time:'H:i' }}&hora_fim={{ row.fim|time:'H:i' }}"><i class="bi bi-plus-circle"></i></a>
+              {% endfor %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="fx-card"><div class="fx-empty">
+      <i class="bi bi-calendar-x"></i><b>Esta turma ainda não tem horário</b>
+      Marque a primeira aula para construir a grelha semanal.
+      <div class="mt-3"><a href="{% url 'horario_create' %}?turma={{ turma.pk }}" class="fx-btn fx-btn-primary"><i class="bi bi-plus-lg"></i> Marcar primeira aula</a></div>
+    </div></div>
+  {% endif %}
+
+{% else %}
+  <div class="section-header"><h6 class="section-title">Turmas {% if turmas %}({{ turmas|length }}){% endif %}</h6></div>
+  <div class="row g-3">
+    {% for t in turmas %}
+    <div class="col-md-6 col-xl-4">
+      <a class="turma-card" href="?turma={{ t.pk }}{% if ano_id %}&ano={{ ano_id }}{% endif %}">
+        <div class="turma-ic">{{ t.designacao|slice:":3" }}</div>
+        <div class="flex-grow-1">
+          <div class="turma-n">{{ t.classe.designacao }}.ª {{ t.curso.nome_abreviado|default:t.curso.nome }} — {{ t.designacao }}</div>
+          <div class="turma-s">{{ t.get_periodo_display }} · {{ t.ano_lectivo.designacao }}</div>
+        </div>
+        <span class="tag {% if t.total_aulas %}tag-green{% else %}tag-yellow{% endif %}">{{ t.total_aulas }} aula{{ t.total_aulas|pluralize }}</span>
+      </a>
+    </div>
+    {% empty %}
+    <div class="col-12"><div class="fx-card"><div class="fx-empty"><i class="bi bi-people"></i><b>Nenhuma turma activa</b>Crie turmas para poder montar os horários.</div></div></div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('hzForm');
+  document.getElementById('hzTurma').addEventListener('change', () => form.submit());
+  document.getElementById('hzAno').addEventListener('change', () => {
+    document.getElementById('hzTurma').value = '';
+    form.submit();
+  });
+});
+</script>
+{% endblock content %}

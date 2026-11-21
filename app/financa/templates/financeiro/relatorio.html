@@ -145,7 +145,7 @@
         {% for conta in contas %}
         <tr>
           <td style="color:var(--text-muted);font-size:.78rem;">{{ forloop.counter }}</td>
-          <td style="font-size:.83rem;font-weight:600;">{{ conta.aluno.nome|truncatechars:25 }}</td>
+          <td style="font-size:.83rem;font-weight:600;">{{ conta.aluno.nome_completo|truncatechars:25 }}</td>
           <td style="font-size:.8rem;">{{ conta.ano_lectivo }}</td>
           <td style="font-size:.82rem;">{{ conta.total_devido|floatformat:2 }} Kz</td>
           <td style="font-size:.82rem;color:#059669;">{{ conta.total_pago|floatformat:2 }} Kz</td>

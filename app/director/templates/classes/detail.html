@@ -86,6 +86,10 @@
                 <div class="col-sm-9">{{ classe.ordem}}</div>
             </div>
             <div class="row mb-3">
+                <div class="col-sm-3"><strong>É o último ano?:</strong></div>
+                <div class="col-sm-9">{% if classe.e_ultimo %}Sim {% else %}Não{% endif %}</div>
+            </div>
+            <div class="row mb-3">
                 <div class="col-sm-3"><strong>Total de alunos:</strong></div>
                 <div class="col-sm-9">{{ alunos|length}}</div>
             </div>

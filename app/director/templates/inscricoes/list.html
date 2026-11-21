@@ -37,19 +37,20 @@
             
             <form action="" method="get"  style="display: flex; width: 100%; gap: 10px;">
 
-                <input type="search" name="busca" style="border-radius: 4px 0px 0px 4px;"
+                <input type="search" name="busca" value="{% if busca %}{{busca}}{% endif %}" style="border-radius: 4px 0px 0px 4px;"
                 class="form-control" placeholder="Nome ou B.I">
 
                 <select name="ano_lectivo" id="ano_lectivo" class="form-control">
                     <option value="">Todos anos lectivos</option>
 
                     {% for ano in anos_lectivos %}
-                        <option value="{{ano.id}}">{{ano.designacao}}</option>
+                        <option value="{{ano.id}}" {% if ano.id == ano_lectivo_id %}selected{% endif %}>{{ano.designacao}}</option>
                     {% endfor %}
                 </select>
 
 
                 <button class="btn btn-primary"><i class="fas fa-filter    "></i></i></button>
+                <a href="/inscricoes/" style="background-color: #eee;" class="btn">Limpar</a>
 
             </form>
         </div>
@@ -91,9 +92,9 @@
                                     </a>
                                 </th>
                                 
-                                <th>Data de nascimento</th>
-                                <th>Género</th>
+                                <th>B.I</th>
                                 <th>Curso</th>
+                                <th>Estado</th>
                             
                                 <th>Opções</th>
                             </tr>
@@ -102,9 +103,15 @@
                             {% for inscricao in inscricoes %}
                             <tr>
                                 <td>{{ inscricao.candidato.nome_completo }}</td>
-                                <td>{{ inscricao.candidato.data_nascimento|date:'d/m/Y' }}</td>
-                                <td>{{ inscricao.candidato.get_genero_display }}</td>
+                                <td>{{ inscricao.candidato.bi }}</td>
                                 <td>{{ inscricao.curso.nome }}</td>
+                                {% if inscricao.status == 'aprovada' %}
+                                    <td style="color: green;">{{ inscricao.get_status_display }}</td>
+                                {% elif inscricao.status == 'reprovada' %}
+                                    <td style="color: red;">{{ inscricao.get_status_display }}</td>
+                                {% elif inscricao.status == 'ativa' %}
+                                    <td style="color: blue;">Pendente</td>
+                                {% endif %}
                                 
                                 <td>
                                     <div class="btn-group btn-group-sm">
@@ -117,6 +124,24 @@
                                             class="btn btn-outline-warning" title="Editar">
                                             <i class="fa fa-pencil" aria-hidden="true"></i>
                                         </a>
+                                        {% if inscricao.status == 'aprovada' %}
+                                            <a href="{% url "reprovar_inscricao" inscricao.id %}" 
+                                            class="btn btn-outline-danger" title="Reprovar">
+                                                x
+                                            </a>
+                                        {% elif inscricao.status == 'reprovada' or inscricao.status == 'ativa' %}
+                                            <a href="{% url "aprovar_inscricao" inscricao.id %}"
+                                            class="btn btn-outline-success" title="Aprovar">
+                                                <i class="fa fa-check" aria-hidden="true"></i>
+                                            </a>
+                                        {% endif %}
+
+                                        {% if inscricao.status == 'aprovada' %}
+                                            <a href="{% url "comprovativo_inscricao" inscricao.id %}" target="_blank"
+                                            class="btn btn-outline-danger" title="Comprovativo">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

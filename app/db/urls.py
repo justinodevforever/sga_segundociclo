@@ -19,14 +19,21 @@ urlpatterns = [
     path('matricula/<uuid:matricula_id>/transferir/', views.transferencia_matricula, name='transferencia_matricula'),
     path('matricula/<uuid:matricula_id>/reactivar/', views.reactivar_matricula, name='reactivar_matricula'),
 
+    path('confirmacoes/', views.reconfirmacao_list, name='reconfirmacao_list'),
     path('confirmacao/<uuid:aluno_id>/', views.confirmar_matricula, name='confirmar_matricula'),
-    path('confirmacao/', views.confirmar, name='confirmar'),
+    path('confirmacao/criar/', views.confirmar, name='confirmar'),
 
     path('inscricoes/', views.inscricao_list, name='inscricao_list'),
     path('inscricoes/<uuid:inscricao_id>/', views.inscricao_detail, name='inscricao_detail'),
     path('inscricoes/criar/', views.inscricao_create, name='inscricao_create'),
     path('inscricoes/<uuid:inscricao_id>/editar', views.inscricao_update, name='inscricao_update'),
     path('inscricoes/<uuid:inscricao_id>/excluir/', views.inscricao_delete, name='inscricao_delete'),
+    path('inscricoes/<uuid:inscricao_id>/aprovar/', views.aprovar_inscricao, name='aprovar_inscricao'),
+    path('inscricoes/<uuid:inscricao_id>/reprovar/', views.reprovar_inscricao, name='reprovar_inscricao'),
+    
+    path('candidatos/', views.candidato_list, name='candidato_list'),
+    path('candidatos/<uuid:candidato_id>/', views.candidato_detail, name='candidato_detail'),
+    path('candidatos/<uuid:candidato_id>/editar', views.candidato_update, name='candidato_update'),
     
     path('perfil/', views.meu_perfil, name='meu_perfil'),
     path('perfil/alterar-senha/', views.alterar_senha, name='alterar_senha'),

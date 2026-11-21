@@ -24,13 +24,11 @@ from app.db.models import (
     RegraAvaliacao, ResultadoAnual,
 )
 
-# --- códigos de situação da disciplina ------------------------------------
 APTO = "APTO"
 NAO_APTO = "NAO_APTO"
 AGUARDAR_EXAME = "AGUARDAR_EXAME"
 PENDENTE = "PENDENTE"
 
-# --- códigos de situação final do aluno -----------------------------------
 TRANSITA = "TRANSITA"
 CONCLUIU = "CONCLUIU"
 APROVADO = "APROVADO"
@@ -116,7 +114,16 @@ def classe_terminal(turma):
 def pauta_publicada(ano_lectivo):
     """A pauta só é pública quando o 3.º trimestre está fechado para lançamento."""
     t3 = ano_lectivo.trimestres.filter(designacao=3).first()
-    return bool(t3 and not t3.lancamento_aberto)
+    t2 = ano_lectivo.trimestres.filter(designacao=2).first()
+    t1 = ano_lectivo.trimestres.filter(designacao=1).first()
+    
+    pivo = True 
+    
+    if t1.lancamento_aberto or t2.lancamento_aberto or t3.lancamento_aberto:
+        
+        pivo = False
+    
+    return pivo
 
 
 # --------------------------------------------------------------------------

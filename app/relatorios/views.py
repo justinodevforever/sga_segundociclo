@@ -10,6 +10,8 @@ from django.views.decorators.http import require_GET
 from django.contrib import messages
 from collections import OrderedDict
 from functools import wraps
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -18,7 +20,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.text import slugify
 
-from app.db.models import Aluno, AnoLectivo, Diretor, LogAuditoria
+from app.db.models import Aluno, AnoLectivo, Diretor, LogAuditoria,Matricula, Inscricao, TenantConfiguracao
 import csv
 from collections import defaultdict
 from django.apps import apps
@@ -36,9 +38,15 @@ from app.financa.models import (
 from .documentos import DOCUMENTOS, DocumentoErro
 from .forms import FiltroRelatorioForm
 from .reports import REGISTO
-from .utils import escola, exportar_xlsx, render_pdf
+from .utils import escola, exportar_xlsx, render_pdf, dados_escola, qr_data_uri, renderizar_pdf
  
 from .services import pauta_final as svc
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+
+
+TRACO = "—"
  
 
 from app.db.models import (  # <- ajustar (ex.: from app.core.models import ...)
@@ -239,6 +247,7 @@ def relatorio(request, slug):
 @acesso_relatorios
 def documento(request, tipo):
     doc = DOCUMENTOS.get(tipo)
+    
     if not doc:
         raise Http404
     ano_atual = AnoLectivo.objects.filter(e_atual=True).first()
@@ -251,12 +260,14 @@ def documento(request, tipo):
 
     if tem and form.is_valid():
         f = dict(form.cleaned_data)
+        
         if f.get("aluno"):
             aluno_nome = f["aluno"].nome_completo
         if f.get("turma"):
             f["ano_lectivo"] = f["turma"].ano_lectivo
         try:
             template, ctx, orient = doc["fn"](f)
+            
         except DocumentoErro as e:
             erro = str(e)
         else:
@@ -324,6 +335,7 @@ def mini_pauta_selecao(request):
 @login_required
 @require_GET
 def mini_pauta(request, turma_id, disciplina_id):
+    
     turma = get_object_or_404(
         Turma.objects.select_related("ano_lectivo", "curso", "classe"), pk=turma_id
     )
@@ -503,6 +515,7 @@ def pauta_final_lista(request):
             turmas = turmas.filter(curso_id=request.GET["curso"])
         if request.GET.get("classe"):
             turmas = turmas.filter(classe_id=request.GET["classe"])
+            
  
     return render(request, "relatorios/pauta_final_lista.html", {
         "ano": ano,
@@ -520,7 +533,7 @@ def pauta_final_turma(request, turma_id):
     """Pauta final de uma turma: nota por disciplina, Apto/N-Apto e situação do aluno."""
     turma = get_object_or_404(
         Turma.objects.select_related("curso", "classe", "ano_lectivo"), pk=turma_id)
- 
+    
     if not svc.pauta_publicada(turma.ano_lectivo):
         messages.warning(
             request,
@@ -552,13 +565,255 @@ def pauta_final_turma(request, turma_id):
         "q": request.GET.get("q", ""),
     })
     
+def _contexto_pauta_final(request, turma):
+    disciplinas, resultados, regra = svc.gerar_pauta(turma)
+
+    filtro = request.GET.get("situacao")
+    if filtro:
+        resultados = [r for r in resultados if r.situacao == filtro]
+
+    pesquisa = (request.GET.get("q") or "").strip().lower()
+    if pesquisa:
+        resultados = [r for r in resultados
+                      if pesquisa in r.matricula.aluno.nome_completo.lower()]
+
+    return {
+        "turma": turma,
+        "disciplinas": disciplinas,
+        "resultados": resultados,
+        "regra": regra,
+        "secao": "pauta_final",
+        "resumo": svc.resumo(resultados),
+        "terminal": int(turma.classe.designacao) >= svc.classe_terminal(turma),
+        "situacoes": [(k, svc.ROTULOS[k]) for k in (
+            svc.TRANSITA, svc.CONCLUIU, svc.APROVADO, svc.ADMITIDO_EXAME,
+            svc.ADMITIDO_RECURSO, svc.NAO_TRANSITA, svc.REPROVADO, svc.REPROVADO_FALTAS)],
+        "filtro": filtro or "",
+        "q": request.GET.get("q", ""),
+    }
+    
+    
+    
+"""Certificado de Habilitações (12.ª / 13.ª classe) - todas as classes do ciclo.
+
+Coloque em app/relatorios/certificados.py
+"""
+from decimal import Decimal as D, ROUND_HALF_UP
+
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+
+from app.db.models import (
+    Aluno, Matricula, ProvaAptidaoProfissional, ResultadoAnual,
+)
+from .utils import dados_escola, limiar, qr_data_uri, renderizar_pdf
+from app.db.models import LogAuditoria
+
+MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
+         "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+UNIDADES = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito",
+            "nove", "dez", "onze", "doze", "treze", "catorze", "quinze", "dezasseis",
+            "dezassete", "dezoito", "dezanove", "vinte"]
+TITULO_CICLO = {
+    "GERAL": "IIº Ciclo do Ensino Secundário Geral",
+    "TECNICO": "IIº Ciclo do Ensino Secundário Técnico-Profissional",
+    "PEDAGOGICO": "IIº Ciclo do Ensino Secundário - Formação de Professores",
+}
+SITUACOES_NEGATIVAS = {
+    ResultadoAnual.Situacao.NEGATIVA, ResultadoAnual.Situacao.REPROVADO,
+    ResultadoAnual.Situacao.REPROVADO_EXAME, ResultadoAnual.Situacao.DESISTENTE,
+    ResultadoAnual.Situacao.TRANSFERIDO,
+}
+
+
+class CertificadoErro(Exception):
+    pass
+
+
+# ------------------------------------------------------------------ helpers
+def _unid(v):
+    return D(v).quantize(D("1"), rounding=ROUND_HALF_UP)
+
+
+def _extenso(n):
+    n = int(n)
+    return UNIDADES[n] if 0 <= n <= 20 else str(n)
+
+
+def _data_txt(d):
+    return f"{d.day} de {MESES[d.month - 1]} de {d.year}" if d else "—"
+
+
+def classe_terminal_curso(turma):
+    
+    return turma.classe.designacao if turma.classe.e_ultimo else 12
+
+
+# ------------------------------------------------------------------ serviço
+def montar_certificado(aluno, classe_final=None):
+  
+    mats = (Matricula.objects.filter(aluno=aluno).exclude(status=Matricula.Status.CANCELADA)
+            .select_related("ano_lectivo", "turma__classe", "turma__curso")
+            .order_by("ano_lectivo__data_inicio"))
+    por_classe = {}
+    for m in mats:
+        if m.turma_id:
+            por_classe.setdefault(m.turma.classe.designacao, []).append(m)
+    if not por_classe:
+        raise CertificadoErro("O aluno não tem matrículas com turma atribuída.")
+
+    ultima = max(por_classe)
+    curso = por_classe[ultima][-1].turma.curso
+    turma_para_validar = por_classe[ultima][-1].turma
+    terminal = classe_final or classe_terminal_curso(turma_para_validar)
+    classes = list(range(10, terminal + 1))
+
+    notas = {}          # {disciplina: {classe: nota}}
+    anos, medias, mat_terminal = {}, {}, None
+    for c in classes:
+        escolhida = None
+        for m in reversed(por_classe.get(c, [])):        # repetente: vale a matrícula aprovada
+            res = list(ResultadoAnual.objects.filter(matricula=m).select_related("disciplina"))
+            if not res:
+                continue
+            lim = limiar(m.ano_lectivo, m.turma.classe)
+            vals = []
+            for r in res:
+                v = r.nota_final if r.nota_final is not None else r.mfd
+                if v is None or v < lim or r.situacao in SITUACOES_NEGATIVAS:
+                    break
+                vals.append((r.disciplina, _unid(v)))
+            else:
+                escolhida = (m, vals)
+                break
+        if not escolhida:
+            raise CertificadoErro(
+                f"Sem aprovação completa na {c}.ª classe (notas em falta ou negativas).")
+        m, vals = escolhida
+        anos[c] = m.ano_lectivo.designacao
+        for disc, v in vals:
+            notas.setdefault(disc, {})[c] = v
+        medias[c] = sum(v for _, v in vals) / len(vals)
+        if c == terminal:
+            mat_terminal = m
+
+    cfc = _unid(sum(medias.values()) / len(medias))
+    # TODO: ajuste aqui se o regulamento do curso técnico ponderar PAP/estágio no CFC.
+    pap = estagio = None
+    if curso.tipo == "TECNICO" or curso.exige_pap:
+        p = ProvaAptidaoProfissional.objects.filter(matricula=mat_terminal).first()
+        if p:
+            pap = _unid(p.nota_pap) if p.nota_pap is not None else None
+            estagio = _unid(p.nota_estagio) if p.nota_estagio is not None else None
+
+    ordenadas = sorted(notas, key=lambda d: (d.componente, d.nome))
+    linhas = [{"disciplina": d.nome,
+               "notas": [str(notas[d][c]) if c in notas[d] else "—" for c in classes]}
+              for d in ordenadas]
+
+    fem = aluno.genero == "F"
+    hoje = timezone.localdate()
+    ref = f"CH-{anos[terminal].replace('/', '')}-{str(aluno.pk)[:8].upper()}"
+    return {
+        "inst": dados_escola(),
+        "aluno": aluno, "fem": fem,
+        "nasc_txt": _data_txt(aluno.data_nascimento),
+        "bi_data_txt": _data_txt(aluno.data_emissao_bi),
+        "curso": curso.nome,
+        "titulo_ciclo": TITULO_CICLO.get(curso.tipo, TITULO_CICLO["GERAL"]),
+        "classes": [{"rot": f"{c}.ª", "ano": anos[c]} for c in classes],
+        "larg_col": f"{56 / len(classes):.2f}",
+        "linhas": linhas,
+        "medias": [str(_unid(medias[c])) for c in classes],
+        "cfc": cfc, "cfc_extenso": _extenso(cfc),
+        "pap": pap, "estagio": estagio,
+        "ano_conclusao": anos[terminal],
+        "terminal": terminal,
+        "referencia": ref,
+        "qr": qr_data_uri(f"{ref}|{aluno.nome_completo}|CFC {cfc}"),
+        "data_emissao_txt": _data_txt(hoje),
+    }
+
+
+# ------------------------------------------------------------------ view
+#@acesso_relatorios
+@login_required
+def certificado_habilitacoes(request, aluno_id):
+    aluno = get_object_or_404(Aluno, pk=aluno_id)
+    try:
+        ctx = montar_certificado(aluno, int(request.GET["classe"]) if request.GET.get("classe") else None)
+        print(ctx)
+    except CertificadoErro as e:
+       
+        messages.error(request, f"Não é possível emitir o certificado: {e}")
+        return redirect(request.META.get("HTTP_REFERER") or "/")
+    ctx["emitido_por"] = request.user.nome_completo or request.user.username
+    _registar_auditoria(request, LogAuditoria.Modulo.ALUNO, aluno,
+                        f"Emissão do certificado de habilitações {ctx['referencia']}")
+    return renderizar_pdf(request, "relatorios/pdf/certificado_habilitacoes.html", ctx,
+                          f"certificado_{ctx['referencia']}.pdf",
+                          descarregar=request.GET.get("download") == "1")
+
+
+# ------------------------------------------------------------------ (opcional) registo em DOCUMENTOS
+def doc_certificado(f):
+    """Para o dicionário DOCUMENTOS: fn(f) -> (template, ctx, orientação)."""
+    from .documentos import DocumentoErro
+    try:
+        ctx = montar_certificado(f["aluno"])
+    except CertificadoErro as e:
+        raise DocumentoErro(str(e))
+    return "relatorios/pdf/certificado_habilitacoes.html", ctx, "portrait"
+
+
+def _turma_publicada_ou_redirect(request, turma_id):
+    turma = get_object_or_404(
+        Turma.objects.select_related("curso", "classe", "ano_lectivo"), pk=turma_id)
+    
+    
+    if not svc.pauta_publicada(turma.ano_lectivo):
+        messages.warning(
+            request,
+            "A pauta final ainda não foi publicada: o lançamento do 3.º trimestre continua aberto.")
+        return turma, redirect("pauta_final_lista")
+    return turma, None
+
+
+@login_required
+def pauta_final_turma(request, turma_id):
+    turma, resposta = _turma_publicada_ou_redirect(request, turma_id)
+    if resposta:
+        return resposta
+    return render(request, "relatorios/pauta_final_turma.html",
+                  _contexto_pauta_final(request, turma))
+
+
+@login_required
+def pauta_final_turma_pdf(request, turma_id):
+    turma, resposta = _turma_publicada_ou_redirect(request, turma_id)
+    if resposta:
+        return resposta
+
+    html = get_template("relatorios/pdf/pauta_final_turma_pdf.html").render(
+        _contexto_pauta_final(request, turma))
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'inline; filename="pauta_final_{turma.pk}.pdf"')  # use "attachment" para forçar download
+
+    resultado = pisa.CreatePDF(html, dest=response, encoding="utf-8")
+    if resultado.err:
+        return HttpResponse("Erro ao gerar o PDF da pauta.", status=500)
+    return response
+    
 
 ZERO = Decimal('0')
 METODOS = [
     ('dinheiro', 'Dinheiro'), ('transferencia', 'Transferência Bancária'),
     ('multicaixa', 'Multicaixa'), ('cheque', 'Cheque'),
 ]
-NOME_MES = dict(MESES)
 TAG_PROPINA = {'pago': 'tag-green', 'pendente': 'tag-yellow', 'atrasado': 'tag-red'}
 LABEL_PROPINA = dict(STATUS_PROPINA)
 
@@ -602,8 +857,7 @@ def _contas(request):
 def _pagamentos(request):
     ano, anos = _ano(request)
     qs = Pagamento.objects.select_related('conta_aluno__aluno', 'registado_por')
-    for  q in qs:
-        print(q.conta_aluno.ano_lectivo, ano)
+ 
     if ano:
         qs = qs.filter(conta_aluno__ano_lectivo=ano)
         
@@ -837,7 +1091,7 @@ def receita_mensal(request):
     for d in dados:
         acum += d['t']
         linhas.append([d['m'].strftime('%m/%Y'), d['n'], d['t'], acum])
-        print(dados, linhas)
+        
     return _render(request, titulo='Receita Mensal', sub='Total arrecadado por mês',
                    icone='bi-calendar-month', nome='receita_mensal',
                    colunas=['Mês', 'Nº Pagamentos', 'Total', 'Acumulado'],
@@ -1060,7 +1314,6 @@ def previsao(request):
                                       [('Valor', [l[2] for l in linhas])])],
                    filtros=('ano',))
 
-
 @login_required
 def extrato_lista(request):
     qs, _, _ = _contas(request)
@@ -1088,7 +1341,6 @@ def recibo(request, pk):
                                                            'registado_por'), pk=pk)
     return render(request, 'financeiro/relatorios/recibo.html',
                   {'p': p, 'qr': p.gerar_qr_code(), 'conta': p.conta_aluno})
-
 
 @login_required
 def log_financeiro(request):
@@ -1138,3 +1390,189 @@ def auditoria(request):
                    colunas=['Problema', 'Aluno', 'Detalhe', ''], tipos=['tag', 'txt', 'txt', 'link'],
                    linhas=linhas, cards=[('Ocorrências', len(linhas), 'num', 'warn', 'bi-flag')],
                    filtros=('ano', 'q'))
+
+
+
+def _v(valor):
+    return valor if valor not in (None, "") else TRACO
+
+
+def _data_comrpovativo(d):
+    return d.strftime("%d/%m/%Y") if d else TRACO
+
+
+def _kz(valor):
+    if valor is None:
+        return TRACO
+    return f"{valor:,.2f}".replace(",", " ").replace(".", ",") + " Kz"
+
+
+def _pares(linhas):
+    """Agrupa (rótulo, valor) em linhas de 2 pares para a tabela de 4 colunas."""
+    linhas = [(l, _v(v)) for l, v in linhas]
+    if len(linhas) % 2:
+        linhas.append(("", ""))
+    return [(*linhas[i], *linhas[i + 1]) for i in range(0, len(linhas), 2)]
+
+
+def _registar_auditoria(request, modulo, objecto, descricao):
+    try:
+        LogAuditoria.objects.create(
+            utilizador=request.user,
+            accao=LogAuditoria.Accao.IMPRIMIR,
+            modulo=modulo,
+            descricao=descricao,
+            objeto_id=str(objecto.pk),
+            objeto_tipo=objecto.__class__.__name__,
+            ip_address=request.META.get("REMOTE_ADDR") or "0.0.0.0",
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
+    except Exception:
+        pass  # a auditoria nunca deve impedir a emissão do documento
+
+
+def _contexto_base(request, *,nome_completo, titulo, referencia, seccoes, via_cliente, aviso, qr_texto):
+    return {
+        "escola": dados_escola(),
+        "titulo": titulo,
+        "nome_completo": nome_completo,
+        "referencia": referencia,
+        "seccoes": seccoes,
+        "vias": [("Via da Instituição", "inst"), (via_cliente, "cli")],
+        "aviso": aviso,
+        "qr": qr_data_uri(qr_texto),
+        "emitido_em": timezone.localtime().strftime("%d/%m/%Y às %H:%M"),
+        "emitido_por": request.user.nome_completo or request.user.username,
+    }
+
+
+@login_required
+def comprovativo_matricula(request, pk):
+    m = get_object_or_404(
+        Matricula.objects.select_related(
+            "aluno", "ano_lectivo", "turma__curso", "turma__classe", "matriculado_por"
+        ),
+        pk=pk,
+    )
+    a, t = m.aluno, m.turma
+    cfg = TenantConfiguracao.objects.first()
+
+    taxa = None
+    if t:
+        taxa = t.preco_confirmacao if m.tipo_matricula == Matricula.TipoMatricula.CONFIRMACAO \
+            else t.preco_matricula
+
+    seccoes = [
+        {
+            "titulo": "Dados do Estudante",
+            "linhas": _pares([
+                ("Nome completo", a.nome_completo),
+                ("Nº do Processo", a.numero_processo),
+                ("Bilhete de Identidade", a.bi),
+                ("Nº de Estudante", a.numero_estudante),
+                ("Data de nascimento", _data_comrpovativo(a.data_nascimento)),
+                ("Género", a.get_genero_display() if a.genero else None),
+                ("Filiação (Pai)", a.nome_pai),
+                ("Filiação (Mãe)", a.nome_mae),
+                ("Naturalidade", a.naturalidade),
+                ("Telefone", a.telefone or None),
+            ]),
+        },
+        {
+            "titulo": "Dados da Matrícula",
+            "linhas": _pares([
+                ("Ano lectivo", m.ano_lectivo.designacao),
+                ("Tipo de matrícula", m.get_tipo_matricula_display()),
+                ("Curso", t.curso.nome if t else None),
+                ("Classe", t.classe.get_designacao_display() if t else None),
+                ("Turma", t.designacao if t else None),
+                ("Período", t.get_periodo_display() if t else None),
+                ("Sala", t.sala if t else None),
+                ("Data da matrícula", _data_comrpovativo(m.data_matricula)),
+                ("Taxa de matrícula", _kz(taxa)),
+                ("Propina mensal", _kz(t.preco_propina) if t else None),
+                ("Vencimento da propina",
+                 f"Até ao dia {cfg.dia_vencimento_propina}" if cfg and cfg.dia_vencimento_propina else None),
+                ("Estado", m.get_status_display()),
+            ]),
+        },
+    ]
+
+    ref = f"MAT-{m.ano_lectivo.designacao.replace('/', '')}-{str(m.pk)[:8].upper()}"
+    ctx = _contexto_base(
+        request,
+        nome_completo=m.aluno.nome_completo,
+        titulo="Comprovativo de Matrícula",
+        referencia=ref,
+        seccoes=seccoes,
+        via_cliente="Via do Estudante",
+        aviso="Apresente este comprovativo sempre que solicitado pela secretaria. "
+              "A propina deve ser liquidada até à data de vencimento indicada.",
+        qr_texto=f"{ref}|{a.nome_completo}|{m.ano_lectivo.designacao}",
+    )
+    _registar_auditoria(request, LogAuditoria.Modulo.MATRICULA, m,
+                        f"Impressão do comprovativo de matrícula {ref}")
+    return renderizar_pdf(
+        request, "relatorios/comprovativos/comprovativo.html", ctx,
+        f"comprovativo_matricula_{ref}.pdf",
+        descarregar=request.GET.get("download") == "1",
+    )
+
+
+@login_required
+def comprovativo_inscricao(request, pk):
+    i = get_object_or_404(
+        Inscricao.objects.select_related(
+            "candidato", "periodo", "ano_lectivo", "curso", "inscrito_por"
+        ),
+        pk=pk,
+    )
+    c = i.candidato
+
+    seccoes = [
+        {
+            "titulo": "Dados do Candidato",
+            "linhas": _pares([
+                ("Nome completo", c.nome_completo),
+                ("Bilhete de Identidade", c.bi),
+                ("Data de nascimento", _data_comrpovativo(c.data_nascimento)),
+                ("Género", c.get_genero_display()),
+                ("Filiação (Pai)", c.nome_pai),
+                ("Filiação (Mãe)", c.nome_mae),
+                ("Naturalidade", c.naturalidade),
+                ("Província / Município", f"{c.provincia} / {c.municipio}"),
+                ("Telefone", c.telefone or None),
+                ("E-mail", c.email),
+            ]),
+        },
+        {
+            "titulo": "Dados da Inscrição",
+            "linhas": _pares([
+                ("Ano lectivo", i.ano_lectivo.designacao),
+                ("Data da inscrição", _data_comrpovativo(i.data_inscricao)),
+                ("Curso pretendido", i.curso.nome),
+                ("Período", i.periodo.get_designacao_display()),
+                ("Estado da inscrição", i.get_status_display()),
+            ]),
+        },
+    ]
+
+    ref = f"INS-{i.ano_lectivo.designacao.replace('/', '')}-{str(i.pk)[:8].upper()}"
+    ctx = _contexto_base(
+        request,
+        nome_completo=i.candidato.nome_completo,
+        titulo="Comprovativo de Inscrição",
+        referencia=ref,
+        seccoes=seccoes,
+        via_cliente="Via do Candidato",
+        aviso="Este comprovativo atesta apenas a inscrição e não garante a admissão ou matrícula. "
+              "Acompanhe a divulgação dos resultados junto da secretaria.",
+        qr_texto=f"{ref}|{c.nome_completo}|{i.ano_lectivo.designacao}",
+    )
+    _registar_auditoria(request, LogAuditoria.Modulo.INSCRICAO, i,
+                        f"Impressão do comprovativo de inscrição {ref}")
+    return renderizar_pdf(
+        request, "relatorios/comprovativos/comprovativo.html", ctx,
+        f"comprovativo_inscricao_{ref}.pdf",
+        descarregar=request.GET.get("download") == "1",
+    )

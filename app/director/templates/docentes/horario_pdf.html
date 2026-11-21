@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Horário - {{ turma.designacao }}</title>
+<style>
+  @page {
+    size: a4 landscape;
+    margin: 1.2cm 1.2cm 1.9cm 1.2cm;
+    @frame footer_frame {
+      -pdf-frame-content: footer;
+      left: 1.2cm; width: 27.3cm; top: 19.3cm; height: 0.8cm;
+    }
+  }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #0f172a; }
+  .banner { background-color: #1e3a8a; color: #ffffff; padding: 10px 14px; }
+  .banner-escola { font-size: 9pt; color: #bfdbfe; }
+  .banner-titulo { font-size: 17pt; font-weight: bold; color: #ffffff; }
+  .info td { padding: 6px 4px; font-size: 9pt; }
+  .info-label { color: #64748b; font-size: 7.5pt; }
+  .info-valor { font-weight: bold; font-size: 10pt; }
+
+  table.grade { width: 100%; border: 1px solid #94a3b8; margin-top: 8px; }
+  table.grade th { background-color: #1e3a8a; color: #ffffff; font-size: 9pt; padding: 7px 4px; border: 1px solid #94a3b8; text-align: center; }
+  table.grade td { border: 1px solid #cbd5e1; padding: 5px; vertical-align: middle; text-align: center; height: 1.55cm; font-size: 8.5pt; }
+  td.hora { background-color: #f1f5f9; font-weight: bold; width: 2.2cm; }
+  td.hora span { font-weight: normal; color: #64748b; font-size: 8pt; }
+  .disc { font-weight: bold; font-size: 8.5pt; }
+  .prof { font-size: 7pt; }
+  .sala { font-size: 7pt; font-weight: bold; }
+
+  .legenda-titulo { font-size: 10pt; font-weight: bold; color: #1e3a8a; margin-top: 14px; margin-bottom: 4px; }
+  table.legenda { width: 100%; border: 1px solid #cbd5e1; }
+  table.legenda th { background-color: #e2e8f0; padding: 4px 6px; font-size: 8pt; text-align: left; border: 1px solid #cbd5e1; }
+  table.legenda td { padding: 4px 6px; font-size: 8pt; border: 1px solid #e2e8f0; }
+  #footer { font-size: 7.5pt; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 3px; }
+</style>
+</head>
+<body>
+
+<table class="banner" width="100%">
+  <tr>
+    <td>
+      <div class="banner-escola">{{ escola_nome }}</div>
+      <div class="banner-titulo">Horário Escolar - Turma {{ turma.designacao }}</div>
+    </td>
+    <td align="right" valign="middle">
+      <div class="banner-escola">Ano Lectivo</div>
+      <div class="banner-titulo" style="font-size:14pt;">{{ turma.ano_lectivo.designacao }}</div>
+    </td>
+  </tr>
+</table>
+
+<table class="info" width="100%">
+  <tr>
+    <td><div class="info-label">CURSO</div><div class="info-valor">{{ turma.curso.nome }}</div></td>
+    <td><div class="info-label">CLASSE</div><div class="info-valor">{{ turma.classe.designacao }}.ª Classe</div></td>
+    <td><div class="info-label">PERÍODO</div><div class="info-valor">{{ turma.get_periodo_display }}</div></td>
+    <td><div class="info-label">SALA</div><div class="info-valor">{{ turma.sala|default:"-" }}</div></td>
+    <td><div class="info-label">AULAS / SEMANA</div><div class="info-valor">{{ total_aulas }}</div></td>
+  </tr>
+</table>
+
+{% if grade %}
+<table class="grade" repeat="1">
+  <thead>
+    <tr>
+      <th>Hora</th>
+      {% for valor, label in dias %}<th>{{ label }}</th>{% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in grade %}
+    <tr>
+      <td class="hora">{{ row.inicio|time:"H:i" }}<br/><span>{{ row.fim|time:"H:i" }}</span></td>
+      {% for cell in row.celulas %}
+        {% if cell.aulas %}
+          {% with h=cell.aulas.0 %}
+          <td style="background-color:{{ h.bg }}; color:{{ h.fg }};">
+            <div class="disc">{{ h.atribuicao.disciplina.nome }}</div>
+            {% if h.sala %}<div class="sala">Sala {{ h.sala }}</div>{% endif %}
+          </td>
+          {% endwith %}
+        {% else %}
+          <td>&nbsp;</td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="legenda-titulo">Corpo docente da turma</div>
+<table class="legenda" repeat="1">
+  <thead><tr><th>Disciplina</th><th>Professor</th><th>Aulas / semana</th></tr></thead>
+  <tbody>
+    {% for l in legenda %}
+    <tr>
+      <td>{{ l.disciplina }}</td>
+      <td>{{ l.professor }}</td>
+      <td>{{ l.aulas }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="margin-top:30px; text-align:center; color:#64748b;">Esta turma ainda não tem aulas marcadas no horário.</p>
+{% endif %}
+
+<div id="footer">
+  <table width="100%"><tr>
+    <td>Gerado em {{ agora|date:"d/m/Y H:i" }}{% if utilizador %} por {{ utilizador }}{% endif %}</td>
+    <td align="right">Página <pdf:pagenumber/> de <pdf:pagecount/></td>
+  </tr></table>
+</div>
+
+</body>
+</html>

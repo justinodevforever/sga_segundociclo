@@ -767,6 +767,132 @@ class EditarInscricaoForm(forms.Form):
         
         except AnoLectivo.DoesNotExist:
             raise ValidationError('Erro ao actualizar inscrição, não existe ano lectivo activo!')
+        
+class EditarCandidatoForm(forms.Form):
+
+    nome_completo = forms.CharField(
+        required=True,
+        max_length=200,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'class': 'form-control-custom',
+         'placeholder': 'Nome completo'})
+    )
+    nome_pai = forms.CharField(
+        required=True,
+        max_length=200,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 
+        'class': 'form-control-custom',
+         'placeholder': 'Nome do pai'})
+    )
+    nome_mae = forms.CharField(
+        required=True,
+        max_length=200,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()','class': 'form-control-custom',
+         'placeholder': 'Nome da mãe'})
+    )
+    data_nascimento = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date','class': 'form-control-custom',})
+    )
+  
+    naturalidade = forms.CharField(
+        required=True,
+        max_length=50,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()','class': 'form-control-custom',
+         'placeholder': 'Naturalidade'})
+    )
+    bi = forms.CharField(
+        max_length=14, 
+        required=True,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()','class': 'form-control-custom',
+         'placeholder': 'B.I'})
+    )
+    data_emissao_bi = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={'type': 'date','class': 'form-control-custom',})
+    )
+    data_expiracao_bi = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={'type': 'date','class': 'form-control-custom',})
+    )
+    genero = forms.ChoiceField(choices=PessoaMixin.Genero.choices, widget=forms.Select(
+        attrs={'class': 'form-control-custom',}
+    ))
+    emitido_em = forms.CharField(
+        max_length=50, 
+        required=True,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'class': 'form-control-custom',
+        'placeholder': 'Ex.: Luena'})
+        
+    )
+    provincia = forms.CharField(
+        max_length=50, 
+        required=True,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'class': 'form-control-custom',
+        'placeholder': 'Província'})
+        
+    )
+    telefone = forms.CharField(
+        max_length=9, 
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Telefone','class': 'form-control-custom',})
+    )
+    municipio = forms.CharField(
+        max_length=50, 
+        required=True,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()','class': 'form-control-custom',
+         'placeholder': 'Município'})
+    )
+    bairro = forms.CharField(
+        max_length=14, 
+        required=False,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'class': 'form-control-custom','placeholder': 'Bairro'})
+    )
+
+    def __init__(self, *args, candidato=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.candidato = candidato
+
+        if candidato:
+
+            self.fields['nome_completo'].initial = self.candidato.nome_completo
+            self.fields['nome_pai'].initial = self.candidato.nome_pai
+            self.fields['nome_mae'].initial = self.candidato.nome_mae
+            self.fields['data_nascimento'].initial = self.candidato.data_nascimento
+            self.fields['naturalidade'].initial = self.candidato.naturalidade
+            self.fields['bi'].initial = self.candidato.bi
+            self.fields['telefone'].initial = self.candidato.telefone
+            self.fields['data_expiracao_bi'].initial = self.candidato.data_expiracao_bi
+            self.fields['data_emissao_bi'].initial = self.candidato.data_emissao_bi
+            self.fields['genero'].initial = self.candidato.genero
+            self.fields['provincia'].initial = self.candidato.provincia 
+            self.fields['municipio'].initial = self.candidato.municipio
+            self.fields['bairro'].initial = self.candidato.bairro
+            self.fields['emitido_em'].initial = self.candidato.emitido_em
+
+    
+    def save(self):
+
+        try:
+            
+            self.candidato.nome_completo=self.cleaned_data['nome_completo']
+            self.candidato.nome_pai=self.cleaned_data['nome_pai']
+            self.candidato.nome_mae=self.cleaned_data['nome_mae']
+            self.candidato.data_nascimento=self.cleaned_data['data_nascimento']
+            self.candidato.naturalidade=self.cleaned_data['naturalidade']
+            self.candidato.telefone=self.cleaned_data['telefone']
+            self.candidato.bi=self.cleaned_data.get('bi')
+            self.candidato.emitido_em=self.cleaned_data['emitido_em']
+            self.candidato.data_expiracao_bi=self.cleaned_data['data_expiracao_bi']
+            self.candidato.data_emissao_bi=self.cleaned_data.get('data_emissao_bi')
+            self.candidato.genero=self.cleaned_data['genero']
+            self.candidato.provincia=self.cleaned_data['provincia']
+            self.candidato.municipio=self.cleaned_data['municipio']
+            self.candidato.bairro=self.cleaned_data['bairro']
+
+            return self.candidato
+        
+        except AnoLectivo.DoesNotExist:
+            raise ValidationError('Erro ao actualizar inscrição, não existe ano lectivo activo!')
 
 
 class MatriculaForm(forms.Form):
@@ -903,7 +1029,6 @@ class MatriculaEditForm(forms.Form):
         if self.matricula:
             
             self.fields['turma'].queryset = Turma.objects.filter(
-                escola=self.matricula.escola,
                 activo=True
             ).select_related('curso', 'classe').order_by('classe__ordem', 'designacao')
 
@@ -923,8 +1048,6 @@ class MatriculaEditForm(forms.Form):
 
             self.fields['turma'].initial= self.matricula.turma
             self.fields['tipo_matricula'].initial= self.matricula.tipo_matricula
-            self.fields['escola_origem'].initial= self.matricula.escola_origem
-            self.fields['documentos_entregues'].initial= self.matricula.documentos_entregues
 
     def clean(self):
         tipo_matricula = self.cleaned_data['tipo_matricula']
@@ -950,8 +1073,6 @@ class MatriculaEditForm(forms.Form):
 
         self.matricula.turma = self.cleaned_data['turma']
         self.matricula.tipo_matricula = self.cleaned_data['tipo_matricula']
-        self.matricula.escola_origem = self.cleaned_data['escola_origem']
-        self.matricula.documentos_entregues = self.cleaned_data['documentos_entregues']
 
 
         return self.matricula, self.matricula.aluno
@@ -963,13 +1084,22 @@ class ConfirmacaoForm(forms.Form):
         queryset=Turma.objects.all(),
         widget=forms.Select(attrs={'class': 'form-control-custom'})
     )
+    ano_letivo = forms.ModelChoiceField(
+        required=True,
+        queryset=AnoLectivo.objects.all().order_by('e_atual'),
+        widget=forms.Select(attrs={'class': 'form-control-custom'})
+    )
 
     def __init__(self, *args, **kwargs):
         self.turmas = kwargs.pop('turmas', None)
+        self.ano_letivos = kwargs.pop('ano_letivos', None)
         super().__init__(*args, **kwargs)
 
         if self.turmas is not None:
             self.fields["turma"].queryset = self.turmas.select_related("curso").order_by("designacao")
+            
+        if self.ano_letivos is not None:
+                self.fields["ano_letivo"].queryset = self.ano_letivos.order_by("e_atual")
 
 
 
@@ -977,7 +1107,7 @@ class ConfirmacaoForm(forms.Form):
         turma = self.cleaned_data.get('turma')
         matricula = Matricula(
             turma=self.cleaned_data.get('turma'),
-            ano_lectivo=turma.ano_lectivo
+            ano_lectivo=self.cleaned_data.get('ano_letivo'),
         )
 
         return matricula

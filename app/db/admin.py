@@ -29,4 +29,6 @@ admin.site.register(RegraAvaliacao)
 admin.site.register(Pagamento)
 admin.site.register(PropinaMensal)
 admin.site.register(DocumentoAluno)
+admin.site.register(AvaliacaoContinua)
+admin.site.register(ContaAluno)
 

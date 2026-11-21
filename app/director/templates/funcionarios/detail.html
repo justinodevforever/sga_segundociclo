@@ -19,15 +19,10 @@
 {% endblock icon %}
 
 {% block topbar_actions %}
-    {% if turmas %}
-        <button class="btn btn-success" onclick="openModal()">Atribuir disciplina</button>
-    {% endif %}
-    {% comment %} {% if funcionario.escola.plano_subscricao.nome == 'plus' and not funcionario.utilizador %} {% endcomment %}
-        <button class="btn btn-danger" onclick="confirmarAcesso('{{funcionario.id}}')">
-            Dar acesso
-        </button>
-
-    {% comment %} {% endif %} {% endcomment %}
+    
+    <button class="btn btn-danger" onclick="confirmarAcesso('{{funcionario.id}}')">
+        Dar acesso
+    </button>
 
     <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
 {% endblock topbar_actions %}
@@ -124,15 +119,15 @@
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Número de B.I:</strong></div>
-                <div class="col-sm-6">{{ funcionario.bi }}</div>
+                <div class="col-sm-6">{{ funcionario.bi|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Data de nascimento:</strong></div>
-                <div class="col-sm-6">{{ funcionario.data_nascimento }}</div>
+                <div class="col-sm-6">{{ funcionario.data_nascimento|default:"-------" }}</div>
             </div>
              <div class="row mb-3">
                 <div class="col-sm-6"><strong>Idade:</strong></div>
-                <div class="col-sm-6">{{ funcionario.idade }} Anos</div>
+                <div class="col-sm-6">{{ funcionario.idade|default:"-------" }} Anos</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Género:</strong></div>
@@ -140,50 +135,50 @@
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Telefone:</strong></div>
-                <div class="col-sm-6">{{ funcionario.telefone }}</div>
+                <div class="col-sm-6">{{ funcionario.telefone|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Email:</strong></div>
-                <div class="col-sm-6">{{ funcionario.email }}</div>
+                <div class="col-sm-6">{{ funcionario.email|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-6"><strong>Endereço:</strong></div>
-                <div class="col-sm-6">{{ funcionario.endereco|default:"Sem Informações" }}</div>
+                <div class="col-sm-6">{{ funcionario.endereco|default:"-------" }}</div>
             </div>  
         </div>
 
         <div class="card card-info">
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Tipo de contrato:</strong></div>
-                <div class="col-sm-7">{{ funcionario.get_tipo_contrato_display|default:"Sem Informações" }}</div>
+                <div class="col-sm-7">{{ funcionario.get_tipo_contrato_display|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Especialidade:</strong></div>
-                <div class="col-sm-7">{{ funcionario.especialidade }}</div>
+                <div class="col-sm-7">{{ funcionario.especialidade|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Número de agente:</strong></div>
-                <div class="col-sm-7">{{ funcionario.numero_agente }}</div>
+                <div class="col-sm-7">{{ funcionario.numero_agente|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Nível acadêmico:</strong></div>
-                <div class="col-sm-7">{{ funcionario.get_nivel_academico_display }}</div>
+                <div class="col-sm-7">{{ funcionario.get_nivel_academico_display|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Instituição de formação:</strong></div>
-                <div class="col-sm-7">{{ funcionario.instituicao_formacao|default:"Sem Informações" }}</div>
+                <div class="col-sm-7">{{ funcionario.instituicao_formacao|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Anos de experiências:</strong></div>
-                <div class="col-sm-7">{{ funcionario.anos_experiencia|default:"Sem Informações" }}</div>
+                <div class="col-sm-7">{{ funcionario.anos_experiencia|default:"-------" }}</div>
             </div>   
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Carga horária semanal:</strong></div>
-                <div class="col-sm-7">{{ funcionario.carga_horaria_semanal|default:"Sem Informações" }}</div>
+                <div class="col-sm-7">{{ funcionario.carga_horaria_semanal|default:"-------" }}</div>
             </div>
             <div class="row mb-3">
                 <div class="col-sm-5"><strong>Status:</strong></div>
-                <div class="col-sm-7">{{ funcionario.get_status_display|default:"Sem Informações" }}</div>
+                <div class="col-sm-7">{{ funcionario.get_status_display|default:"-------" }}</div>
             </div>
          
         </div>
@@ -218,11 +213,11 @@
             {% for h in horario %}
                 <div class="row mb-3">
                     <div class="col-sm-3"><strong>Turma:</strong></div>
-                    <div class="col-sm-9">{{ h.turma}}</div> 
+                    <div class="col-sm-9">{{ h.atribuicao.turma}}</div> 
                 </div>
                 <div class="row mb-3">
                     <div class="col-sm-3"><strong>Disciplina:</strong></div>
-                    <div class="col-sm-9">{{ h.disciplina}}</div> 
+                    <div class="col-sm-9">{{ h.atribuicao.disciplina}}</div> 
                 </div>
                 <div class="row mb-3">
                     <div class="col-sm-3"><strong>Dia da semana:</strong></div>
@@ -267,43 +262,6 @@
       </button>
     </div>
   </div>
-</div>
-
-<div class="modal-backdrop" id="atribuirModal">
-    <div class="modal-box" id="formDelete">
-        
-        {% csrf_token %}
-
-        <p class="modal-title" id="title">Associar a disciplina ao professor</p>
-
-        
-        <div class="input-group mt-2 mb-2">
-            <select name="turma" id="turma" class="form-control" style="padding: 10px 5px;">
-                <option value="">Selecione o Turma</option>
-                {% for turma in turmas %}
-                    <option value="{{turma.id}}">{{turma}}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="input-group mb-2">
-            <select name="disciplina" id="disciplina" class="form-control" style="padding: 10px 5px;">
-                <option value="">Selecione Disciplina</option>
-                {% for d in disciplinas %}
-                    <option value="{{d.id}}">{{d}}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div id="sms_save" style="color: red; margin-top: 30px;"></div>
-        
-        <div class="modal-actions">
-        <button type="reset" class="btn btn-secundary" onclick="closeModal()">Cancelar</button>
-        <button class="btn btn-success" id="confirmSaveBtn" onclick="handleSubmit('{{funcionario.id}}')">
-            <i class="fas fa-save"></i> Salvar
-        </button>
-        </div>
-    </div>
 </div>
 
 <script>

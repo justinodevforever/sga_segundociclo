@@ -18,8 +18,6 @@
 
 
   <style>
-
-
     :root {
       --bg:               #dddddd;
       --bg-card:          #ffffff;
@@ -1237,38 +1235,38 @@
     }
     .input-icon-wrap .form-control-custom { padding-left: 36px; }
 
-    /* ── DELETE MODAL ── */
-  .modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 2000; display: none;
-    align-items: center; justify-content: center;
-    backdrop-filter: blur(4px);
-  }
-  .modal-backdrop.open { display: flex; }
-  .modal-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px 28px; max-width: 420px; width: 90%;
-    text-align: center;
-    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
-  }
-  @keyframes modalIn {
-    from { opacity:0; transform: scale(.9) translateY(20px); }
-    to   { opacity:1; transform: scale(1)  translateY(0); }
-  }
-  .modal-icon {
-    width: 60px; height: 60px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; margin: 0 auto 20px;
-  }
-  .modal-icon.danger {
-    background: rgba(239,68,68,.15); color: var(--accent-danger);
-  }
-  .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
-  .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
-  .modal-actions { display: flex; gap: 12px; justify-content: center; }
+      /* ── DELETE MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000; display: none;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px; max-width: 420px; width: 90%;
+      text-align: center;
+      animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(.9) translateY(20px); }
+      to   { opacity:1; transform: scale(1)  translateY(0); }
+    }
+    .modal-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 20px;
+    }
+    .modal-icon.danger {
+      background: rgba(239,68,68,.15); color: var(--accent-danger);
+    }
+    .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+    .modal-body-text { font-size: .85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
 
 
     {% block extra_css %}{% endblock %}
@@ -1342,7 +1340,7 @@
   <div class="topbar-ano">
     <i class="bi bi-calendar-check"></i>
     Ano Lectivo {{ ano_lectivo }}
-    {% if trimestre %} · {{ trimestre.designacao }}{% endif %}
+    {% if trimestre %} · {{ trimestre.designacao }}º Trimestre{% endif %}
   </div>
 
   <div class="topbar-actions">

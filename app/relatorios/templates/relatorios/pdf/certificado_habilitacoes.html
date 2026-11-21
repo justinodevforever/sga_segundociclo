@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Certificado de Habilitações - {{ aluno.nome_completo }}</title>
+<style>
+  @page { size: a4 portrait; margin: 1.1cm; }
+  body { font-family: "Times-Roman", serif; font-size: 11pt; color: #000; }
+  .moldura { border: 3px double #000; padding: 10px 16px; }
+  .c { text-align: center; }
+  .rep { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin: 0; }
+  .esc { font-size: 10pt; margin: 2px 0 0 0; }
+  h1 { font-size: 20pt; text-align: center; letter-spacing: 2px; margin: 12px 0 2px 0; }
+  .sub { text-align: center; font-size: 11pt; margin: 0 0 10px 0; }
+  p.txt { text-align: justify; line-height: 150%; margin: 6px 0; }
+  table.notas { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  table.notas th, table.notas td { border: 1px solid #000; padding: 3px 4px; font-size: 9.5pt; }
+  table.notas th { background-color: #e5e5e5; text-align: center; }
+  table.notas td.n { text-align: center; }
+  table.notas td.d { text-align: left; }
+  table.notas tr.tot td { font-weight: bold; background-color: #f0f0f0; }
+  .peq { font-size: 8pt; font-weight: normal; }
+  table.ass { width: 100%; margin-top: 26px; }
+  table.ass td { text-align: center; font-size: 10pt; vertical-align: top; }
+  .linha { border-top: 1px solid #000; margin: 30px 12px 2px 12px; }
+  .rodape { font-size: 8pt; color: #333; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="moldura">
+
+  <table width="100%"><tr>
+    <td width="18%" class="c">
+      {% if inst.logo_uri %}<img src="{{ inst.logo_uri }}" width="62" height="62">{% endif %}
+    </td>
+    <td width="64%" class="c">
+      <p class="rep">República de Angola</p>
+      <p class="rep">Ministério da Educação</p>
+      <p class="esc">{{ inst.nome }}</p>
+      {% if inst.endereco %}<p class="esc">{{ inst.endereco }}</p>{% endif %}
+    </td>
+    <td width="18%" class="c">
+      {% if qr %}<img src="{{ qr }}" width="62" height="62">{% endif %}
+    </td>
+  </tr></table>
+
+  <h1>CERTIFICADO</h1>
+  <p class="sub"><b>DE HABILITAÇÕES</b> &mdash; {{ titulo_ciclo }}</p>
+
+  <p class="txt">
+    Certifica-se que <b>{{ aluno.nome_completo }}</b>,
+    {% if fem %}filha{% else %}filho{% endif %} de {{ aluno.nome_pai }} e de {{ aluno.nome_mae }},
+    {% if fem %}nascida{% else %}nascido{% endif %} aos {{ nasc_txt }},
+    natural de {{ aluno.naturalidade }}, Município de {{ aluno.municipio }}, Província de {{ aluno.provincia }},
+    {% if fem %}portadora{% else %}portador{% endif %} do Bilhete de Identidade n.º {{ aluno.bi }},
+    emitido em {{ aluno.emitido_em }}{% if aluno.data_emissao_bi %}, aos {{ bi_data_txt }}{% endif %},
+    {% if aluno.numero_processo %}Processo n.º {{ aluno.numero_processo }}, {% endif %}
+    concluiu no ano lectivo de <b>{{ ano_conclusao }}</b> o <b>{{ titulo_ciclo }}</b>,
+    curso de <b>{{ curso }}</b>, com a classificação final de
+    <b>{{ cfc }} ({{ cfc_extenso }}) valores</b>, conforme as classificações obtidas em cada
+    classe e disciplina, que a seguir se discriminam:
+  </p>
+
+  <table class="notas">
+    <thead>
+      <tr>
+        <th width="44%" rowspan="2">DISCIPLINAS</th>
+        <th colspan="{{ classes|length }}">CLASSIFICAÇÃO FINAL POR CLASSE</th>
+      </tr>
+      <tr>
+        {% for c in classes %}
+        <th width="{{ larg_col }}%">{{ c.rot }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in linhas %}
+      <tr>
+        <td class="d">{{ l.disciplina }}</td>
+        {% for n in l.notas %}<td class="n">{{ n }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+      <tr class="tot">
+        <td class="d">MÉDIA DA CLASSE</td>
+        {% for m in medias %}<td class="n">{{ m }}</td>{% endfor %}
+      </tr>
+    </tbody>
+  </table>
+
+  {% if estagio is not None or pap is not None %}
+  <p class="txt" style="margin-top:8px;">
+    {% if estagio is not None %}Estágio curricular: <b>{{ estagio }}</b> valores.&nbsp;&nbsp;{% endif %}
+    {% if pap is not None %}Prova de Aptidão Profissional (PAP): <b>{{ pap }}</b> valores.{% endif %}
+  </p>
+  {% endif %}
+
+  <p class="txt" style="margin-top:8px;">
+    <b>Classificação final do curso:</b> {{ cfc }} ({{ cfc_extenso }}) valores.<br>
+    Por ser verdade e me ter sido solicitado, passou-se o presente certificado, que vai por mim assinado
+    e autenticado com o carimbo a óleo em uso neste estabelecimento de ensino.
+  </p>
+
+  <p class="txt c" style="margin-top:10px;">
+    {{ inst.nome }}, em {{ data_emissao_txt }}.
+  </p>
+
+  <table class="ass"><tr>
+    <td width="50%">
+      <div class="linha"></div>
+      O Secretário<br><span class="peq">(Conferido por)</span>
+    </td>
+    <td width="50%">
+      <div class="linha"></div>
+      O Director<br><span class="peq">(Assinatura e carimbo)</span>
+    </td>
+  </tr></table>
+
+  <p class="rodape c">
+    Ref.: {{ referencia }} &nbsp;|&nbsp; Emitido por {{ emitido_por }} &nbsp;|&nbsp;
+    Documento válido apenas com assinatura e carimbo. A autenticidade pode ser verificada pelo código QR.
+  </p>
+</div>
+</body>
+</html>

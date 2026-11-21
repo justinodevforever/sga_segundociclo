@@ -1,6 +1,9 @@
 """Utilidades partilhadas: formatação, PDF (xhtml2pdf) e Excel (openpyxl)."""
 import os
 import re
+import base64
+import io
+import mimetypes
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
@@ -13,6 +16,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from xhtml2pdf import pisa
+from django.contrib.staticfiles import finders
 
 NUM = (int, float, Decimal)
 
@@ -159,6 +163,11 @@ def link_callback(uri, rel):
 
 
 def render_pdf(request, template, ctx, filename, inline=True):
+    print(ctx)
+    
+    #for c in ctx['anos']:
+    #    print(c['linhas'])
+    
     html = render_to_string(template, ctx, request=request)
     resp = HttpResponse(content_type="application/pdf")
     resp["Content-Disposition"] = f'{"inline" if inline else "attachment"}; filename="{filename}.pdf"'
@@ -266,3 +275,52 @@ def exportar_xlsx(rel, esc, filename):
     resp["Content-Disposition"] = f'attachment; filename="{filename}.xlsx"'
     wb.save(resp)
     return resp
+
+
+def dados_escola() -> dict:
+    
+    base = {
+        "nome": "Nome da Instituição",
+        "endereco": "",
+        "telefone": "",
+        "email": "",
+        "nif": "",
+        "logo": None,
+    }
+    base.update(getattr(settings, "ESCOLA", {}))
+    base["logo_uri"] = _ficheiro_para_data_uri(base.get("logo"))
+    return base
+
+
+def _ficheiro_para_data_uri(caminho_static):
+    if not caminho_static:
+        return None
+    caminho = finders.find(caminho_static)
+    if not caminho:
+        return None
+    mime = mimetypes.guess_type(caminho)[0] or "image/png"
+    with open(caminho, "rb") as f:
+        return f"data:{mime};base64,{base64.b64encode(f.read()).decode()}"
+
+
+def qr_data_uri(texto: str):
+    
+    try:
+        import qrcode
+    except ImportError:
+        return None
+    img = qrcode.make(texto, box_size=4, border=1)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def renderizar_pdf(request, template, contexto, nome_ficheiro, descarregar=False):
+    html = render_to_string(template, contexto, request=request)
+    resposta = HttpResponse(content_type="application/pdf")
+    disposicao = "attachment" if descarregar else "inline"
+    resposta["Content-Disposition"] = f'{disposicao}; filename="{nome_ficheiro}"'
+    resultado = pisa.CreatePDF(src=html, dest=resposta, encoding="utf-8")
+    if resultado.err:
+        return HttpResponse("Erro ao gerar o PDF.", status=500)
+    return resposta

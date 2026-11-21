@@ -5,10 +5,7 @@ from django.core.exceptions import ValidationError
 from datetime import date
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-import string, secrets
-
-from django.shortcuts import get_list_or_404
-
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from app.db.models import *
 from app.financa.models import ConfiguracaoFinanceira
 
@@ -434,61 +431,77 @@ class AlunoEditForm(forms.Form):
     nome_completo = forms.CharField(
         required=True,
         max_length=200,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome completo'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome completo'})
     )
     nome_pai = forms.CharField(
         required=True,
         max_length=200,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome do pai'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome do pai'})
     )
     nome_mae = forms.CharField(
         required=True,
         max_length=200,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome da mãe'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Nome da mãe'})
     )
     data_nascimento = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date'})
+        widget=forms.DateInput(attrs={'class':'form-control-custom','type': 'date'})
     )
   
     naturalidade = forms.CharField(
         required=True,
         max_length=50,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Naturalidade'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Naturalidade'})
     )
     bi = forms.CharField(
         max_length=14, 
         required=True,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'B.I'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'B.I'})
     )
     data_emissao_bi = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'type': 'date'})
+            required=True,
+            widget=forms.DateInput(attrs={'type': 'date','class': 'form-control-custom',})
     )
-    genero = forms.ChoiceField(choices=PessoaMixin.Genero.choices)
+    
+    data_expiracao_bi = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={'type': 'date','class': 'form-control-custom',})
+    )
+    emitido_em = forms.CharField(
+        max_length=50, 
+        required=True,
+        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'class': 'form-control-custom',
+        'placeholder': 'Ex.: Luena'})
+        
+    )
+    genero = forms.ChoiceField(
+        required=True,
+        choices=PessoaMixin.Genero.choices,
+        widget=forms.Select(attrs={'class':'form-control-custom'})
+    )
     provincia = forms.CharField(
         max_length=50, 
         required=True,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Província'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Província'})
         
     )
     telefone = forms.CharField(
         max_length=9, 
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Telefone', 'id': 'telefone'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','placeholder': 'Telefone', 'id': 'telefone'})
     )
     municipio = forms.CharField(
         max_length=50, 
         required=True,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Município'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Município'})
     )
     bairro = forms.CharField(
         max_length=100, 
         required=False,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Bairro'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'Bairro'})
     )
     endereco_completo = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'endereço completo'})
+        widget=forms.TextInput(attrs={'class':'form-control-custom','oninput': 'this.value=this.value.toUpperCase()', 'placeholder': 'endereço completo'})
     )
 
     def __init__(self, *args, **kwargs):
@@ -503,11 +516,12 @@ class AlunoEditForm(forms.Form):
             self.fields['naturalidade'].initial = self.aluno.naturalidade
             self.fields['telefone'].initial = self.aluno.telefone
             self.fields['bi'].initial = self.aluno.bi
+            self.fields['emitido_em'].initial = self.aluno.emitido_em
             self.fields['data_emissao_bi'].initial = self.aluno.data_emissao_bi
+            self.fields['data_expiracao_bi'].initial = self.aluno.data_expiracao_bi
             self.fields['genero'].initial = self.aluno.genero
             self.fields['provincia'].initial = self.aluno.provincia
             self.fields['municipio'].initial = self.aluno.municipio
-            self.fields['endereco_completo'].initial = self.aluno.endereco_completo
             self.fields['bairro'].initial = self.aluno.bairro
            
     def clean(self):
@@ -533,11 +547,12 @@ class AlunoEditForm(forms.Form):
         self.aluno.naturalidade=self.cleaned_data['naturalidade']
         self.aluno.telefone=self.cleaned_data['telefone']
         self.aluno.bi=self.cleaned_data.get('bi')
-        self.aluno.data_emissao_bi=self.cleaned_data.get('data_emissao_bi')
         self.aluno.genero=self.cleaned_data['genero']
         self.aluno.provincia=self.cleaned_data['provincia']
         self.aluno.municipio=self.cleaned_data['municipio']
-        self.aluno.endereco_completo=self.cleaned_data['endereco_completo']
+        self.aluno.emitido_em=self.cleaned_data['emitido_em']
+        self.aluno.data_expiracao_bi=self.cleaned_data['data_expiracao_bi']
+        self.aluno.data_emissao_bi=self.cleaned_data.get('data_emissao_bi')
         self.aluno.bairro=self.cleaned_data['bairro']
         
 
@@ -653,6 +668,10 @@ class CriarClasseForm(forms.Form):
         required=False,
         widget= forms.NumberInput(attrs={'id': 'ordem', 'placeholder': 'ex.: 2', 'class': 'form-control-custom'})
     )
+    e_ultimo = forms.BooleanField(
+        required=False,
+        widget= forms.CheckboxInput(attrs={'id': 'e_ultimo', 'class': 'form-control-custom'})
+    )
 
 
     def __init__(self, *args, **kwargs):
@@ -665,6 +684,7 @@ class CriarClasseForm(forms.Form):
             self.fields['designacao'].initial = self.classe.designacao
             self.fields['numero'].initial = self.classe.numero
             self.fields['ordem'].initial = self.classe.ordem
+            self.fields['e_ultimo'].initial = self.classe.e_ultimo
 
     def clean(self):
         self.cleaned_data = super().clean()
@@ -684,6 +704,7 @@ class CriarClasseForm(forms.Form):
             designacao = self.cleaned_data['designacao'],
             numero = self.cleaned_data['numero'],
             ordem = self.cleaned_data['ordem'],
+            e_ultimo = self.cleaned_data['e_ultimo'],
         )
 
         return classe
@@ -702,6 +723,10 @@ class EditarClasseForm(forms.Form):
         required=False,
         widget= forms.NumberInput(attrs={'id': 'ordem', 'placeholder': 'ex.: 2', 'class': 'form-control-custom'})
     )
+    e_ultimo = forms.BooleanField(
+        required=False,
+        widget= forms.CheckboxInput(attrs={'id': 'e_ultimo', 'class': 'form-control-custom'})
+    )
 
 
     def __init__(self, *args, **kwargs):
@@ -714,6 +739,7 @@ class EditarClasseForm(forms.Form):
             self.fields['designacao'].initial = self.classe.designacao
             self.fields['numero'].initial = self.classe.numero
             self.fields['ordem'].initial = self.classe.ordem
+            self.fields['e_ultimo'].initial = self.classe.e_ultimo
 
     def clean(self):
         self.cleaned_data = super().clean()
@@ -732,6 +758,7 @@ class EditarClasseForm(forms.Form):
         self.classe.designacao = self.cleaned_data['designacao']
         self.classe.numero = self.cleaned_data['numero']
         self.classe.ordem = self.cleaned_data['ordem']
+        self.classe.e_ultimo = self.cleaned_data['e_ultimo']
 
         return self.classe
 
@@ -1611,5 +1638,148 @@ class IntegracoesForm(_EstiloMixin, forms.ModelForm):
         return self.cleaned_data.get("multicaixa_api_key") or self.instance.multicaixa_api_key
 
 
+def _ano_actual():
+    return AnoLectivo.objects.filter(e_atual=True).first()
+
+
+def _turmas_qs():
+    return Turma.objects.select_related("curso", "classe", "ano_lectivo").order_by('ano_lectivo__e_atual')
+
+def _label_turma(t):
+    return (f"{t.designacao} — {t.classe.designacao}.ª · "
+            f"{t.curso.nome_abreviado or t.curso.nome} · {t.get_periodo_display()} · {t.ano_lectivo.designacao}")
+
+class AtribuicaoDocenteForm(forms.ModelForm):
+    class Meta:
+        model = AtribuicaoDocente
+        fields = ["turma", "disciplina", "professor", "status"]
+        error_messages = {
+            NON_FIELD_ERRORS: {
+                "unique_together": "Esta disciplina já está atribuída a um professor nesta turma. "
+                                   "Edite a atribuição existente se pretende trocar de professor.",
+            }
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        inst = self.instance
+
+        prof_q = Q(status=Funcionario.Status.ACTIVO) & ~Q(tipo_funcionario=Funcionario.TipoFuncionario.ADMINISTRATIVO)
+        turma_q = Q(activo=True)
+        disc_q = Q(activo=True)
+        if inst.pk:  # mantém visíveis os valores actuais mesmo que entretanto desactivados
+            prof_q |= Q(pk=inst.professor_id)
+            turma_q |= Q(pk=inst.turma_id)
+            disc_q |= Q(pk=inst.disciplina_id)
+
+        f = self.fields
+        f["professor"].queryset = Funcionario.objects.filter(prof_q).order_by("nome_completo")
+        f["turma"].queryset = _turmas_qs().filter(turma_q).order_by(
+            "-ano_lectivo__data_inicio", "classe__designacao", "designacao")
+        f["disciplina"].queryset = Disciplina.objects.filter(disc_q).order_by("nome")
+
+        f["professor"].label_from_instance = lambda o: (
+            f"{o.nome_completo} · {o.especialidade}" if o.especialidade else o.nome_completo)
+        f["turma"].label_from_instance = _label_turma
+        f["disciplina"].label_from_instance = lambda o: f"{o.nome} · {o.nome_abreviado} · {o.get_componente_display()}"
+
+        f["professor"].empty_label = "Seleccione o professor"
+        f["turma"].empty_label = "Seleccione a turma"
+        f["disciplina"].empty_label = "Seleccione a disciplina"
+
+        placeholders = {
+            "professor": "Pesquisar professor pelo nome ou especialidade...",
+            "turma": "Pesquisar turma, classe ou curso...",
+            "disciplina": "Pesquisar disciplina...",
+        }
+        for nome, ph in placeholders.items():
+            f[nome].widget.attrs.update({"class": "js-search-select", "data-search": ph})
+        f["status"].widget.attrs["class"] = "form-control-custom"
+
+    def clean(self):
+        data = super().clean()
+        turma, disc = data.get("turma"), data.get("disciplina")
+        if turma:
+            self.instance.ano_lectivo = turma.ano_lectivo      # herdado da turma
+        if turma and disc:
+            plano = PlanoCurricular.objects.filter(curso=turma.curso, classe=turma.classe)
+            if plano.exists() and not plano.filter(disciplina=disc).exists():
+                self.add_error("disciplina",
+                               "Esta disciplina não consta no plano curricular do curso/classe desta turma.")
+        return data
+
+
+class HorarioAulaForm(forms.ModelForm):
+    class Meta:
+        model = HorarioAula
+        fields = ["atribuicao", "dia_semana", "hora_inicio", "hora_fim", "sala"]
+        widgets = {
+            "hora_inicio": forms.TimeInput(format="%H:%M", attrs={"type": "time", "class": "form-control-custom"}),
+            "hora_fim": forms.TimeInput(format="%H:%M", attrs={"type": "time", "class": "form-control-custom"}),
+            "sala": forms.TextInput(attrs={"class": "form-control-custom", "placeholder": "Ex.: Sala 12"}),
+        }
+
+    def __init__(self, *args, turma=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        escopo = Q(status="ativa")
+        if turma:
+            escopo &= Q(turma=turma)
+        else:
+            ano = _ano_actual()
+            if ano:
+                escopo &= Q(turma__ano_lectivo=ano)
+        if self.instance.pk:
+            escopo |= Q(pk=self.instance.atribuicao_id)
+
+        qs = (AtribuicaoDocente.objects.filter(escopo)
+              .select_related("professor", "disciplina", "turma__curso", "turma__classe", "turma__ano_lectivo")
+              .order_by("turma__designacao", "disciplina__nome"))
+        a = self.fields["atribuicao"]
+        a.queryset = qs
+        a.empty_label = "Seleccione a disciplina / professor"
+        a.label_from_instance = lambda o: (
+            f"{o.disciplina.nome} · {o.professor.nome_completo} · "
+            f"Turma {o.turma.designacao} — {o.turma.classe.designacao}.ª {o.turma.curso.nome_abreviado or o.turma.curso.nome}")
+        a.widget.attrs.update({"class": "js-search-select",
+                               "data-search": "Pesquisar disciplina, professor ou turma..."})
+
+    def clean(self):
+        data = super().clean()
+        atr, dia = data.get("atribuicao"), data.get("dia_semana")
+        ini, fim = data.get("hora_inicio"), data.get("hora_fim")
+        if not (atr and dia and ini and fim):
+            return data
+        if fim <= ini:
+            raise ValidationError("A hora de fim deve ser posterior à hora de início.")
+
+        sala = (data.get("sala") or "").strip() or (atr.turma.sala or "")
+        data["sala"] = sala
+
+        sobrepostas = (HorarioAula.objects
+                       .filter(dia_semana=dia, hora_inicio__lt=fim, hora_fim__gt=ini,
+                               atribuicao__turma__ano_lectivo=atr.turma.ano_lectivo)
+                       .exclude(pk=self.instance.pk)
+                       .select_related("atribuicao__disciplina", "atribuicao__turma", "atribuicao__professor"))
+
+        def intervalo(h):
+            return f"{h.hora_inicio:%H:%M}–{h.hora_fim:%H:%M}"
+
+        erros = []
+        c = sobrepostas.filter(atribuicao__turma=atr.turma).first()
+        if c:
+            erros.append(f"A turma {atr.turma.designacao} já tem {c.atribuicao.disciplina.nome} "
+                         f"às {dia} ({intervalo(c)}).")
+        p = sobrepostas.filter(atribuicao__professor=atr.professor).exclude(atribuicao__turma=atr.turma).first()
+        if p:
+            erros.append(f"{atr.professor.nome_completo} já lecciona {p.atribuicao.disciplina.nome} "
+                         f"na turma {p.atribuicao.turma.designacao} às {dia} ({intervalo(p)}).")
+        if sala:
+            s = sobrepostas.filter(sala__iexact=sala).exclude(atribuicao__turma=atr.turma).first()
+            if s:
+                erros.append(f"A sala {sala} está ocupada pela turma {s.atribuicao.turma.designacao} "
+                             f"às {dia} ({intervalo(s)}).")
+        if erros:
+            raise ValidationError(erros)
+        return data
 
 

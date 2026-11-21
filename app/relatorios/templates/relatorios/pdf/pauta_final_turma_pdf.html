@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Pauta Final — {{ turma.designacao }}</title>
+<style>
+  @page {
+    size: a4 landscape;
+    margin: 1cm 1cm 1.5cm 1cm;
+    @frame footer {
+      -pdf-frame-content: footer_content;
+      left: 1cm; right: 1cm; bottom: 0.5cm; height: 0.6cm;
+    }
+  }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 8pt; color: #000; }
+  h1 { font-size: 13pt; margin: 0; }
+  .sub { font-size: 9pt; color: #555; margin-bottom: 6px; }
+
+  table.resumo { width: auto; border: 0; margin-bottom: 8px; }
+  table.resumo td { border: 0; padding: 0 14px 0 0; font-size: 8.5pt; text-align: left; }
+
+  table.pauta { width: 100%; border-collapse: collapse; }
+  table.pauta th, table.pauta td {
+    border: 0.5pt solid #444; padding: 2px 2px; text-align: center; vertical-align: middle;
+  }
+  table.pauta th { background-color: #e9ecef; font-size: 7pt; }
+  table.pauta td { font-size: 7.5pt; }
+  table.pauta td.nome { text-align: left; }
+  table.pauta td.obs { text-align: left; font-size: 7pt; }
+  table.pauta tr { page-break-inside: avoid; }
+
+  .neg { color: #b02a37; font-weight: bold; }
+  .pos { color: #146c43; }
+  .apto { color: #0f5132; font-weight: bold; }
+  .napto { color: #842029; font-weight: bold; }
+  .exame { color: #664d03; font-weight: bold; }
+  .rec { color: #055160; font-weight: bold; }
+  .peq { font-size: 6.5pt; color: #555; }
+
+  .regras { margin-top: 8px; font-size: 7pt; color: #444; }
+</style>
+</head>
+<body>
+
+<h1>Pauta Final — {{ turma.designacao }} · {{ turma.classe.get_designacao_display }}</h1>
+<div class="sub">
+  {{ turma.curso }} · {{ turma.get_periodo_display }} · {{ turma.ano_lectivo }}
+</div>
+
+<table class="resumo">
+  <tr>
+    <td><b>Alunos:</b> {{ resumo.total }}</td>
+  </tr>
+</table>
+
+<table class="pauta" repeat="2">
+  <thead>
+    <tr>
+      <th rowspan="2" width="20">Nº</th>
+      <th rowspan="2" width="140">Aluno</th>
+      {% for d in disciplinas %}<th >{{ d.nome_abreviado }}</th>{% endfor %}
+      <th rowspan="2" width="28">Média</th>
+      <th rowspan="2" width="28">Faltas %</th>
+      <th rowspan="2" width="110">Resultado</th>
+    </tr>
+    
+  </thead>
+  <tbody>
+  {% for r in resultados %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td class="nome" style="padding-top: 10px;">{{ r.matricula.aluno.nome_completo }}</td>
+      {% for l in r.linhas %}
+        <td style="padding-top: 10px;" class="{% if l.situacao == 'NAO_APTO' %}neg{% endif %}">
+          {% if l.nota_final is not None %}{{ l.nota_final|floatformat:"0" }}{% elif l.mfd is not None %}{{ l.mfd|floatformat:"0" }}{% else %}—{% endif %}{% if l.via_recurso %} R{% endif %}
+        </td>
+        
+      {% endfor %}
+      <td style="{% if r.media_geral < 10 %}color:red{% endif %}"><b>{{ r.media_geral|default_if_none:"—" }}</b></td>
+      <td class="{% if r.faltas_pct > regra.limite_faltas_injustificadas_pct %}neg{% endif %}">{{ r.faltas_pct }}</td>
+      <td class="obs">
+        {% if r.situacao == 'TRANSITA' or r.situacao == 'CONCLUIU' or r.situacao == 'APROVADO' %}
+          <span >Apto</span>
+        {% elif r.situacao == 'ADMITIDO_RECURSO' %}
+          <span class="rec">{{ r.rotulo }}</span>
+          <div class="peq">{{ r.para_recurso|join:", " }}</div>
+        {% elif r.situacao == 'ADMITIDO_EXAME' %}
+          <span class="exame">{{ r.rotulo }}</span>
+        {% else %}
+          <span class="napto">{{ r.rotulo }}</span>
+          {% if r.negativas %}<div class="peq">{{ r.negativas|join:", " }}</div>{% endif %}
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="{{ disciplinas|length|add:disciplinas|length|add:5 }}">Sem alunos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="regras">
+  <b>Regras aplicadas:</b>
+  nota mínima positiva {{ regra.nota_minima_positiva|floatformat:"0" }};
+  máx. {{ regra.max_negativas_transicao }} negativas para recurso;
+  exame com peso {{ regra.peso_exame_na_nota_final }} na nota final (mín. {{ regra.nota_minima_exame|floatformat:"0" }});
+  reprovação por faltas acima de {{ regra.limite_faltas_injustificadas_pct }}%.
+  {% if terminal %}Classe terminal: conclusão exige PAP/estágio positivos quando o curso os prevê.{% endif %}
+  R = nota obtida em exame de recurso.
+</div>
+
+<div id="footer_content" style="font-size:7pt; color:#666; text-align:center;">
+  Emitido em {% now "d/m/Y H:i" %} · Página <pdf:pagenumber/> de <pdf:pagecount/>
+</div>
+
+</body>
+</html>

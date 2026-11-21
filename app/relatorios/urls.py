@@ -11,6 +11,8 @@ urlpatterns = [
     
     path("pauta-final/", views.pauta_final_lista, name="pauta_final_lista"),
     path("pauta-final/turma/<uuid:turma_id>/", views.pauta_final_turma, name="pauta_final_turma"),
+    path("pautas/final/turma/<uuid:turma_id>/pdf/", views.pauta_final_turma_pdf,
+     name="pauta_final_turma_pdf"),
     path("", views.index, name="index"),
     path("r/<slug:slug>/", views.relatorio, name="relatorio"),
     path("documento/<slug:tipo>/", views.documento, name="documento"),
@@ -38,5 +40,11 @@ urlpatterns = [
     path('recibo/<int:pk>/', views.recibo, name='rel_recibo'),
     path('log/', views.log_financeiro, name='rel_log'),
     path('auditoria/', views.auditoria, name='rel_auditoria'),
-
+    
+    path("matriculas/<uuid:pk>/comprovativo/", views.comprovativo_matricula,
+         name="comprovativo_matricula"),
+    path("inscricoes/<uuid:pk>/comprovativo/", views.comprovativo_inscricao,
+         name="comprovativo_inscricao"),
+    
+    path("certificado/<uuid:aluno_id>/", views.certificado_habilitacoes, name="certificado_habilitacoes"),
 ]

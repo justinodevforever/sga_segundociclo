@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>{{ titulo }} - {{ referencia }}</title>
+<style>
+    @page { size: a4 portrait; margin: 8mm 10mm; }
+    body { font-family: Helvetica; font-size: 8pt; color: #222222; }
+    table { border-collapse: collapse; }
+    td { vertical-align: middle; }
+
+    .cab-escola { font-size: 12pt; font-weight: bold; color: #1b3a6b; }
+    .cab-peq { font-size: 6.5pt; color: #555555; }
+    .rep { font-size: 6.5pt; color: #333333; font-weight: bold; text-transform: uppercase; }
+    .ref-box { border: 0.8pt solid #1b3a6b; padding: 3pt; text-align: center; }
+    .ref-lab { font-size: 6pt; color: #777777; }
+    .ref-num { font-size: 8pt; font-weight: bold; color: #1b3a6b; }
+
+    .barra { background-color: #1b3a6b; color: #ffffff; padding: 4pt 6pt;
+             font-size: 11pt; font-weight: bold; }
+    .via-inst { background-color: #c9a227; color: #1b3a6b; padding: 4pt 6pt;
+                font-size: 7.5pt; font-weight: bold; text-align: center; }
+    .via-cli  { background-color: #2e7d5b; color: #ffffff; padding: 4pt 6pt;
+                font-size: 7.5pt; font-weight: bold; text-align: center; }
+
+    .sec-t { background-color: #e8edf5; color: #1b3a6b; font-weight: bold;
+             font-size: 7.5pt; padding: 2.5pt 5pt; border-left: 3pt solid #c9a227; }
+    .l { width: 17%; color: #777777; font-size: 6.8pt; padding: 2.5pt 4pt;
+         border-bottom: 0.5pt solid #d5dbe6; }
+    .v { width: 33%; font-weight: bold; font-size: 8pt; padding: 2.5pt 4pt;
+         border-bottom: 0.5pt solid #d5dbe6; }
+
+    .ass-linha { border-top: 0.6pt solid #555555; text-align: center;
+                 font-size: 6.8pt; color: #444444; padding-top: 2pt; }
+    .aviso { font-size: 6.5pt; color: #555555; text-align: center; }
+    .rodape { font-size: 6.2pt; color: #888888; text-align: center;
+              border-top: 0.5pt solid #cccccc; padding-top: 2pt; }
+    .corte { border-top: 1pt dashed #888888; text-align: center; font-size: 6.5pt;
+             color: #888888; padding-top: 2pt; }
+</style>
+</head>
+<body>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    {% for via, tipo in vias %}
+    <tr>
+        <td height="133mm" valign="top" style="padding: 1mm 0;">
+            {% include "relatorios/comprovativos/_via.html" %}
+        </td>
+    </tr>
+    {% if forloop.first %}
+    <tr><td height="8mm" class="corte"></td></tr>
+    {% endif %}
+    {% endfor %}
+</table>
+
+</body>
+</html>

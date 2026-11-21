@@ -22,7 +22,9 @@
     </div>
     <div>
       <a href="{% url 'pauta_final_lista' %}?ano={{ turma.ano_lectivo_id }}" class="btn btn-outline-secondary btn-sm">Voltar</a>
-      <button onclick="window.print()" class="btn btn-primary btn-sm">Imprimir</button>
+      <a href="{% url 'pauta_final_turma_pdf' turma.pk %}?situacao={{ filtro|urlencode }}&q={{ q|urlencode }}"
+        target="_blank" class="btn btn-primary btn-sm">Imprimir (PDF)
+      </a>
     </div>
   </div>
 

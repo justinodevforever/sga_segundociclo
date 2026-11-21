@@ -1,8 +1,29 @@
-{% extends 'base.html' %}
+{% extends 'director/base.html' %}
 
+{% block breadcrumb %}
+    <a href="{% url 'matricula_list' %}">Matrícula</a>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+    <spn class="current">{{matricula.aluno.nome_completo}}</spn>
+{% endblock breadcrumb %}
 
+{% block title %}
+    Matrícula do {{matricula.aluno.nome_completo}}
+{% endblock title %}
+    
+{% block sub_title %}
+    Informações mais detalhadas da matrícula
+{% endblock sub_title %}
+
+{% block icon %}
+    <i class="fa fa-eye" aria-hidden="true"></i>
+{% endblock icon %}
+
+{% block topbar_actions %}
+    <a onclick="history.back()" class="btn btn-primary" style="width: 100px;"> <i class="fa fa-arrow-left" aria-hidden="true"></i> voltar</a>
+{% endblock topbar_actions %}
 
 {% block content %}
+
 <style>
     table{
         width: 99%;
@@ -13,101 +34,222 @@
     td{
         padding: 4px;
     }
+
+    .container-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+        .container-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card{
+        padding: 10px;
+        font-size: 10pt;
+
+    }
+
+    .card-info{
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+    }
+    .card-info::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 6px;
+        background: blue;
+    }
 </style>
-<div class="column" style="display: flex; gap: 10px; padding: 20px; width: 100%; height: 100%;
-     justify-content: center;">
-    <div class="col-md-8" style="width: 100%;">
+<div class="container-fluid">
+    <div class="container-grid">
         
-        <div class="card" style="width: 97%;">
-            <div class="d-flex justify-content-between card-header text-white" style="background-color: #1E3A8A;" >
-                <h5 class="mb-0">
-                    <i class="fas fa-user"></i> Informações da matrícula
-                </h5>
-                <a href="/matriculas/" class="btn" 
-                style="background: #3B82F6; color: #fff;">
-                    lista
-                </a>
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Nome Completo:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.nome_completo }}</div>
             </div>
-
-            <div class="card-body">
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Nome do estudante:</strong></div>
-                    <div class="col-sm-9">{{ matricula.aluno.nome_completo }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Data de nascimento:</strong></div>
-                    <div class="col-sm-9">{{ matricula.aluno.data_nascimento }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Idade:</strong></div>
-                    <div class="col-sm-9">{{ matricula.aluno.idade }} Anos</div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>B.I:</strong></div>
-                    <div class="col-sm-9">{{ matricula.aluno.bi }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Tipo da matrícula:</strong></div>
-                    <div class="col-sm-9">{{ matricula.get_tipo_matricula_display}}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Número da matrícula:</strong></div>
-                    <div class="col-sm-9">{{ matricula.numero_matricula}}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Status da matrícula:</strong></div>
-                    <div class="col-sm-9">{{ matricula.get_status_display}}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Data da matrícula:</strong></div>
-                    <div class="col-sm-9">{{ matricula.data_matricula }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Turma:</strong></div>
-                    <div class="col-sm-9">{{ matricula.turma }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Classe:</strong></div>
-                    <div class="col-sm-9">{{ matricula.turma.classe }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Ano Letivo:</strong></div>
-                    <div class="col-sm-9">{{ matricula.ano_lectivo }}</div>
-                </div>
-
-                {% if matricula.status_matricula == 'Cancelada' %}
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Data de Cancelamento:</strong></div>
-                    <div class="col-sm-9">{{ matricula.data_cancelamento }}</div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Motivo de  cancelamento:</strong></div>
-                    <div class="col-sm-9">{{ matricula.motivo_cancelamento }}</div>
-                </div>
-                
-                {% endif %}
-
-                <div class="row mb-3">
-                    <div class="col-sm-3"><strong>Matrícula feita Por:</strong></div>
-                    <div class="col-sm-9">{{ matricula.matriculado_por.get_full_name }}</div>
-                </div>
-                
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Número de B.I:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.bi }}</div>
             </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Data de nascimento:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.data_nascimento }}</div>
+            </div>
+             <div class="row mb-3">
+                <div class="col-sm-6"><strong>Idade:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.idade }} Anos</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Género:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.get_genero_display}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Nome do pai:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.nome_pai }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Nome da mãe:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.nome_mae }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Naturalidade:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.naturalidade }}</div>
+            </div> 
+            
+             <div class="row mb-3">
+                <div class="col-sm-6"><strong>Província:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.provincia }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Município:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.municipio}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Nº de B.I:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.bi }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Emitido em:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.emitido_em }}</div>
+            </div>  
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Data de emissão:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.data_emissao_bi }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-6"><strong>Data de expiração:</strong></div>
+                <div class="col-sm-6">{{ matricula.aluno.data_expiracao_bi }}</div>
+            </div>  
+        </div>
+
+        <div class="card card-info">
+
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Bairro:</strong></div>
+                <div class="col-sm-7">{{ matricula.aluno.bairro|default:"---"}}</div>
+            </div>
+            <div class="row mb-3" style="height: auto;">
+                <div class="col-sm-5"><strong>Telefone:</strong></div>
+                <div class="col-sm-7">{{ matricula.aluno.telefone|default:"---"}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Curso:</strong></div>
+                <div class="col-sm-7">{{ matricula.turma.curso.nome}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Período:</strong></div>
+                <div class="col-sm-7">{{ matricula.turma.get_periodo_display }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Ano lectivo:</strong></div>
+                <div class="col-sm-7">{{ matricula.ano_lectivo.designacao }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Data da inscrição:</strong></div>
+                <div class="col-sm-7">{{ matricula.data_matricula}}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Criado por:</strong></div>
+                <div class="col-sm-7">{{ matricula.matriculado_por.nome_completo}}</div>
+            </div>   
+            <div class="row mb-3">
+                <div class="col-sm-5"><strong>Estado:</strong></div>
+                <div class="col-sm-7">{{ matricula.get_status_display|default:"Sem Informações" }}</div>
+            </div>
+         
         </div>
     </div>
-   
 </div>
+
+<div class="modal-backdrop" id="deleteModal">
+      <div  class="modal-box" id="formDelete">
+
+            <div class="modal-icon danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h3 class="modal-title">Confirmar Eliminação</h3>
+            <p class="modal-body-text">
+                  Tem a certeza que deseja eliminar a inscrição do(a) <strong id="deleteTarget"></strong>?
+                  Esta acção não pode ser desfeita.
+            </p>
+
+            <div id="sms" style="color: red;"></div>
+
+            <div class="modal-actions">
+                  <button class="btn btn-outline-secondary" onclick="closeModal()">Cancelar</button>
+                  <button  class="btn btn-outline-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash-fill"></i> Eliminar
+                  </button>
+            </div>
+      </div>
+</div>
+
+<script>
+    // Delete modal
+      let itemparadeletar = null
+      let nome_item = null
+
+      function confirmDelete(id, name) {
+
+        itemparadeletar = id
+        nome_item = name
+
+        document.getElementById('deleteTarget').textContent = name;
+        document.getElementById('deleteModal').classList.add('open');
+      }
+      function closeModal() {
+        const sms = document.getElementById('sms');
+        sms.innerText = ''
+        document.getElementById('deleteModal').classList.remove('open');
+      }
+      document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+
+      document.getElementById('confirmDeleteBtn').addEventListener('click', async(e)=>{
+            e.preventDefault()
+
+            const sms = document.getElementById('sms');
+
+
+            try {
+                await fetch(`/inscricoes/${itemparadeletar}/excluir/`, {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                }).then(async (response)=>{
+                        const data = await response.json()
+                        if (response.ok) {
+                            sms.innerText = `Inscrição do(a) ${nome_item} eliminada com sucesso!`;
+                            sms.style.color = "green";
+                            setInterval(()=>window.location.href = '/inscricoes/', 1000)
+
+                        } else {
+                            sms.innerText = data.message || "Erro ao deletar o item!";
+                            sms.style.color = "red";
+                        }
+                    })
+
+
+
+            } catch (error) {
+              console.log(error);
+              sms.innerText = "Erro de conexão com o servidor.";
+              sms.style.color = "red";
+            }
+      })
+</script>
 {% endblock %}
 
