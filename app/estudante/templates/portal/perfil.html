@@ -1,0 +1,32 @@
+{% extends "portal/base.html" %}
+{% block heading %}O meu perfil{% endblock %}
+{% block content %}
+<div class="grid g2e">
+  <div class="grid" style="align-content:start">
+    <div class="card" style="display:flex;gap:16px;align-items:center">
+      {% if aluno.foto %}<img src="{{ aluno.foto.url }}" alt="Foto" width="84" height="84" style="border-radius:50%;object-fit:cover">
+      {% else %}<span class="stat"><span class="ic" style="width:84px;height:84px;border-radius:50%;font-size:36px"><i class="bi bi-person"></i></span></span>{% endif %}
+      <div><b style="font-size:18px">{{ aluno.nome_completo }}</b><br><span class="muted">Processo {{ aluno.numero_processo|default:"—" }} · Matrícula {{ aluno.numero_estudante|default:"—" }}</span><br><span class="tag">{{ aluno.get_status_display }}</span></div>
+    </div>
+    <div class="card"><h2>Dados pessoais</h2><ul class="list">
+      <li><span class="muted">BI</span><b>{{ aluno.bi }}</b></li>
+      <li><span class="muted">Data de nascimento</span><b>{{ aluno.data_nascimento|date:"d/m/Y"|default:"—" }}{% if aluno.idade %} ({{ aluno.idade }} anos){% endif %}</b></li>
+      <li><span class="muted">Pai</span><b>{{ aluno.nome_pai }}</b></li><li><span class="muted">Mãe</span><b>{{ aluno.nome_mae }}</b></li>
+      <li><span class="muted">Naturalidade</span><b>{{ aluno.naturalidade }}</b></li>
+      <li><span class="muted">Residência</span><b>{{ aluno.municipio }}, {{ aluno.provincia }}</b></li></ul>
+      <p class="muted" style="font-size:12.5px;margin-bottom:0">Para corrigir dados pessoais, dirija-se à secretaria.</p></div>
+    <div class="card"><h2>Segurança</h2><a class="btn ghost" href="{% url 'estudante:password' %}"><i class="bi bi-key"></i>Alterar palavra-passe</a></div>
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><h2>Contactos</h2>
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="acao" value="dados">
+        {% for f in form_dados %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endfor %}
+        <button class="btn"><i class="bi bi-check2"></i>Guardar alterações</button></form></div>
+    <div class="card"><h2>Documentos</h2>
+      {% if documentos %}<ul class="list">{% for d in documentos %}<li><span><b>{{ d.titulo }}</b><br><small class="muted">{{ d.get_tipo_documento_display }} · {{ d.data_upload|date:"d/m/Y" }}</small></span><a href="{{ d.arquivo.url }}" target="_blank" rel="noopener"><i class="bi bi-download"></i></a></li>{% endfor %}</ul>{% endif %}
+      <form method="post" enctype="multipart/form-data" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="acao" value="documento">
+        {% for f in form_doc %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endfor %}
+        <button class="btn ghost"><i class="bi bi-upload"></i>Carregar documento</button></form></div>
+  </div>
+</div>
+{% endblock %}

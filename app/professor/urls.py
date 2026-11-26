@@ -12,12 +12,13 @@ urlpatterns = [
     path('nota/exames/', lancar_nota_exame, name='lancar_nota_exame'),
     path("notas/<uuid:turma_disciplina_id>/", avaliacao_lancar_notas, name="lancamento_notas"),
 
-    path('pautas/trimestral/', pauta_trimestral, name='pauta_trimestral'),
-    path('pautas/anuais/', resultados_anuais, name='resultados_anuais'),
+    # professor/urls.py
+    path("mini-pautas/", mini_pauta_selecionar, name="mini_pautas"),
+    path("mini-pautas/<int:atribuicao_id>/imprimir/", mini_pauta_imprimir, name="mini_pauta_imprimir"),
 
-    path("horario/", HorarioView.as_view(), name="horario"),
+    path("horario/", horario_professor, name="horario"),
 
-    path("alunos/", MeusAlunosView.as_view(), name="meus_alunos"),
+    path("alunos/", meus_alunos, name="meus_alunos"),
     path("alunos/<uuid:aluno_id>/", DetalheAlunoView.as_view(), name="detalhe_aluno"),
 
     path("frequencia/", FrequenciaView.as_view(), name="frequencia"),

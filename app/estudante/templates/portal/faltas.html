@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}{% load l10n %}
+{% block heading %}Assiduidade{% endblock %}
+{% block content %}
+{% if not matricula %}{% include "portal/_vazio.html" %}{% else %}
+<div class="grid g2">
+  <div class="card"><h2>Faltas por disciplina <span class="tag">Limite: {{ limite|floatformat:0 }}% injustificadas</span></h2>
+    {% if resumo %}<div class="table-wrap"><table><tr><th>Disciplina</th><th class="n">Justif.</th><th class="n">Injustif.</th><th style="min-width:150px">Uso do limite</th></tr>
+    {% for d in resumo %}<tr><td>{{ d.disciplina }}</td><td class="n">{{ d.just }}</td><td class="n"><b>{{ d.injust }}</b></td>
+      <td>{% if d.pct is not None %}<div class="bar {% if d.excedeu %}bad{% elif d.alerta %}warn{% endif %}"><i style="width:{% if d.pct > 100 %}100{% else %}{{ d.pct|unlocalize }}{% endif %}%"></i></div><small class="muted">{{ d.pct }}% das aulas previstas</small>{% else %}<small class="muted">Sem plano curricular</small>{% endif %}</td></tr>{% endfor %}</table></div>
+    {% else %}<div class="empty"><i class="bi bi-emoji-smile"></i>Sem faltas registadas. Continue assim.</div>{% endif %}</div>
+  <div class="card"><h2>Registo recente</h2>
+    {% if faltas %}<ul class="list">{% for f in faltas %}<li><span><b>{{ f.disciplina }}</b><br><small class="muted">{{ f.data|date:"d/m/Y" }} · {{ f.tempos }} tempo{{ f.tempos|pluralize }}{% if f.motivo %} · {{ f.motivo }}{% endif %}</small></span>
+      <span class="tag {% if f.justificada %}tag-green{% else %}tag-red{% endif %}">{% if f.justificada %}Justificada{% else %}Injustificada{% endif %}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty" style="padding:14px">Nada a mostrar.</div>{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

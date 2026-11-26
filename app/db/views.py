@@ -21,6 +21,18 @@ from django.db.models import OuterRef, Subquery
 from app.financa.views import _gerar_propinas
 
 
+def erro_400(request, exception=None):
+    return render(request, '400.html', status=400)
+
+def erro_403(request, exception=None):
+    return render(request, '403.html', status=403)
+
+def erro_404(request, exception=None):
+    return render(request, '404.html', status=404)
+
+def erro_500(request):
+    return render(request, '500.html', status=500)
+
 @login_required
 def dashboard(request):
     user = request.user
@@ -618,7 +630,28 @@ def matricula_create(request):
                             municipio=inscricao.candidato.municipio,
                             bairro=inscricao.candidato.bairro,
                         )
-
+                        
+                        role, created = Role.objects.get_or_create(nome='estudante')
+                        utilizador = Utilizador(
+                            email=aluno.email,
+                            username=aluno.email,
+                            nome_completo=aluno.nome_completo
+                        )
+    
+                        utilizador.set_password('1234567890')
+                        utilizador.save()
+    
+                        userRole = UsuarioRole(
+                            role=role,
+                            utilizador=utilizador
+                        )
+    
+                        userRole.atribuido_por = request.user
+    
+                        userRole.save()
+    
+                        aluno.utilizador = utilizador
+    
                         aluno.save()
 
                         matricula.aluno = aluno

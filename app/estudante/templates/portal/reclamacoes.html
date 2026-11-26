@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}
+{% block heading %}Reclamações de notas{% endblock %}
+{% block content %}
+{% if not matricula %}{% include "portal/_vazio.html" %}{% else %}
+<div class="grid g2e">
+  <div class="card"><h2>Nova reclamação</h2>
+    <form method="post">{% csrf_token %}
+      {{ form.non_field_errors }}
+      {% for f in form %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endfor %}
+      <button class="btn"><i class="bi bi-send"></i>Enviar reclamação</button>
+    </form></div>
+  <div class="card"><h2>As minhas reclamações</h2>
+    {% if lista %}<ul class="list">{% for r in lista %}<li><span><b>{{ r.disciplina }}</b> · {{ r.trimestre.designacao }}.º tri.<br>
+      <small class="muted">{{ r.criada_em|date:"d/m/Y" }} · nota original {{ r.nota_original|default:"—" }}{% if r.nota_revista is not None %} → <b>{{ r.nota_revista }}</b>{% endif %}</small></span>
+      <span class="tag {% if r.estado == 'DEF' %}tag-green{% elif r.estado == 'INDEF' %}tag-red{% else %}tag-yellow{% endif %}">{{ r.get_estado_display }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty" style="padding:14px"><i class="bi bi-chat-square"></i>Ainda não fez nenhuma reclamação.</div>{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

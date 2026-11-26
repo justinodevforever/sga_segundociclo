@@ -1,7 +1,10 @@
+from django.contrib.staticfiles import finders
+import os
 
+from django.conf import settings
 import io
 import json
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
 from urllib.parse import urlencode
@@ -15,12 +18,21 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
+import csv
+from collections import Counter, defaultdict
+from decimal import Decimal, ROUND_HALF_UP
+
+from xhtml2pdf import pisa
+
+
+
+
 
 from app.db.models import (
     Aluno,
@@ -40,7 +52,39 @@ from app.db.models import (
     TenantConfiguracao,
     Trimestre,
     Turma,
+    Curso,
 )
+
+
+ROMANOS = {1: "I", 2: "II", 3: "III"}
+MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
+         "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+NIVEL_CURSO = {
+    Curso.Tipo.GERAL: "IIº Ciclo do Ensino Secundário Geral",
+    Curso.Tipo.TECNICO: "IIº Ciclo do Ensino Secundário Técnico-Profissional",
+    Curso.Tipo.PEDAGOGICO: "IIº Ciclo do Ensino Secundário — Formação de Professores",
+}
+
+POR_PAGINA = 20
+
+# Estado da matrícula → classe .tag do base
+TAG_STATUS = {
+    "Activa": "tag-green",
+    "Cancelada": "tag-red",
+    "Transferida": "tag-blue",
+    "Concluída": "tag-purple",
+    "Trancamento": "tag-yellow",
+    "Desistente": "tag-gray",
+}
+# (valor guardado em HorarioAula.dia_semana, nome completo, abreviatura)
+DIAS = [
+    ("Segunda", "Segunda-feira", "Seg"),
+    ("Terça",   "Terça-feira",   "Ter"),
+    ("Quarta",  "Quarta-feira",  "Qua"),
+    ("Quinta",  "Quinta-feira",  "Qui"),
+    ("Sexta",   "Sexta-feira",   "Sex"),
+]
+TOTAL_CORES = 8  # classes .c0 … .c7 no CSS
 
 try:
     from app.db.models import Comunicado
@@ -732,89 +776,229 @@ def avaliacao_lancar_notas(request, turma_disciplina_id):
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. PAUTA TRIMESTRAL
 # ─────────────────────────────────────────────────────────────────────────────
+def _professor(request):
+    func = getattr(request.user, "funcionario", None)
+    if func is None:
+        raise PermissionDenied("Sem perfil de funcionário.")
+    return func
 
-@professor_required
-def pauta_trimestral(request):
-    """Pauta trimestral (só leitura): avaliações contínuas, MAC, PP, PT e MT."""
-    professor = request.professor
-    ano_lectivo = _get_ano_atual()
-    iniciais = _get_iniciais(request)
 
-    atribuicoes = _turmas_do_professor(professor, ano_lectivo)
-    turmas = _turmas_distintas(atribuicoes)
-    trimestres = _trimestres_do_ano(ano_lectivo).order_by("-designacao")
+def _ano_actual():
+    return AnoLectivo.objects.filter(e_atual=True).first()
 
-    turma_id = _uuid_ou_none(request.GET.get("turma"))
-    trimestre_id = _uuid_ou_none(request.GET.get("trimestre"))
-    disciplina_id = _uuid_ou_none(request.GET.get("disciplina"))
 
-    pauta, avaliacoes = [], []
-    turma = trimestre = disciplina = None
+def _virgula(x, casas=1):
+    return f"{x:.{casas}f}".replace(".", ",")
 
-    if turma_id and trimestre_id and disciplina_id:
-        atribuicao = get_object_or_404(atribuicoes, turma_id=turma_id, disciplina_id=disciplina_id)
-        turma, disciplina = atribuicao.turma, atribuicao.disciplina
-        trimestre = get_object_or_404(trimestres, pk=trimestre_id)
-        minimo = _nota_minima_turma(turma)
 
-        matriculas = list(_matriculas_activas(turma))
+def link_callback(uri, rel):
+    """Resolve /static/ e /media/ para caminhos de ficheiro (xhtml2pdf)."""
+    media_url = settings.MEDIA_URL or ""
+    static_url = settings.STATIC_URL or ""
+    if media_url and uri.startswith(media_url):
+        path = os.path.join(settings.MEDIA_ROOT, uri[len(media_url):])
+    elif static_url and uri.startswith(static_url):
+        rel_path = uri[len(static_url):]
+        path = finders.find(rel_path) or os.path.join(getattr(settings, "STATIC_ROOT", "") or "", rel_path)
+    else:
+        return uri
+    return path if os.path.isfile(path) else uri
 
-        # colunas = avaliações distintas do trimestre
-        registos = list(
-            AvaliacaoContinua.objects
-            .filter(matricula__in=matriculas, disciplina=disciplina, trimestre=trimestre)
-            .order_by("data", "tipo", "descricao")
-        )
-        colunas = []
-        for r in registos:
-            chave = (r.data, r.tipo, r.descricao)
-            if chave not in colunas:
-                colunas.append(chave)
-        avaliacoes = [
-            {"data": d, "tipo": t, "tipo_display": _rotulo_tipo(t), "descricao": desc,
-             "designacao": desc or _rotulo_tipo(t)}
-            for d, t, desc in colunas
-        ]
-        valores = {(r.matricula_id, r.data, r.tipo, r.descricao): r.valor for r in registos}
 
-        resultados = {
-            rt.matricula_id: rt
-            for rt in ResultadoTrimestral.objects.filter(
-                matricula__in=matriculas, disciplina=disciplina, trimestre=trimestre
-            )
-        }
+# ───────────────────────── construção dos dados ─────────────────────────
+def _montar_contexto(request, atrib, opcao):
+    turma = atrib.turma
+    disciplina = atrib.disciplina
+    ano = turma.ano_lectivo
+    classe = turma.classe
 
-        for idx, m in enumerate(matriculas, 1):
-            rt = resultados.get(m.pk)
-            notas = _notas_trimestrais(rt)
-            mt = notas["mt"]
-            pauta.append({
-                "numero": idx,
-                "matricula": m,
-                # lista alinhada com `avaliacoes` (uma célula por coluna)
-                "notas": [valores.get((m.pk, d, t, desc)) for d, t, desc in colunas],
-                "mac": notas["mac"],
-                "pp": notas["pp"],
-                "pt": notas["pt"],
-                "mt": mt,
-                "situacao": "" if mt is None else ("Aprovado" if mt >= minimo else "Reprovado"),
-            })
+    regra = RegraAvaliacao.objects.filter(ano_lectivo=ano, classe=classe).first()
+    minima = regra.nota_minima_positiva if regra else Decimal("10")
+    nota_max = regra.nota_maxima if regra else Decimal("20")
+    arredondar = regra.arredondar_unidades if regra else True
+    peso_exame = regra.peso_exame_na_nota_final if regra else Decimal("0.50")
 
-    return render(request, "professor/pauta_trimestral.html", {
-        "turmas": turmas,
-        "trimestres": trimestres,
-        "disciplinas": atribuicoes,
-        "turma_sel": turma_id,
-        "trimestre_sel": trimestre_id,
-        "disciplina_sel": disciplina_id,
+    plano = PlanoCurricular.objects.filter(
+        ano_lectivo=ano, curso=turma.curso, classe=classe, disciplina=disciplina
+    ).first()
+    tem_exame = bool(plano and plano.tem_exame_nacional)
+
+    anual = opcao == 0
+    trimestres = [1, 2, 3] if anual else [opcao]
+
+    def cel(v):
+        """Devolve {'v','txt','neg'} já arredondado conforme a regra."""
+        if v is None:
+            return {"v": None, "txt": "", "neg": False}
+        d = Decimal(v)
+        if arredondar:
+            d = d.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            txt = str(int(d))
+        else:
+            txt = _virgula(float(d), 2)
+        return {"v": float(d), "txt": txt, "neg": d < minima}
+
+    matriculas = list(
+        Matricula.objects.filter(turma=turma, ano_lectivo=ano)
+        .exclude(status=Matricula.Status.CANCELADA)
+        .select_related("aluno")
+        .order_by("aluno__nome_completo")
+    )
+    mat_ids = [m.id for m in matriculas]
+
+    rt = {}
+    for r in ResultadoTrimestral.objects.filter(
+        matricula_id__in=mat_ids, disciplina=disciplina,
+        trimestre__ano_lectivo=ano, trimestre__designacao__in=trimestres,
+    ).select_related("trimestre"):
+        rt[(r.matricula_id, r.trimestre.designacao)] = r
+
+    ra = {}
+    if anual:
+        for r in ResultadoAnual.objects.filter(matricula_id__in=mat_ids, disciplina=disciplina):
+            ra[r.matricula_id] = r
+
+    # colunas estatísticas
+    if anual:
+        stat_labels = ["MT1", "MT2", "MT3", "CF", "MF"]
+    else:
+        stat_labels = [f"MT{opcao}"]
+    stat_vals = {l: [] for l in stat_labels}  # lista de (valor, é_feminino)
+
+    linhas = []
+    for i, m in enumerate(matriculas, start=1):
+        fem = m.aluno.genero == "F"
+        tri_cells = []
+        for t in trimestres:
+            r = rt.get((m.id, t))
+            c = {
+                "mac": cel(r.mac if r else None),
+                "pp": cel(r.pp if r else None),
+                "pt": cel(r.pt if r else None),
+                "mt": cel(r.mt if r else None),
+            }
+            tri_cells.append(c)
+            stat_vals[f"MT{t}"].append((c["mt"]["v"], fem))
+
+        linha = {"n": i, "nome": m.aluno.nome_completo.upper(), "tri": tri_cells}
+
+        if anual:
+            r = ra.get(m.id)
+            cf = cel(r.mfd if r else None)
+            ee = cel(r.nota_exame if r else None) if tem_exame else {"v": None, "txt": "", "neg": False}
+            mf = cel((r.nota_final if r.nota_final is not None else r.mfd) if r else None)
+            if mf["v"] is not None:
+                res_txt, res_neg = ("Apto", False) if not mf["neg"] else ("N/Apto", True)
+            elif r and r.situacao != ResultadoAnual.Situacao.PENDENTE:
+                res_txt, res_neg = r.get_situacao_display(), False
+            else:
+                res_txt, res_neg = "—", False
+            linha.update(cf=cf, ee=ee, mf=mf, resultado=res_txt, resultado_neg=res_neg)
+            stat_vals["CF"].append((cf["v"], fem))
+            stat_vals["MF"].append((mf["v"], fem))
+        linhas.append(linha)
+
+    colunas = []
+    for lab in stat_labels:
+        vals = [(v, f) for v, f in stat_vals[lab] if v is not None]
+        aval = len(vals)
+        aval_f = sum(1 for _, f in vals if f)
+        pos = [(v, f) for v, f in vals if v >= float(minima)]
+        neg = [(v, f) for v, f in vals if v < float(minima)]
+        colunas.append({
+            "label": lab,
+            "aval": f"{aval} / {aval_f}",
+            "pos": f"{len(pos)} / {sum(1 for _, f in pos if f)}",
+            "neg": f"{len(neg)} / {sum(1 for _, f in neg if f)}",
+            "aprov": _virgula(len(pos) / aval * 100) if aval else "—",
+            "media": _virgula(sum(v for v, _ in vals) / aval) if aval else "—",
+        })
+
+    tenant = TenantConfiguracao.objects.first()
+    agora = timezone.localtime()
+    return {
+        "tenant": tenant,
+        "escola": (tenant.nome if tenant and tenant.nome else ""),
+        "nivel": NIVEL_CURSO.get(turma.curso.tipo, "IIº Ciclo do Ensino Secundário"),
+        "ano_lectivo": ano,
         "turma": turma,
-        "trimestre": trimestre,
+        "curso": turma.curso,
+        "classe_txt": f"{classe.designacao}.ª",
+        "turno": turma.get_periodo_display(),
         "disciplina": disciplina,
-        "pauta": pauta,
-        "avaliacoes": avaliacoes,
-        "secao": "resultado_semestral",
-        "iniciais": iniciais,
+        "professor": atrib.professor,
+        "anual": anual,
+        "trimestres": [{"n": t, "romano": ROMANOS[t]} for t in trimestres],
+        "linhas": linhas,
+        "colunas_stat": colunas,
+        "minima": int(minima) if minima == minima.to_integral() else minima,
+        "nota_max": int(nota_max),
+        "arredondar": arredondar,
+        "tem_exame": tem_exame and anual,
+        "peso_exame": _virgula(float(peso_exame), 2),
+        "local": getattr(settings, "ESCOLA_CIDADE", "Luanda"),
+        "data_extenso": f"{agora.day} de {MESES[agora.month - 1]} de {agora.year}",
+        "emitido_por": request.user.nome_completo or request.user.get_username(),
+        "hora": agora.strftime("%H:%M"),
+    }
+
+
+# ───────────────────────── views ─────────────────────────
+@login_required
+def mini_pauta_selecionar(request):
+    prof = _professor(request)
+    ano = _ano_actual()
+    atribuicoes = []
+    if ano:
+        atribuicoes = (
+            AtribuicaoDocente.objects
+            .filter(professor=prof, status="ativa", turma__ano_lectivo=ano)
+            .select_related("turma__curso", "turma__classe", "disciplina")
+            .order_by("turma__classe__ordem", "turma__designacao", "disciplina__nome")
+        )
+    return render(request, "professor/mini_pauta_selecionar.html", {
+        "secao": "mini_pautas",
+        "ano_lectivo": ano,
+        "atribuicoes": atribuicoes,
     })
+
+
+@login_required
+def mini_pauta_imprimir(request, atribuicao_id):
+    prof = _professor(request)
+    # garante que o professor só imprime as suas próprias turmas/disciplinas
+    atrib = get_object_or_404(
+        AtribuicaoDocente.objects.select_related(
+            "professor", "turma__curso", "turma__classe", "turma__ano_lectivo", "disciplina"
+        ),
+        pk=atribuicao_id, professor=prof,
+    )
+
+    try:
+        opcao = int(request.GET.get("trimestre", 0))   # 0 = pauta anual (I, II, III + CF/EE/MF)
+    except ValueError:
+        print("fdfsd")
+        raise Http404
+    if opcao not in (0, 1, 2, 3):
+        raise Http404
+
+    ctx = _montar_contexto(request, atrib, opcao)
+    template = "professor/mini_pauta_pdf.html"
+
+    # pré-visualização no browser
+    if request.GET.get("formato") == "html":
+        ctx["preview"] = True
+        return render(request, template, ctx)
+
+    html = render_to_string(template, ctx, request=request)
+    nome = f"mini-pauta_{atrib.disciplina.nome_abreviado}_{ctx['classe_txt']}{atrib.turma.designacao}"
+    nome += "_anual" if opcao == 0 else f"_T{opcao}"
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{nome}.pdf"'
+    resultado = pisa.CreatePDF(html, dest=response, encoding="utf-8", link_callback=link_callback)
+    if resultado.err:
+        return HttpResponse("Erro ao gerar o PDF da mini-pauta.", status=500)
+    return response
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1054,140 +1238,329 @@ def boletim_aluno(request, matricula_pk):
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. HORÁRIO
 # ─────────────────────────────────────────────────────────────────────────────
-
-class HorarioView(ProfessorRequiredMixin, TemplateView):
-    """Horário semanal do professor organizado por dia e bloco horário."""
-    template_name = "professor/horario.html"
-
-    DIAS_ORDEM = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        professor = self.get_professor()
-        ano_lectivo = _get_ano_atual()
-
-        horarios_qs = HorarioAula.objects.filter(atribuicao__professor=professor)
-        if ano_lectivo:
-            horarios_qs = horarios_qs.filter(atribuicao__turma__ano_lectivo=ano_lectivo)
-        horarios = list(
-            horarios_qs
-            .all()  # `periodo` é CharField: não entra em select_related
-            .order_by("hora_inicio", "dia_semana")
+ 
+ 
+def _duracao_min(inicio, fim) -> int:
+    d = datetime.combine(date.min, fim) - datetime.combine(date.min, inicio)
+    return int(d.total_seconds() // 60)
+ 
+ 
+@login_required
+def horario_professor(request):
+    funcionario = Funcionario.objects.filter(utilizador=request.user).first()
+    if not funcionario:
+        messages.error(request, "A sua conta não está associada a um professor.")
+        return redirect("professor:dashboard_professor")
+ 
+    # ── Contexto temporal ────────────────────────────────────────────
+    ano = AnoLectivo.objects.filter(e_atual=True).first()
+    trimestre = (
+        Trimestre.objects.filter(ano_lectivo=ano, activo=True).first() if ano else None
+    )
+ 
+    agora = timezone.localtime()
+    idx_hoje = agora.weekday()                       # 0 = segunda … 6 = domingo
+    hoje_key = DIAS[idx_hoje][0] if idx_hoje < 5 else None
+    hora_agora = agora.time()
+ 
+    # ── Aulas do professor ───────────────────────────────────────────
+    qs = (
+        HorarioAula.objects
+        .filter(atribuicao__professor=funcionario, atribuicao__status="ativa")
+        .select_related(
+            "atribuicao__disciplina",
+            "atribuicao__turma__classe",
+            "atribuicao__turma__curso",
         )
-
-        blocos = sorted({(h.hora_inicio, h.hora_fim) for h in horarios}, key=lambda b: b[0])
-        grade = {bloco: {dia: None for dia in self.DIAS_ORDEM} for bloco in blocos}
-        for h in horarios:
-            if h.dia_semana in self.DIAS_ORDEM:
-                grade[(h.hora_inicio, h.hora_fim)][h.dia_semana] = h
-
-        linhas = [
-            {"inicio": b[0], "fim": b[1], "celulas": [grade[b][d] for d in self.DIAS_ORDEM]}
-            for b in blocos
-        ]
-
-        ctx.update({
-            "professor": professor,
-            "dias": self.DIAS_ORDEM,
-            "grade": grade,
-            "blocos": blocos,
-            "linhas": linhas,
-            "total_aulas": len(horarios),
-            "disciplinas_count": len({h.disciplina_id for h in horarios}),
-            "turmas_count": len({h.turma_id for h in horarios}),
-            "carga_horaria": professor.carga_horaria_semanal or 0,
-            "secao": "meu_horario",
-            "iniciais": _get_iniciais(self.request),
-        })
-        return ctx
-
+    )
+    if ano:
+        qs = qs.filter(atribuicao__ano_lectivo=ano)
+ 
+    aulas = sorted(qs, key=lambda a: (a.hora_inicio, a.hora_fim))
+ 
+    # Cor estável por disciplina (ordem alfabética)
+    disciplinas = sorted(
+        {a.atribuicao.disciplina for a in aulas}, key=lambda d: d.nome
+    )
+    cores = {d.id: i % TOTAL_CORES for i, d in enumerate(disciplinas)}
+ 
+    total_min = 0
+    turmas_ids = set()
+    contagem = {d.id: 0 for d in disciplinas}
+ 
+    for a in aulas:
+        at = a.atribuicao
+        a.disc = at.disciplina
+        a.turma_obj = at.turma
+        a.cor = cores[a.disc.id]
+        a.duracao = _duracao_min(a.hora_inicio, a.hora_fim)
+        a.sala_final = a.sala or at.turma.sala
+        a.hoje = a.dia_semana == hoje_key
+        a.em_curso = a.hoje and a.hora_inicio <= hora_agora < a.hora_fim
+ 
+        total_min += a.duracao
+        turmas_ids.add(at.turma_id)
+        contagem[a.disc.id] += 1
+ 
+    # ── Dias (cabeçalhos) ────────────────────────────────────────────
+    dias = [
+        {"key": k, "label": nome, "curto": curto, "hoje": k == hoje_key}
+        for k, nome, curto in DIAS
+    ]
+ 
+    # ── Grelha semanal: linhas = faixas horárias, colunas = dias ─────
+    faixas = sorted({(a.hora_inicio, a.hora_fim) for a in aulas})
+    grelha = []
+    for ini, fim in faixas:
+        celulas = []
+        for d in dias:
+            celulas.append({
+                "hoje": d["hoje"],
+                "aulas": [
+                    a for a in aulas
+                    if a.dia_semana == d["key"]
+                    and a.hora_inicio == ini and a.hora_fim == fim
+                ],
+            })
+        grelha.append({"inicio": ini, "fim": fim, "celulas": celulas})
+ 
+    # ── Vista por dia ────────────────────────────────────────────────
+    por_dia = [
+        {**d, "aulas": [a for a in aulas if a.dia_semana == d["key"]]}
+        for d in dias
+    ]
+ 
+    # ── Legenda das disciplinas ──────────────────────────────────────
+    legenda = [
+        {"disciplina": d, "cor": cores[d.id], "aulas": contagem[d.id]}
+        for d in disciplinas
+    ]
+ 
+    # ── Aula em curso / próxima aula de hoje ─────────────────────────
+    aula_agora = next((a for a in aulas if a.em_curso), None)
+    proxima_aula = next(
+        (a for a in aulas if a.hoje and a.hora_inicio > hora_agora), None
+    )
+ 
+    nome = funcionario.nome_completo or ""
+    partes = nome.split()
+    iniciais = (partes[0][0] + partes[-1][0]).upper() if len(partes) > 1 else nome[:2].upper()
+ 
+    context = {
+        "secao": "meu_horario",
+        "professor": funcionario,
+        "iniciais": iniciais,
+        "ano_lectivo": ano,
+        "trimestre": trimestre,
+        "dias": dias,
+        "grelha": grelha,
+        "por_dia": por_dia,
+        "legenda": legenda,
+        "tem_aulas": bool(aulas),
+        "aula_agora": aula_agora,
+        "proxima_aula": proxima_aula,
+        "hoje_label": DIAS[idx_hoje][1] if idx_hoje < 5 else "Fim de semana",
+        "stats": {
+            "aulas": len(aulas),
+            "horas": round(total_min / 60, 1),
+            "turmas": len(turmas_ids),
+            "disciplinas": len(disciplinas),
+        },
+    }
+    return render(request, "professor/horario.html", context)
+ 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 10. OS MEUS ALUNOS
 # ─────────────────────────────────────────────────────────────────────────────
 
-class MeusAlunosView(ProfessorRequiredMixin, TemplateView):
-    """Alunos das turmas do professor, com pesquisa, filtros e MAC por trimestre."""
-    template_name = "professor/meus_alunos.html"
+def _iniciais(nome: str) -> str:
+    partes = (nome or "").split()
+    if len(partes) > 1:
+        return (partes[0][0] + partes[-1][0]).upper()
+    return (nome or "?")[:2].upper()
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        professor = self.get_professor()
-        ano_lectivo = _get_ano_atual()
 
-        atribuicoes = _turmas_do_professor(professor, ano_lectivo)
-        turma_ids = set(atribuicoes.values_list("turma_id", flat=True))
-        pares = set(atribuicoes.values_list("turma_id", "disciplina_id"))
+def _enriquecer(matriculas, disc_por_turma, trimestre, regras):
+    """Anexa notas (MT), faltas e atributos de apresentação a cada matrícula."""
+    ids = [m.id for m in matriculas]
+    if not ids:
+        return matriculas
 
-        turma_id = _uuid_ou_none(self.request.GET.get("turma"))
-        pesquisa = self.request.GET.get("q", "").strip()
-        estado = self.request.GET.get("estado")
-        if estado not in Matricula.Status.values:
-            estado = None
+    # MT do trimestre activo, por (matrícula, disciplina)
+    mt_map = {}
+    if trimestre:
+        for mid, did, mt in ResultadoTrimestral.objects.filter(
+            matricula_id__in=ids, trimestre=trimestre
+        ).values_list("matricula_id", "disciplina_id", "mt"):
+            mt_map[(mid, did)] = mt
 
-        matriculas_qs = (
-            Matricula.objects
-            .filter(turma_id__in=turma_ids, ano_lectivo=ano_lectivo)
-            .select_related("aluno", "turma", "turma__classe")
-            .order_by("aluno__nome_completo")
+    # Faltas (tempos) por (matrícula, disciplina, justificada)
+    faltas_map = defaultdict(int)
+    for f in (
+        Falta.objects.filter(matricula_id__in=ids)
+        .values("matricula_id", "disciplina_id", "justificada")
+        .annotate(t=Sum("tempos"))
+    ):
+        faltas_map[(f["matricula_id"], f["disciplina_id"], f["justificada"])] = f["t"]
+
+    for m in matriculas:
+        nota_min = regras.get(m.turma.classe_id, Decimal("10"))
+        discs = disc_por_turma.get(m.turma_id, [])
+
+        m.notas, valores = [], []
+        for d in discs:
+            mt = mt_map.get((m.id, d.id))
+            m.notas.append({
+                "disc": d,
+                "mt": mt,
+                "positiva": mt is not None and mt >= nota_min,
+            })
+            if mt is not None:
+                valores.append(mt)
+
+        m.media = (sum(valores) / len(valores)) if valores else None
+        m.media_positiva = m.media is not None and m.media >= nota_min
+        m.faltas_inj = sum(faltas_map[(m.id, d.id, False)] for d in discs)
+        m.faltas_just = sum(faltas_map[(m.id, d.id, True)] for d in discs)
+        m.faltas_total = m.faltas_inj + m.faltas_just
+        m.iniciais = _iniciais(m.aluno.nome_completo)
+        m.tag = TAG_STATUS.get(m.status, "tag-gray")
+    return matriculas
+
+
+@login_required
+def meus_alunos(request):
+    funcionario = Funcionario.objects.filter(utilizador=request.user).first()
+    if not funcionario:
+        messages.error(request, "A sua conta não está associada a um professor.")
+        return redirect("professor:dashboard_professor")
+
+    ano = AnoLectivo.objects.filter(e_atual=True).first()
+    trimestre = (
+        Trimestre.objects.filter(ano_lectivo=ano, activo=True).first() if ano else None
+    )
+
+    # ── Turmas e disciplinas que o professor lecciona ────────────────
+    atribs = AtribuicaoDocente.objects.filter(
+        professor=funcionario, status="ativa"
+    ).select_related("turma__classe", "turma__curso", "disciplina")
+    if ano:
+        atribs = atribs.filter(ano_lectivo=ano)
+
+    turmas, disc_por_turma = {}, defaultdict(list)
+    for at in atribs:
+        turmas[at.turma_id] = at.turma
+        disc_por_turma[at.turma_id].append(at.disciplina)
+
+    regras = {}
+    if ano:
+        regras = {
+            r.classe_id: r.nota_minima_positiva
+            for r in RegraAvaliacao.objects.filter(ano_lectivo=ano)
+        }
+
+    # ── Base: matrículas das turmas do professor ─────────────────────
+    base = Matricula.objects.filter(turma_id__in=turmas.keys()).select_related(
+        "aluno", "turma__classe", "turma__curso"
+    )
+    if ano:
+        base = base.filter(ano_lectivo=ano)
+
+    # Estatísticas (sempre sobre alunos com matrícula activa)
+    activas = base.filter(status=Matricula.Status.ACTIVA)
+    genero = Counter(activas.values_list("aluno__genero", flat=True))
+    por_turma = Counter(activas.values_list("turma_id", flat=True))
+
+    turmas_resumo = sorted(
+        (
+            {
+                "id": str(tid),
+                "turma": t,
+                "disciplinas": ", ".join(d.nome_abreviado for d in disc_por_turma[tid]),
+                "alunos": por_turma.get(tid, 0),
+            }
+            for tid, t in turmas.items()
+        ),
+        key=lambda x: (x["turma"].classe.designacao, x["turma"].designacao),
+    )
+
+    # ── Filtros (GET) ────────────────────────────────────────────────
+    q = request.GET.get("q", "").strip()
+    turma_id = request.GET.get("turma", "")
+    status = request.GET.get("status", Matricula.Status.ACTIVA)  # '' = todos
+    sexo = request.GET.get("genero", "")
+
+    qs = base
+    if q:
+        qs = qs.filter(
+            Q(aluno__nome_completo__icontains=q)
+            | Q(aluno__numero_processo__icontains=q)
+            | Q(aluno__numero_estudante__icontains=q)
+            | Q(aluno__bi__icontains=q)
         )
-        if turma_id:
-            matriculas_qs = matriculas_qs.filter(turma_id=turma_id)
-        if pesquisa:
-            matriculas_qs = matriculas_qs.filter(
-                Q(aluno__nome_completo__icontains=pesquisa)
-                | Q(aluno__numero_processo__icontains=pesquisa)
-                | Q(aluno__bi__icontains=pesquisa)
-            )
-        if estado:
-            matriculas_qs = matriculas_qs.filter(status=estado)
+    if turma_id in {str(t) for t in turmas}:
+        qs = qs.filter(turma_id=turma_id)
+    else:
+        turma_id = ""
+    if status:
+        qs = qs.filter(status=status)
+    if sexo in ("M", "F"):
+        qs = qs.filter(aluno__genero=sexo)
+    qs = qs.order_by("turma__classe__designacao", "turma__designacao", "aluno__nome_completo")
 
-        # Paginar ANTES de calcular (só se enriquece a página corrente)
-        paginator = Paginator(matriculas_qs, 25)
-        page_obj = paginator.get_page(self.request.GET.get("page", 1))
-        matriculas_pagina = list(page_obj.object_list)
+    # ── Exportar CSV ─────────────────────────────────────────────────
+    if request.GET.get("export") == "csv":
+        lista = _enriquecer(list(qs), disc_por_turma, trimestre, regras)
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="meus_alunos.csv"'
+        resp.write("\ufeff")  # BOM para o Excel abrir com acentos
+        w = csv.writer(resp, delimiter=";")
+        w.writerow(["Nº Processo", "Nome", "Classe", "Turma", "Género",
+                    "Telefone", "Estado", "Faltas", "Faltas injustificadas"])
+        for m in lista:
+            a = m.aluno
+            w.writerow([
+                a.numero_processo or "", a.nome_completo, m.turma.classe.designacao,
+                m.turma.designacao, a.genero or "", a.telefone or "",
+                m.status, m.faltas_total, m.faltas_inj,
+            ])
+        return resp
 
-        trimestres = _trimestres_do_ano(ano_lectivo)
+    # ── Paginação ────────────────────────────────────────────────────
+    paginator = Paginator(qs, POR_PAGINA)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    _enriquecer(list(page_obj.object_list), disc_por_turma, trimestre, regras)
+    page_range = list(
+        paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1)
+    )
 
-        # Uma única query com todos os MAC da página
-        acumulado = {}
-        mapa_turma = {m.pk: m.turma_id for m in matriculas_pagina}
-        for mat_id, disc_id, trim_id, mac in (
-            ResultadoTrimestral.objects
-            .filter(matricula__in=matriculas_pagina, mac__isnull=False)
-            .values_list("matricula_id", "disciplina_id", "trimestre_id", "mac")
-        ):
-            if (mapa_turma[mat_id], disc_id) in pares:     # só disciplinas do professor
-                acumulado.setdefault((mat_id, trim_id), []).append(mac)
+    params = request.GET.copy()
+    params.pop("page", None)
+    params.pop("export", None)
 
-        lista_alunos = []
-        for m in matriculas_pagina:
-            macs = {}
-            for t in trimestres:
-                valores = acumulado.get((m.pk, t.pk))
-                macs[t.designacao] = (sum(valores) / len(valores)) if valores else None
-            lista_alunos.append({"matricula": m, "aluno": m.aluno, "macs": macs})
-
-        page_obj.object_list = lista_alunos
-
-        ctx.update({
-            "professor": professor,
-            "ano_lectivo": ano_lectivo,
-            "trimestres": trimestres,
-            "lista_alunos": page_obj,
-            "paginator": paginator,
-            "page_obj": page_obj,
-            "turmas_do_prof": (
-                Turma.objects.filter(id__in=turma_ids).select_related("classe").order_by("designacao")
-            ),
-            "filtro_turma": str(turma_id) if turma_id else None,
-            "pesquisa": pesquisa,
-            "filtro_estado": estado,
-            "total_alunos": paginator.count,
-            "iniciais": _get_iniciais(self.request),
-            "secao": "meus_alunos",
-        })
-        return ctx
+    context = {
+        "secao": "meus_alunos",
+        "professor": funcionario,
+        "iniciais": _iniciais(funcionario.nome_completo),
+        "ano_lectivo": ano,
+        "trimestre": trimestre,
+        "turmas_resumo": turmas_resumo,
+        "page_obj": page_obj,
+        "page_range": page_range,
+        "ellipsis": Paginator.ELLIPSIS,
+        "qs_base": params.urlencode(),
+        "total_filtrado": paginator.count,
+        "filtros": {"q": q, "turma": turma_id, "status": status, "genero": sexo},
+        "status_choices": Matricula.Status.choices,
+        "stats": {
+            "alunos": activas.count(),
+            "turmas": len(turmas),
+            "masculino": genero.get("M", 0),
+            "feminino": genero.get("F", 0),
+        },
+    }
+    return render(request, "professor/meus_alunos.html", context)
 
 
 class DetalheAlunoView(ProfessorRequiredMixin, TemplateView):

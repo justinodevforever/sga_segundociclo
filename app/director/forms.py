@@ -1773,11 +1773,7 @@ class AtribuicaoDocenteForm(forms.ModelForm):
         turma, disc = data.get("turma"), data.get("disciplina")
         if turma:
             self.instance.ano_lectivo = turma.ano_lectivo      # herdado da turma
-        if turma and disc:
-            plano = PlanoCurricular.objects.filter(curso=turma.curso, classe=turma.classe)
-            if plano.exists() and not plano.filter(disciplina=disc).exists():
-                self.add_error("disciplina",
-                               "Esta disciplina não consta no plano curricular do curso/classe desta turma.")
+        
         return data
 
 

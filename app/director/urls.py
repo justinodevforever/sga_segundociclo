@@ -93,6 +93,7 @@ urlpatterns = [
     path('configuracoes/periodos/<uuid:ano_id>/criar/', periodo_avaliativo_create, name='periodo_avaliativo_create'),
     path('configuracoes/tipos-avaliacao/', tipo_avaliacao_list, name='tipo_avaliacao_list'),
 
-    path('api/atribuir-acesso-professor/<uuid:professor_id>/', api_atribuir_acesso_professor, name='api_atribuir_acesso_professor')
+    path('api/atribuir-acesso-professor/<uuid:professor_id>/', api_atribuir_acesso_professor, name='api_atribuir_acesso_professor'),
+    path('api/atualizar/<uuid:aluno_id>/email/', atualizar_email, name='atualizar_email'),
     
 ]

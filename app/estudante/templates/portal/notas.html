@@ -1,0 +1,42 @@
+{% extends "portal/base.html" %}
+{% block heading %}Notas{% endblock %}
+{% block content %}
+{% if not matricula %}{% include "portal/_vazio.html" %}
+{% elif bloqueado %}<div class="card empty"><i class="bi bi-lock"></i><b>Notas bloqueadas</b><p>Existem valores em dívida ({{ conta.saldo_devedor|floatformat:2 }} Kz). Regularize na secretaria para consultar as notas.</p>
+<a class="btn" href="{% url 'estudante:financeiro' %}?ano={{ matricula.ano_lectivo_id }}">Ver financeiro</a></div>
+{% else %}
+<div class="grid g4" style="margin-bottom:18px">
+  <div class="card stat"><span class="ic"><i class="bi bi-bar-chart"></i></span><div><b>{{ media|floatformat:1|default:"—" }}</b><small>Média geral</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-check2-circle"></i></span><div><b class="pos">{{ positivas }}</b><small>Positivas</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-x-circle"></i></span><div><b class="neg">{{ negativas }}</b><small>Negativas</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-flag"></i></span><div><b style="font-size:17px">{{ matricula.get_situacao_final_display }}</b><small>Situação final</small></div></div>
+</div>
+
+<div class="card" style="margin-bottom:18px"><h2>Boletim {{ matricula.ano_lectivo }}
+  <button class="btn ghost noprint" onclick="window.print()"><i class="bi bi-printer"></i>Imprimir</button></h2>
+  <div class="table-wrap"><table>
+    <tr><th rowspan="2">Disciplina</th><th class="n" colspan="4">1.º Trimestre</th><th class="n" colspan="4">2.º Trimestre</th><th class="n" colspan="4">3.º Trimestre</th><th class="n" rowspan="2">MFD</th><th class="n" rowspan="2">Exame</th><th class="n" rowspan="2">Final</th><th rowspan="2">Resultado</th></tr>
+    <tr>{% for i in "123" %}<th class="n">MAC</th><th class="n">PP</th><th class="n">PT</th><th class="n">MT</th>{% endfor %}</tr>
+    {% for l in linhas %}<tr><td><b>{{ l.disciplina }}</b></td>
+      <td class="n">{% include "portal/_nota.html" with v=l.t1.mac %}</td><td class="n">{% include "portal/_nota.html" with v=l.t1.pp %}</td><td class="n">{% include "portal/_nota.html" with v=l.t1.pt %}</td><td class="n"><b>{% include "portal/_nota.html" with v=l.t1.mt %}</b></td>
+      <td class="n">{% include "portal/_nota.html" with v=l.t2.mac %}</td><td class="n">{% include "portal/_nota.html" with v=l.t2.pp %}</td><td class="n">{% include "portal/_nota.html" with v=l.t2.pt %}</td><td class="n"><b>{% include "portal/_nota.html" with v=l.t2.mt %}</b></td>
+      <td class="n">{% include "portal/_nota.html" with v=l.t3.mac %}</td><td class="n">{% include "portal/_nota.html" with v=l.t3.pp %}</td><td class="n">{% include "portal/_nota.html" with v=l.t3.pt %}</td><td class="n"><b>{% include "portal/_nota.html" with v=l.t3.mt %}</b></td>
+      <td class="n">{% include "portal/_nota.html" with v=l.anual.mfd %}</td><td class="n">{% include "portal/_nota.html" with v=l.anual.nota_exame %}</td><td class="n"><b>{% include "portal/_nota.html" with v=l.anual.nota_final %}</b></td>
+      <td>{% if l.anual %}<span class="tag {% if l.anual.situacao == 'Aprovado' or l.anual.situacao == 'Aprovado por Exame' or l.anual.situacao == 'POS' %}tag-green{% elif l.anual.situacao == 'PEND' or l.anual.situacao == 'Admitido a Exame' or l.anual.situacao == 'Aguardar Exame' %}tag-yellow{% else %}tag-red{% endif %}">{{ l.anual.get_situacao_display }}</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="17"><div class="empty"><i class="bi bi-journal"></i>Ainda não há notas lançadas neste ano.</div></td></tr>{% endfor %}
+  </table></div>
+  <p class="muted" style="margin:12px 0 0;font-size:12.5px">MAC: média da avaliação contínua · PP: prova do professor · PT: prova trimestral · MT: média trimestral · MFD: média final da disciplina. Nota mínima positiva: {{ minimo|floatformat:0 }}.</p>
+</div>
+
+<div class="grid g2e">
+  <div class="card"><h2>Avaliações contínuas recentes</h2>
+    {% if avaliacoes %}<div class="table-wrap"><table><tr><th>Data</th><th>Disciplina</th><th>Tipo</th><th class="n">Nota</th></tr>
+    {% for a in avaliacoes %}<tr><td>{{ a.data|date:"d/m/Y" }}</td><td>{{ a.disciplina }}{% if a.descricao %}<br><small class="muted">{{ a.descricao }}</small>{% endif %}</td><td>{{ a.get_tipo_display }}</td><td class="n">{% include "portal/_nota.html" with v=a.valor %}</td></tr>{% endfor %}</table></div>
+    {% else %}<div class="empty" style="padding:14px">Sem avaliações registadas.</div>{% endif %}</div>
+  <div class="card"><h2>Exames</h2>
+    {% if exames %}<table><tr><th>Disciplina</th><th>Época</th><th class="n">Nota</th></tr>
+    {% for e in exames %}<tr><td>{{ e.disciplina }}</td><td>{{ e.get_tipo_display }}</td><td class="n">{% include "portal/_nota.html" with v=e.nota %}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty" style="padding:14px">Sem exames registados.</div>{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

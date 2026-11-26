@@ -1,0 +1,63 @@
+{% extends "professor/base.html" %}
+{# AJUSTAR o nome do template base acima #}
+
+{% block breadcrumb %}<span class="current">Mini-pautas</span>{% endblock %}
+{% block icon %}<i class="bi bi-printer-fill"></i>{% endblock %}
+{% block title %}Mini-pautas{% endblock %}
+{% block sub_title %}Escolha a turma/disciplina e o trimestre para imprimir{% endblock %}
+
+{% block content %}
+<div class="table-card fade-up d1">
+  <div class="card-hdr">
+    <strong>As minhas turmas — Ano lectivo {{ ano_lectivo|default:"—" }}</strong>
+  </div>
+
+  <div class="table-responsive">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Turma</th>
+          <th>Curso</th>
+          <th>Disciplina</th>
+          <th style="width:190px;">Trimestre</th>
+          <th style="width:230px;" class="text-end">Acções</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for a in atribuicoes %}
+        <tr>
+          <form method="get" action="{% url 'professor:mini_pauta_imprimir' a.id %}" target="_blank">
+            <td>
+              <strong>{{ a.turma.classe.designacao }}.ª {{ a.turma.designacao }}</strong>
+              <div class="mli-sub">{{ a.turma.get_periodo_display }}</div>
+            </td>
+            <td>{{ a.turma.curso.nome }}</td>
+            <td>{{ a.disciplina.nome }}</td>
+            <td>
+              <select name="trimestre" class="form-select form-select-sm">
+                <option value="1">I Trimestre</option>
+                <option value="2">II Trimestre</option>
+                <option value="3">III Trimestre</option>
+                <option value="0">Anual (I + II + III + CF/EE/MF)</option>
+              </select>
+            </td>
+            <td class="text-end">
+              <button type="submit" name="formato" value="html" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eye"></i> Visualizar
+              </button>
+              <button type="submit" name="formato" value="pdf" class="btn btn-sm btn-primary">
+                <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+              </button>
+            </td>
+          </form>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">
+          Não tem turmas atribuídas no ano lectivo actual.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

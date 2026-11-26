@@ -12,6 +12,7 @@ urlpatterns = [
     path('financa/', include('app.financa.urls')),
     path('', include('app.director.urls')),
     path('professor/', include('app.professor.urls')),
+    path('estudante/', include('app.estudante.urls')),
     path('relatorios/', include('app.relatorios.urls')),
 ]
 
@@ -20,3 +21,8 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
+    
+handler400 = 'app.db.views.erro_400'
+handler403 = 'app.db.views.erro_403'
+handler404 = 'app.db.views.erro_404'
+handler500 = 'app.db.views.erro_500'

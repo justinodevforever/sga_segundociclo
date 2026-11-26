@@ -592,6 +592,7 @@ class Aluno( PessoaMixin, TimestampMixin):
     numero_estudante = models.CharField(
         max_length=50, unique=True, blank=True, null=True, verbose_name=_("Nº Matrícula"),
     )
+    email = models.EmailField(null=True)
     nome_completo = models.CharField(max_length=200, db_index=True, verbose_name=_("Nome Completo"))
     nome_pai = models.CharField(max_length=200, verbose_name=_("Nome do Pai"))
     nome_mae = models.CharField(max_length=200, verbose_name=_("Nome da Mãe"))

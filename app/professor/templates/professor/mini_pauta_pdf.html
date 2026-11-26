@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"/>
+<title>Mini-pauta · {{ disciplina.nome }} · {{ classe_txt }} {{ turma.designacao }} · {{ ano_lectivo.designacao }}</title>
+<style>
+  @page { size: a4 landscape; margin: 1cm 1cm 1.2cm 1cm; }
+  body { font-family: Helvetica; font-size: 8pt; color: #000; }
+  {% if preview %}body { max-width: 29cm; margin: 20px auto; padding: 0 12px; }{% endif %}
+
+  table { border-collapse: collapse; width: 100%; }
+  .center { text-align: center; }
+  .gov { font-size: 9pt; font-weight: bold; text-transform: uppercase; text-align: center; line-height: 1.25; }
+  .nivel { font-size: 9pt; text-align: center; }
+  .titulo { font-size: 13pt; font-weight: bold; text-align: center; letter-spacing: 2px; padding: 4px 0 6px 0; }
+
+  .info td { font-size: 8.5pt; padding: 1.5px 0; }
+
+  table.grade { margin-top: 6px; }
+  table.grade th, table.grade td { border: 0.5pt solid #000; padding: 2.5px 2px; }
+  table.grade th { background-color: #e9e9e9; font-size: 7.5pt; text-align: center; font-weight: bold; }
+  table.grade td { font-size: 8pt; }
+  td.c { text-align: center; }
+  td.nome { text-align: left; padding-left: 4px; }
+  td.mt, td.mf { font-weight: bold; background-color: #f5f5f5; }
+  .neg { color: #c00000; }
+
+  .aprov-titulo { font-size: 8.5pt; font-weight: bold; margin-top: 10px; }
+  table.stats { width: 48%; margin-top: 3px; }
+  table.stats th, table.stats td { border: 0.5pt solid #000; padding: 2px 4px; font-size: 7.5pt; text-align: center; }
+  table.stats th { background-color: #e9e9e9; }
+  table.stats td.lab { text-align: left; font-weight: bold; }
+
+  .legenda { font-size: 7pt; margin-top: 8px; line-height: 1.35; }
+  .assin td { text-align: center; padding-top: 28px; font-size: 8pt; }
+  .linha { border-top: 0.5pt solid #000; padding-top: 2px; }
+  .rodape { font-size: 7.5pt; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<!-- CABEÇALHO -->
+<table>
+  <tr><td class="center">
+    {% if tenant and tenant.insignia %}<img src="{{ tenant.insignia.url }}" width="48" height="48"/>{% endif %}
+  </td></tr>
+  <tr><td class="gov">República de Angola</td></tr>
+  <tr><td class="gov">Ministério da Educação</td></tr>
+  <tr><td class="nivel">{{ nivel }}</td></tr>
+  <tr><td class="titulo">MINI-PAUTA</td></tr>
+</table>
+
+<!-- IDENTIFICAÇÃO -->
+<table class="info">
+  <tr>
+    <td width="60%" colspan="2"><b>Escola:</b> {{ escola|default:"—" }}</td>
+    <td width="40%"><b>Ano lectivo:</b> {{ ano_lectivo.designacao }}</td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Curso:</b> {{ curso.nome }}</td>
+    <td><b>Turno:</b> {{ turno }}</td>
+  </tr>
+  <tr>
+    <td width="30%"><b>Classe:</b> {{ classe_txt }}</td>
+    <td width="30%"><b>Turma:</b> {{ turma.designacao }}</td>
+    <td><b>Sala:</b> {{ turma.sala|default:"—" }}</td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Disciplina:</b> {{ disciplina.nome|upper }}</td>
+    <td><b>Professor:</b> {{ professor.nome_completo|upper }}</td>
+  </tr>
+</table>
+
+<!-- GRELHA -->
+<table class="grade">
+  <thead>
+    <tr>
+      <th rowspan="2" width="3%">Nº</th>
+      <th rowspan="2" width="{% if anual %}22%{% else %}40%{% endif %}">Nome completo do aluno</th>
+      {% for t in trimestres %}<th colspan="4">{{ t.romano }} Trimestre</th>{% endfor %}
+      {% if anual %}
+        <th rowspan="2" width="3.5%">CF</th>
+        <th rowspan="2" width="3.5%">EE</th>
+        <th rowspan="2" width="3.5%">MF</th>
+        <th rowspan="2" width="6%">Resultado</th>
+      {% endif %}
+    </tr>
+    <tr>
+      {% for t in trimestres %}
+        <th>MAC</th><th>PP</th><th>PT</th><th>MT</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in linhas %}
+    <tr>
+      <td class="c">{{ l.n }}</td>
+      <td class="nome">{{ l.nome }}</td>
+      {% for c in l.tri %}
+        <td class="c{% if c.mac.neg %} neg{% endif %}">{{ c.mac.txt }}</td>
+        <td class="c{% if c.pp.neg %} neg{% endif %}">{{ c.pp.txt }}</td>
+        <td class="c{% if c.pt.neg %} neg{% endif %}">{{ c.pt.txt }}</td>
+        <td class="c mt{% if c.mt.neg %} neg{% endif %}">{{ c.mt.txt }}</td>
+      {% endfor %}
+      {% if anual %}
+        <td class="c{% if l.cf.neg %} neg{% endif %}">{{ l.cf.txt }}</td>
+        <td class="c{% if l.ee.neg %} neg{% endif %}">{{ l.ee.txt }}</td>
+        <td class="c mf{% if l.mf.neg %} neg{% endif %}">{{ l.mf.txt }}</td>
+        <td class="c{% if l.resultado_neg %} neg{% endif %}">{{ l.resultado }}</td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="30" class="c">Sem alunos matriculados nesta turma.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- APROVEITAMENTO -->
+<div class="aprov-titulo">Aproveitamento · {{ linhas|length }} aluno{{ linhas|length|pluralize }}</div>
+<table class="stats">
+  <tr>
+    <th width="28%"></th>
+    {% for c in colunas_stat %}<th>{{ c.label }}</th>{% endfor %}
+  </tr>
+  <tr><td class="lab">Avaliados (HM / F)</td>{% for c in colunas_stat %}<td>{{ c.aval }}</td>{% endfor %}</tr>
+  <tr><td class="lab">Positivas (HM / F)</td>{% for c in colunas_stat %}<td>{{ c.pos }}</td>{% endfor %}</tr>
+  <tr><td class="lab">Negativas (HM / F)</td>{% for c in colunas_stat %}<td>{{ c.neg }}</td>{% endfor %}</tr>
+  <tr><td class="lab">Aproveitamento (%)</td>{% for c in colunas_stat %}<td>{{ c.aprov }}</td>{% endfor %}</tr>
+  <tr><td class="lab">Média da turma</td>{% for c in colunas_stat %}<td>{{ c.media }}</td>{% endfor %}</tr>
+</table>
+
+<!-- LEGENDA -->
+<div class="legenda">
+  <b>Legenda</b><br/>
+  MAC Média da Avaliação Contínua · PP Prova do Professor · PT Prova Trimestral · MT Média Trimestral<br/>
+  {% if anual %}CF Classificação Final · EE Exame Escrito · MF Média Final<br/>{% endif %}
+  Escala 0–{{ nota_max }} valores. Nota positiva: ≥ {{ minima }}. Vermelho = negativa.<br/>
+  {% if tem_exame %}Disciplina com exame nacional: MF = CF × (1 − p) + EE × p, com p = {{ peso_exame }}.<br/>{% endif %}
+  {% if arredondar %}Médias arredondadas às unidades (0,5 sobe).{% endif %}
+</div>
+
+<!-- ASSINATURAS -->
+<table class="assin">
+  <tr>
+    <td width="33%"><div class="linha">{{ professor.nome_completo|upper }}</div>O Professor</td>
+    <td width="34%"><div class="linha">&nbsp;</div>O Subdirector Pedagógico</td>
+    <td width="33%"><div class="linha">&nbsp;</div>O Director</td>
+  </tr>
+</table>
+
+<div class="rodape">
+  {{ local }}, {{ data_extenso }} &nbsp;&nbsp;·&nbsp;&nbsp; Emitido por {{ emitido_por }} às {{ hora }}
+</div>
+
+</body>
+</html>

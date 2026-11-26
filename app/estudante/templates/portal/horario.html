@@ -1,0 +1,12 @@
+{% extends "portal/base.html" %}
+{% block heading %}Horário{% endblock %}
+{% block content %}
+{% if not matricula or not matricula.turma %}{% include "portal/_vazio.html" %}{% else %}
+<div class="card"><h2>Turma {{ matricula.turma.designacao }} · {{ matricula.turma.get_periodo_display }}{% if matricula.turma.sala %} · Sala {{ matricula.turma.sala }}{% endif %}
+  <button class="btn ghost noprint" onclick="window.print()"><i class="bi bi-printer"></i>Imprimir</button></h2>
+  <div class="week">{% for dia, aulas in semana %}<div class="day {% if dia == hoje %}hoje{% endif %}"><h3>{{ dia }}</h3>
+    {% for a in aulas %}<div class="aula"><b>{{ a.atribuicao.disciplina }}</b><br>{{ a.hora_inicio|time:"H:i" }}–{{ a.hora_fim|time:"H:i" }}{% if a.sala %} · {{ a.sala }}{% endif %}<br><small class="muted">{{ a.atribuicao.professor.nome_completo }}</small></div>
+    {% empty %}<small class="muted">Sem aulas</small>{% endfor %}</div>{% endfor %}</div>
+</div>
+{% endif %}
+{% endblock %}

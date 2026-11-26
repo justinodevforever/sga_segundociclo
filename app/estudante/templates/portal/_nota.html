@@ -1,0 +1,1 @@
+{% if v is None or v == "" %}<span class="muted">—</span>{% else %}<span class="{% if v < minimo %}neg{% else %}pos{% endif %}">{{ v|floatformat:1 }}</span>{% endif %}

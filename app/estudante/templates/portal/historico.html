@@ -1,0 +1,23 @@
+{% extends "portal/base.html" %}
+{% block heading %}Percurso escolar{% endblock %}
+{% block content %}
+<div class="grid g4" style="margin-bottom:18px">
+  <div class="card stat"><span class="ic"><i class="bi bi-mortarboard"></i></span><div><b>{{ media_global|floatformat:1|default:"—" }}</b><small>Média global</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-calendar-range"></i></span><div><b>{{ percurso|length }}</b><small>Anos lectivos</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-hash"></i></span><div><b style="font-size:16px">{{ aluno.numero_processo|default:"—" }}</b><small>Nº de processo</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-person-check"></i></span><div><b style="font-size:16px">{{ aluno.get_status_display }}</b><small>Estado actual</small></div></div>
+</div>
+<div class="card"><h2>Histórico por ano lectivo</h2>
+{% if percurso %}<div class="timeline">
+  {% for m in percurso %}<div class="item card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <div><b>{{ m.ano_lectivo }}</b><br><span class="muted">{{ m.turma.curso|default:"—" }} · {{ m.turma.classe|default:"—" }}.ª classe · Turma {{ m.turma.designacao|default:"—" }}</span></div>
+      <div style="text-align:right"><span class="tag {% if m.situacao_final == 'APROVADO' %}tag-green{% elif m.situacao_final == 'EM_CURSO' %}tag-yellow{% else %}tag-red{% endif %}">{{ m.get_situacao_final_display }}</span>
+      <div style="margin-top:6px">Média: <b>{{ m.media|floatformat:1|default:"—" }}</b></div></div>
+    </div>
+    <a href="{% url 'estudante:notas' %}?ano={{ m.ano_lectivo_id }}" style="font-size:13px;font-weight:700">Ver boletim</a> ·
+    <a href="{% url 'estudante:financeiro' %}?ano={{ m.ano_lectivo_id }}" style="font-size:13px;font-weight:700">Ver financeiro</a>
+  </div>{% endfor %}
+</div>{% else %}<div class="empty"><i class="bi bi-clock-history"></i>Ainda não tem matrículas registadas.</div>{% endif %}
+</div>
+{% endblock %}

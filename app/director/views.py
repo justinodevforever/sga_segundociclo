@@ -2490,7 +2490,7 @@ def funcionario_create(request):
                         nome_completo=funcionario.nome_completo
                     )
 
-                    utilizador.set_password('123467890')
+                    utilizador.set_password('1234567890')
                     utilizador.save()
 
                     userRole = UsuarioRole(
@@ -2513,6 +2513,15 @@ def funcionario_create(request):
                     }
 
                     return redirect('funcionario_create')
+            except IntegrityError:
+                
+                context = {
+                    'secao': 'funcionarios',
+                    'erro': 'Já existe um funcionário com esse e-mail!',
+                    'form': form
+                }
+
+                return render(request, 'funcionarios/create.html', context)
             except Exception as e:
 
                 context = {
@@ -3261,4 +3270,67 @@ def api_atribuir_acesso_professor(request, professor_id:uuid):
     
     except Exception as e:
 
+
         return JsonResponse({'message': 'Houve erro ao conceder acesso!'}, status=500)
+
+@login_required
+def atualizar_email(request, aluno_id):
+        
+    try:
+        
+        with transaction.atomic():
+            
+            dados = json.loads(request.body)
+            email = dados.get('email')
+            
+            aluno = Aluno.objects.get(id=aluno_id)
+            role, created = Role.objects.get_or_create(nome='estudante')
+            
+            aluno.email = email
+            
+            utilizador = Utilizador.objects.filter(email=email).first()
+            print(utilizador)
+            
+            if utilizador:
+                utilizador.email = email
+                utilizador.username = email
+            else:    
+                utilizador = Utilizador(
+                    email=aluno.email,
+                    username=aluno.email,
+                    nome_completo=aluno.nome_completo
+                )
+
+                utilizador.set_password('1234567890')
+                utilizador.save()
+
+                userRole = UsuarioRole(
+                    role=role,
+                    utilizador=utilizador
+                )
+
+                userRole.atribuido_por = request.user
+
+                userRole.save()
+
+                aluno.utilizador = utilizador
+
+            aluno.save()
+            
+            LogAuditoria.objects.create(
+                utilizador=request.user,
+                accao='actualizar',
+                modulo='Aluno - Usuario',
+                descricao=f'Atualizado o email do : {aluno.nome_completo}',
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            
+            return JsonResponse({'message': 'Email atualizado com sucesso!', 'sucess': True}, status=200)
+    except IntegrityError as e:
+        print(e)
+        return JsonResponse({'message': 'O email já está sendo usado!'})
+    except Exception:
+        
+        return JsonResponse({'message': 'Erro ao atualizar email!'})

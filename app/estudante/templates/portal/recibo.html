@@ -1,0 +1,25 @@
+{% extends "portal/base.html" %}
+{% block heading %}Recibo {{ pagamento.numero_recibo }}{% endblock %}
+{% block content %}
+<div class="receipt"><div class="card">
+  <div style="display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid var(--primary);padding-bottom:14px;margin-bottom:16px">
+    <div><b style="font-size:18px">{{ escola.nome|default:"Escola" }}</b><br><span class="muted">{{ escola.endereco|default:"" }}<br>NIF: {{ escola.nif|default:"—" }} · {{ escola.telefone|default:"" }}</span></div>
+    <div style="text-align:right"><b style="font-size:18px">RECIBO</b><br>{{ pagamento.numero_recibo }}</div>
+  </div>
+  <table>
+    <tr><td class="muted">Aluno</td><td><b>{{ pagamento.conta_aluno.aluno.nome_completo }}</b></td></tr>
+    <tr><td class="muted">Ano lectivo</td><td>{{ pagamento.conta_aluno.ano_lectivo }}</td></tr>
+    <tr><td class="muted">Data</td><td>{{ pagamento.data_pagamento|date:"d/m/Y" }}</td></tr>
+    <tr><td class="muted">Método</td><td>{{ pagamento.get_metodo_pagamento_display }}</td></tr>
+    {% if pagamento.referencia %}<tr><td class="muted">Referência</td><td>{{ pagamento.referencia }}</td></tr>{% endif %}
+    <tr><td class="muted">Recebido por</td><td>{{ pagamento.registado_por|default:"—" }}</td></tr>
+    <tr><td class="muted">Valor</td><td><b style="font-size:20px">{{ pagamento.valor|floatformat:2 }} Kz</b></td></tr>
+  </table>
+  <div style="display:flex;justify-content:space-between;align-items:end;margin-top:18px;gap:12px">
+    <small class="muted">Código de validação:<br>{{ pagamento.uuid_validacao }}</small>
+    <img src="data:image/png;base64,{{ qr }}" alt="QR de validação" width="110" height="110" style="background:#fff;padding:4px;border-radius:8px">
+  </div>
+</div>
+<p class="noprint" style="margin-top:14px"><button class="btn" onclick="window.print()"><i class="bi bi-printer"></i>Imprimir</button>
+<a class="btn ghost" href="{% url 'estudante:financeiro' %}">Voltar</a></p></div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "portal/base.html" %}
+{% block heading %}Início{% endblock %}
+{% block content %}
+{% if not matricula %}{% include "portal/_vazio.html" %}{% else %}
+<div class="card hero" style="margin-bottom:18px">
+  <div><h2>Olá, {{ aluno.nome_completo|truncatewords:2 }}</h2>
+  <p>{{ matricula.turma.curso|default:"Curso por atribuir" }} · {{ matricula.turma.classe|default:"—" }}.ª classe · Turma {{ matricula.turma.designacao|default:"—" }}</p></div>
+  <div><span class="tag">{{ matricula.ano_lectivo }}</span> <span class="tag">{{ matricula.get_status_display }}</span></div>
+</div>
+{% if conta.status == 'bloqueado' %}<div class="alert danger"><i class="bi bi-exclamation-octagon"></i> A sua conta está bloqueada por propinas em atraso. Regularize na secretaria.</div>
+{% elif conta.status == 'atrasado' %}<div class="alert warn"><i class="bi bi-exclamation-triangle"></i> Tem propinas em atraso.</div>{% endif %}
+
+<div class="grid g4" style="margin-bottom:18px">
+  <div class="card stat"><span class="ic"><i class="bi bi-mortarboard"></i></span><div><b>{{ media|floatformat:1|default:"—" }}</b><small>Média geral</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-flag"></i></span><div><b>{{ matricula.get_situacao_final_display }}</b><small>Situação</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-calendar-x"></i></span><div><b>{{ faltas.injust|default:0 }}</b><small>Faltas injustificadas</small></div></div>
+  <div class="card stat"><span class="ic"><i class="bi bi-cash-coin"></i></span><div><b>{{ conta.saldo_devedor|default:0|floatformat:2 }} Kz</b><small>Saldo em dívida</small></div></div>
+</div>
+
+<div class="grid g2">
+  <div class="card"><h2>Últimas notas <a href="{% url 'estudante:notas' %}?ano={{ matricula.ano_lectivo_id }}">Ver todas</a></h2>
+    {% if ultimas_notas %}<div class="table-wrap"><table>
+      <tr><th>Disciplina</th><th class="n">Trimestre</th><th class="n">MAC</th><th class="n">PP</th><th class="n">PT</th><th class="n">MT</th></tr>
+      {% for r in ultimas_notas %}<tr><td>{{ r.disciplina }}</td><td class="n">{{ r.trimestre.designacao }}.º</td>
+        <td class="n">{% include "portal/_nota.html" with v=r.mac %}</td><td class="n">{% include "portal/_nota.html" with v=r.pp %}</td>
+        <td class="n">{% include "portal/_nota.html" with v=r.pt %}</td><td class="n"><b>{% include "portal/_nota.html" with v=r.mt %}</b></td></tr>{% endfor %}
+    </table></div>{% else %}<div class="empty"><i class="bi bi-journal"></i>Ainda não há notas lançadas.</div>{% endif %}
+  </div>
+  <div class="grid" style="align-content:start">
+    <div class="card"><h2>Aulas de hoje{% if dia_hoje %} <span class="tag">{{ dia_hoje }}</span>{% endif %}</h2>
+      {% if aulas_hoje %}{% for a in aulas_hoje %}<div class="aula"><b>{{ a.atribuicao.disciplina }}</b><br><span class="muted">{{ a.hora_inicio|time:"H:i" }}–{{ a.hora_fim|time:"H:i" }}{% if a.sala %} · Sala {{ a.sala }}{% endif %}</span></div>{% endfor %}
+      {% else %}<div class="empty" style="padding:14px">Sem aulas hoje.</div>{% endif %}
+    </div>
+    <div class="card"><h2>Próximas propinas <a href="{% url 'estudante:financeiro' %}?ano={{ matricula.ano_lectivo_id }}">Detalhes</a></h2>
+      {% if propinas_abertas %}<ul class="list">{% for p in propinas_abertas %}<li><span>{{ p.get_mes_display }}<br><small class="muted">vence {{ p.data_vencimento|date:"d/m/Y" }}</small></span>
+        <span style="text-align:right"><b>{{ p.saldo_propina|floatformat:2 }} Kz</b><br><span class="tag {% if p.status == 'atrasado' %}tag-red{% else %}tag-yellow{% endif %}">{{ p.get_status_display }}</span></span></li>{% endfor %}</ul>
+      {% else %}<div class="empty" style="padding:14px">Nenhuma propina em aberto.</div>{% endif %}
+    </div>
+    {% if reclamacoes_pendentes %}<div class="alert warn" style="margin:0"><i class="bi bi-hourglass-split"></i> {{ reclamacoes_pendentes }} reclamação(ões) a aguardar decisão.</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

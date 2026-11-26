@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>403 - Acesso negado</title>
+<style>
+  :root {
+    --bg: #f3f5f8; --ink: #14213d; --muted: #5b6577; --accent: #1f5fd1; --line: #d5dbe5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0e1521; --ink: #e8edf5; --muted: #9aa6ba; --accent: #6fa3ff; --line: #26324a; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  main { max-width: 560px; width: 100%; }
+  .code {
+    font-size: clamp(96px, 28vw, 180px); line-height: 1; font-weight: 800;
+    letter-spacing: -0.04em; margin: 0 0 8px; color: var(--accent);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 12px; }
+  p { color: var(--muted); line-height: 1.6; margin: 0 0 8px; max-width: 46ch; }
+  .acoes { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; gap: 12px; flex-wrap: wrap; }
+  a.btn {
+    display: inline-block; padding: 11px 20px; border-radius: 8px; text-decoration: none;
+    font-weight: 600; background: var(--accent); color: #fff; border: 2px solid var(--accent);
+  }
+  a.btn.sec { background: transparent; color: var(--accent); }
+  a.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="code">403</div>
+  <h1>Acesso negado</h1>
+  <p>Você não tem permissão para ver esta página.</p>
+  <p>Se acha que isto é um engano, entre com outra conta ou contacte o administrador.</p>
+  <div class="acoes">
+    <a class="btn" href="/">Voltar ao início</a>
+    <a class="btn sec" href="javascript:history.back()">Página anterior</a>
+  </div>
+</main>
+</body>
+</html>

@@ -16,7 +16,7 @@
     <div class="welcome-banner fade-up">
         <i class="bi bi-building-fill wb-icon-lg"></i>
         <div class="wb-greeting">Bem-vindo de volta,</div>
-        <div class="wb-name"><strong>{{ diretor.nome_completo|default:"Director" }}</strong></div>
+        <div class="wb-name"><strong>{{ request.user.nome_completo|default:"Director" }}</strong></div>
         <div class="wb-sub">
         {{ escola.nome|default:"Escola" }} &nbsp;·&nbsp;
         Ano Lectivo: <strong>{{ ano_lectivo.designacao|default:"2025/2026" }}</strong>

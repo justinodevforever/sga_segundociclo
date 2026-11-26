@@ -1,168 +1,440 @@
-{% extends "professor/base.html" %}
-{% load custom_tags %}
+{% extends "professor/base.html" %}{# ⚠️ ajuste para o nome do seu template base #}
 {% load static %}
 
-{% block breadcrumb %}
-	<a href="{% url 'professor:minhas_turmas' %}">Minha turma</a>
-    <span><i class="bi bi-chevron-right"></i></span>
-    <span class="current">Meus Alunos</span>
-{% endblock %}
-
-{% block icon %}
-	<i class="bi bi-person-badge"></i>
-{% endblock %}
-
-{% block title %}Os Meus Alunos — Portal do Professor{% endblock %}
-{% block sub_title %}
-	{{ total_alunos }} aluno{{ total_alunos|pluralize:"s" }} nas suas turmas
-{% endblock %}
+{% block breadcrumb %}<span class="current">Os Meus Alunos</span>{% endblock breadcrumb %}
+{% block icon %}<i class="bi bi-person-badge"></i>{% endblock icon %}
+{% block title %}Os Meus Alunos{% endblock %}
+{% block sub_title %}Alunos das turmas que lecciona · Ano Lectivo {{ ano_lectivo|default:"—" }}{% endblock %}
 
 {% block topbar_actions %}
-	<button class="btn btn-primary"><i class="bi bi-download"></i> Exportar Lista</button>
+  <a class="al-btn" href="?{{ qs_base }}{% if qs_base %}&{% endif %}export=csv">
+    <i class="bi bi-file-earmark-spreadsheet"></i> Exportar CSV
+  </a>
+{% endblock topbar_actions %}
+
+{% block extra_css %}
+/* ═════════ OS MEUS ALUNOS ═════════ */
+.al-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;
+  background:var(--bg-card);border:1px solid var(--border);color:var(--text-sub);
+  font-size:.8rem;font-weight:600;cursor:pointer;transition:all .16s;font-family:inherit}
+.al-btn:hover{background:#f1f5f9;color:var(--accent);border-color:#c7d2e8}
+.al-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.al-btn.primary:hover{background:#1a54a0;color:#fff}
+
+.al-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:991px){.al-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.al-stats{gap:10px}.al-stats .stat-card{padding:16px}}
+
+.al-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+.al-panel-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--border)}
+.al-panel-title{font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:9px}
+.al-panel-title i{color:var(--accent)}
+.al-count{font-size:.76rem;color:var(--text-muted);font-weight:500}
+
+/* Turmas (filtros rápidos) */
+.al-turmas{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;padding:16px 20px}
+.al-turma{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--border);
+  border-radius:12px;background:#fff;color:inherit;transition:all .16s}
+.al-turma:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,31,61,.09)}
+.al-turma.active{border-color:var(--accent);background:#eff6ff;box-shadow:0 0 0 3px rgba(29,95,166,.1)}
+.al-turma-n{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#1d5fa6,#2563eb);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;flex-shrink:0}
+.al-turma-nome{font-size:.82rem;font-weight:700;color:var(--text-main);line-height:1.2}
+.al-turma-sub{font-size:.7rem;color:var(--text-muted);margin-top:2px}
+.al-turma-qtd{margin-left:auto;text-align:right;font-size:1.1rem;font-weight:800;color:var(--accent);line-height:1}
+.al-turma-qtd small{display:block;font-size:.58rem;color:var(--text-muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* Filtros */
+.al-filters{display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr auto;gap:10px;padding:16px 20px;
+  border-bottom:1px solid var(--border);background:#fafbfd;align-items:end}
+@media(max-width:991px){.al-filters{grid-template-columns:1fr 1fr}.al-filters .al-f-search{grid-column:1/-1}}
+@media(max-width:520px){.al-filters{grid-template-columns:1fr}}
+.al-f label{display:block;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:5px}
+.al-f input,.al-f select{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:9px;
+  padding:9px 12px;font-size:.82rem;color:var(--text-main);outline:none;font-family:inherit;
+  transition:border-color .2s,box-shadow .2s}
+.al-f input:focus,.al-f select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,95,166,.12)}
+.al-f-search{position:relative}
+.al-f-search i{position:absolute;left:12px;bottom:11px;color:var(--text-muted);font-size:.85rem}
+.al-f-search input{padding-left:34px}
+.al-f-actions{display:flex;gap:8px}
+
+/* Tabela */
+.al-table-wrap{overflow-x:auto}
+table.al-table{width:100%;border-collapse:collapse;font-size:.82rem;min-width:860px}
+.al-table thead th{padding:11px 16px;background:#f8fafc;border-bottom:1px solid var(--border);
+  color:var(--text-muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;
+  font-weight:700;text-align:left;white-space:nowrap}
+.al-table tbody tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .12s}
+.al-table tbody tr:hover{background:#f5f9ff}
+.al-table tbody tr:last-child{border-bottom:none}
+.al-table td{padding:12px 16px;vertical-align:middle}
+
+.al-person{display:flex;align-items:center;gap:12px;min-width:220px}
+.al-av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#1d5fa6,#7c3aed);
+  color:#fff;font-weight:700;font-size:.76rem;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;overflow:hidden}
+.al-av img{width:100%;height:100%;object-fit:cover}
+.al-av.f{background:linear-gradient(135deg,#db2777,#7c3aed)}
+.al-nome{font-weight:600;color:var(--text-main);line-height:1.25}
+.al-sub{font-size:.7rem;color:var(--text-muted);margin-top:2px}
+
+.al-notas{display:flex;flex-wrap:wrap;gap:5px}
+.al-nota{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap}
+.al-nota.pos{background:#d1fae5;color:#065f46}
+.al-nota.neg{background:#fee2e2;color:#991b1b}
+.al-nota.nd{background:#f1f5f9;color:#94a3b8}
+.al-media{font-size:.95rem;font-weight:800}
+.al-media.pos{color:#059669}.al-media.neg{color:#dc2626}.al-media.nd{color:#cbd5e1}
+.al-faltas{font-weight:700}
+.al-faltas.alerta{color:#dc2626}
+.al-faltas small{display:block;font-weight:500;color:var(--text-muted);font-size:.66rem}
+
+/* Paginação */
+.al-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:14px 20px;border-top:1px solid var(--border);background:#fafbfd}
+.al-pages{display:flex;gap:4px;flex-wrap:wrap}
+.al-pg{min-width:34px;height:34px;padding:0 10px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-sub);
+  font-size:.78rem;font-weight:600}
+a.al-pg:hover{background:#f1f5f9;color:var(--accent)}
+.al-pg.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.al-pg.dis{opacity:.45;pointer-events:none}
+
+.al-vazio{text-align:center;padding:56px 20px;color:var(--text-muted)}
+.al-vazio i{font-size:3rem;color:#cbd5e1;display:block;margin-bottom:12px}
+.al-vazio h5{color:var(--text-main);font-size:1rem;margin-bottom:6px}
+
+/* Modal de detalhe */
+.al-modal{position:fixed;inset:0;background:rgba(10,20,50,.55);z-index:2000;display:none;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px}
+.al-modal.open{display:flex}
+.al-modal-box{background:var(--bg-card);border-radius:18px;width:100%;max-width:560px;max-height:92vh;
+  overflow-y:auto;box-shadow:0 24px 60px rgba(10,20,50,.25);animation:alIn .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes alIn{from{opacity:0;transform:scale(.94) translateY(16px)}to{opacity:1;transform:none}}
+.al-m-hdr{padding:22px 24px;background:linear-gradient(135deg,#0f1f3d,#1d3f7a);color:#fff;
+  display:flex;align-items:center;gap:16px;position:relative;border-radius:18px 18px 0 0}
+.al-m-av{width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.16);display:flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;overflow:hidden;flex-shrink:0}
+.al-m-av img{width:100%;height:100%;object-fit:cover}
+.al-m-nome{font-size:1.05rem;font-weight:700;line-height:1.25}
+.al-m-sub{font-size:.74rem;color:rgba(255,255,255,.65);margin-top:3px}
+.al-m-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:8px;border:none;
+  background:rgba(255,255,255,.14);color:#fff;cursor:pointer;font-size:1rem}
+.al-m-close:hover{background:rgba(255,255,255,.26)}
+.al-m-body{padding:20px 24px 24px}
+.al-m-sec{font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--accent);margin:16px 0 10px;display:flex;align-items:center;gap:6px}
+.al-m-sec:first-child{margin-top:0}
+.al-m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px}
+@media(max-width:480px){.al-m-grid{grid-template-columns:1fr}}
+.al-m-item span{display:block;font-size:.64rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--text-muted);margin-bottom:2px}
+.al-m-item strong{font-size:.84rem;font-weight:600;color:var(--text-main);word-break:break-word}
+.al-m-full{grid-column:1/-1}
+
+@media print{
+  .sidebar,.topbar,.breadcrumb-bar,.al-btn,.al-filters,.al-pager,.al-turmas,.sidebar-overlay,.al-modal{display:none!important}
+  .main-content{margin:0!important;padding:0!important}
+  .al-panel,.stat-card{box-shadow:none!important}
+}
 {% endblock %}
 
 {% block content %}
 
-<!-- Filtros -->
-<div class="card fade-up d2" style="margin-bottom:20px;">
-  <div class="card-body" style="padding:14px 20px;">
-    <form method="get" action="">
-      <div class="row g- align-items-end">
-        <div class="col-12 col-md-3">
-          <label class="form-label">Turma</label>
-          <select class="form-control" name="turma">
-            <option value="">Todas as turmas</option>
-            {% for t in turmas_do_prof %}
-              <option value="{{ t.id }}" {% if filtro_turma == t.id|stringformat:"s" %}selected{% endif %}>
-                {{ t.designacao }} · {{ t.classe }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label">Estado</label>
-          <select class="form-control" name="estado">
-            <option value="">Todos os estados</option>
-            <option value="Activa" {% if filtro_estado == "Activa" %}selected{% endif %}>Activo</option>
-            <option value="Transferido" {% if filtro_estado == "Transferido" %}selected{% endif %}>Transferido</option>
-            <option value="Cancelada" {% if filtro_estado == "Cancelada" %}selected{% endif %}>Cancelado</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label">Pesquisar</label>
-          <input class="form-control" type="text" name="q" value="{{ pesquisa }}" placeholder="Nome, Nº Processo ou BI…">
-        </div>
-        <div class="col-12 col-md-2">
-          <button type="submit" class="btn btn-primary" style="width:100%;">
-            <i class="bi bi-search"></i> Pesquisar
-          </button>
-        </div>
-      </div>
-    </form>
+{# ── Estatísticas ── #}
+<div class="al-stats">
+  <div class="stat-card sc-blue fade-up d1">
+    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="stat-value">{{ stats.alunos }}</div>
+    <div class="stat-label">Alunos activos</div>
+  </div>
+  <div class="stat-card sc-purple fade-up d2">
+    <div class="stat-icon"><i class="bi bi-door-open-fill"></i></div>
+    <div class="stat-value">{{ stats.turmas }}</div>
+    <div class="stat-label">Turmas</div>
+  </div>
+  <div class="stat-card sc-cyan fade-up d3">
+    <div class="stat-icon"><i class="bi bi-gender-male"></i></div>
+    <div class="stat-value">{{ stats.masculino }}</div>
+    <div class="stat-label">Rapazes</div>
+  </div>
+  <div class="stat-card sc-warn fade-up d4">
+    <div class="stat-icon"><i class="bi bi-gender-female"></i></div>
+    <div class="stat-value">{{ stats.feminino }}</div>
+    <div class="stat-label">Raparigas</div>
   </div>
 </div>
 
-<div class="card fade-up d3">
-  <div style="overflow-x:auto;">
-    <table class="dt">
+{# ── Turmas (atalhos de filtro) ── #}
+{% if turmas_resumo %}
+<div class="al-panel fade-up">
+  <div class="al-panel-hdr">
+    <div class="al-panel-title"><i class="bi bi-diagram-3"></i> As minhas turmas</div>
+    {% if filtros.turma %}
+      <a class="al-btn" href="?status={{ filtros.status }}"><i class="bi bi-x-lg"></i> Ver todas</a>
+    {% endif %}
+  </div>
+  <div class="al-turmas">
+    {% for t in turmas_resumo %}
+    <a class="al-turma {% if filtros.turma == t.id %}active{% endif %}" href="?turma={{ t.id }}&status={{ filtros.status }}">
+      <div class="al-turma-n">{{ t.turma.classe }}ª</div>
+      <div>
+        <div class="al-turma-nome">Turma {{ t.turma.designacao }}</div>
+        <div class="al-turma-sub">{{ t.turma.curso.nome_abreviado|default:t.turma.curso.nome }} · {{ t.disciplinas }}</div>
+      </div>
+      <div class="al-turma-qtd">{{ t.alunos }}<small>alunos</small></div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Lista de alunos ── #}
+<div class="al-panel fade-up">
+  <div class="al-panel-hdr">
+    <div class="al-panel-title"><i class="bi bi-list-check"></i> Lista de alunos
+      <span class="al-count">· {{ total_filtrado }} resultado{{ total_filtrado|pluralize }}</span>
+    </div>
+    {% if trimestre %}
+      <span class="tag tag-blue"><i class="bi bi-journal-check"></i> Notas do {{ trimestre.designacao }}º Trimestre</span>
+    {% endif %}
+  </div>
+
+  <form method="get" class="al-filters" id="formFiltros">
+    <div class="al-f al-f-search">
+      <label for="fq">Pesquisar</label>
+      <i class="bi bi-search"></i>
+      <input type="search" id="fq" name="q" value="{{ filtros.q }}" placeholder="Nome, nº de processo, matrícula ou BI">
+    </div>
+    <div class="al-f">
+      <label for="ft">Turma</label>
+      <select id="ft" name="turma" data-auto>
+        <option value="">Todas as turmas</option>
+        {% for t in turmas_resumo %}
+          <option value="{{ t.id }}" {% if filtros.turma == t.id %}selected{% endif %}>
+            {{ t.turma.classe }}.ª {{ t.turma.designacao }} — {{ t.turma.curso.nome_abreviado|default:t.turma.curso.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="al-f">
+      <label for="fs">Estado</label>
+      <select id="fs" name="status" data-auto>
+        <option value="">Todos</option>
+        {% for val, lbl in status_choices %}
+          <option value="{{ val }}" {% if filtros.status == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="al-f">
+      <label for="fg">Género</label>
+      <select id="fg" name="genero" data-auto>
+        <option value="">Todos</option>
+        <option value="M" {% if filtros.genero == "M" %}selected{% endif %}>Masculino</option>
+        <option value="F" {% if filtros.genero == "F" %}selected{% endif %}>Feminino</option>
+      </select>
+    </div>
+    <div class="al-f-actions">
+      <button type="submit" class="al-btn primary"><i class="bi bi-funnel"></i> Filtrar</button>
+      <a href="?" class="al-btn" title="Limpar filtros"><i class="bi bi-arrow-counterclockwise"></i></a>
+    </div>
+  </form>
+
+  {% if page_obj.object_list %}
+  <div class="al-table-wrap">
+    <table class="al-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Nome Completo</th>
-          <th>Nº Processo</th>
+          <th>Aluno</th>
           <th>Turma</th>
-          {% for trim in trimestres %}
-            <th style="text-align:center;">MAC {{ trim.designacao }}</th>
-          {% endfor %}
-          <th style="text-align:center;">Estado</th>
-          <th>Acções</th>
+          <th>Notas (MT)</th>
+          <th>Média</th>
+          <th>Faltas</th>
+          <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
-        {% for item in lista_alunos %}
-          <tr>
-            <td style="color:var(--text-muted);font-size:.78rem;">{{ forloop.counter }}</td>
-            <td>
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#1e40af;flex-shrink:0;">
-                  {{ item.aluno.nome_completo|slice:":2"|upper }}
-                </div>
-                <div>
-                  <div style="font-weight:600;font-size:.70rem;">{{ item.aluno.nome_completo }}</div>
-                  <div style="font-size:.7rem;color:var(--text-muted);">{{ item.aluno.bi|default:"" }}</div>
-                </div>
+        {% for m in page_obj.object_list %}
+        {% with a=m.aluno %}
+        <tr class="al-row"
+            data-nome="{{ a.nome_completo }}"
+            data-iniciais="{{ m.iniciais }}"
+            data-foto="{% if a.foto %}{{ a.foto.url }}{% endif %}"
+            data-processo="{{ a.numero_processo|default:'—' }}"
+            data-estudante="{{ a.numero_estudante|default:'—' }}"
+            data-bi="{{ a.bi|default:'—' }}"
+            data-nasc="{% if a.data_nascimento %}{{ a.data_nascimento|date:'d/m/Y' }}{% if a.idade %} ({{ a.idade }} anos){% endif %}{% else %}—{% endif %}"
+            data-genero="{{ a.get_genero_display|default:'—' }}"
+            data-tel="{{ a.telefone|default:'—' }}"
+            data-email="{{ a.email|default:'—' }}"
+            data-pai="{{ a.nome_pai|default:'—' }}"
+            data-mae="{{ a.nome_mae|default:'—' }}"
+            data-natural="{{ a.naturalidade|default:'—' }}"
+            data-morada="{{ a.bairro|default:'' }}{% if a.bairro %}, {% endif %}{{ a.municipio }}, {{ a.provincia }}"
+            data-nec="{{ a.necessidades_especiais|default:'Nenhuma' }}"
+            data-turma="{{ m.turma.classe }}.ª Classe · Turma {{ m.turma.designacao }} · {{ m.turma.curso.nome_abreviado|default:m.turma.curso.nome }}"
+            data-estado="{{ m.status }}">
+          <td>
+            <div class="al-person">
+              <div class="al-av {% if a.genero == 'F' %}f{% endif %}">
+                {% if a.foto %}<img src="{{ a.foto.url }}" alt="">{% else %}{{ m.iniciais }}{% endif %}
               </div>
-            </td>
-            <td><span style="font-family:monospace;font-size:.78rem;">{{ item.aluno.numero_processo|default:"—" }}</span></td>
-            <td>
-              <span class="tag tag-blue">{{ item.matricula.turma.designacao }}</span>
-            </td>
-            {% for trim in trimestres %}
-              <td style="text-align:center;">
-                {% with mac=item.macs|get_item:trim.designacao %}
-                  {% if mac is not None %}
-                    <strong style="color:{% if mac >= 10 %}#059669{% elif mac >= 7 %}#d97706{% else %}#dc2626{% endif %};">{{ mac|floatformat:1 }}</strong>
-                  {% else %}
-                    <span style="color:var(--text-muted);">—</span>
-                  {% endif %}
-                {% endwith %}
-              </td>
-            {% endfor %}
-            <td style="text-align:center;">
-              {% if item.matricula.status == 'Activa' %}
-                <span class="tag tag-green">Activo</span>
-              {% elif item.matricula.status == 'Transferido' %}
-                <span class="tag tag-cyan">Transferido</span>
-              {% elif item.matricula.status == 'Cancelada' %}
-                <span class="tag tag-red">Cancelado</span>
-              {% else %}
-                <span class="tag tag-gray">{{ item.matricula.status }}</span>
-              {% endif %}
-            </td>
-            <td>
-              <a href="{% url 'professor:detalhe_aluno' item.aluno.id %}" class="btn btn-ghost btn-sm">
-                <i class="bi bi-eye"></i>
-              </a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="{{ trimestres|length|add:6 }}" style="text-align:center;padding:40px;color:var(--text-muted);">
-              <i class="bi bi-person-x" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
-              Nenhum aluno encontrado.
-            </td>
-          </tr>
+              <div>
+                <div class="al-nome">{{ a.nome_completo }}</div>
+                <div class="al-sub">Proc. {{ a.numero_processo|default:"—" }}{% if a.idade %} · {{ a.idade }} anos{% endif %}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="al-nome">{{ m.turma.classe }}.ª {{ m.turma.designacao }}</div>
+            <div class="al-sub">{{ m.turma.curso.nome_abreviado|default:m.turma.curso.nome }}</div>
+          </td>
+          <td>
+            <div class="al-notas">
+              {% for n in m.notas %}
+                <span class="al-nota {% if n.mt is None %}nd{% elif n.positiva %}pos{% else %}neg{% endif %}"
+                      title="{{ n.disc.nome }}">
+                  {{ n.disc.nome_abreviado }} {% if n.mt is None %}—{% else %}{{ n.mt|floatformat:1 }}{% endif %}
+                </span>
+              {% endfor %}
+            </div>
+          </td>
+          <td>
+            <span class="al-media {% if m.media is None %}nd{% elif m.media_positiva %}pos{% else %}neg{% endif %}">
+              {% if m.media is None %}—{% else %}{{ m.media|floatformat:1 }}{% endif %}
+            </span>
+          </td>
+          <td>
+            <div class="al-faltas {% if m.faltas_inj %}alerta{% endif %}">
+              {{ m.faltas_total }}
+              {% if m.faltas_inj %}<small>{{ m.faltas_inj }} injustif.</small>{% endif %}
+            </div>
+          </td>
+          <td><span class="tag {{ m.tag }}">{{ m.status }}</span></td>
+          <td style="text-align:right;color:var(--text-muted)"><i class="bi bi-chevron-right"></i></td>
+        </tr>
+        {% endwith %}
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <!-- Paginação -->
-  {% if page_obj.has_other_pages %}
-    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <span style="font-size:.78rem;color:var(--text-muted);">
-        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ total_alunos }} alunos
-      </span>
-      <div style="display:flex;gap:4px;">
-        {% if page_obj.has_previous %}
-          <a href="?page={{ page_obj.previous_page_number }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
-            class="btn btn-ghost btn-sm"><i class="bi bi-chevron-left"></i></a>
-        {% endif %}
-        {% for num in page_obj.paginator.page_range %}
-          {% if page_obj.number == num %}
-            <button class="btn btn-primary btn-sm" disabled>{{ num }}</button>
-          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-            <a href="?page={{ num }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
-              class="btn btn-ghost btn-sm">{{ num }}</a>
-          {% endif %}
-        {% endfor %}
-        {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}{% if filtro_turma %}&turma={{ filtro_turma }}{% endif %}{% if pesquisa %}&q={{ pesquisa }}{% endif %}{% if filtro_estado %}&estado={{ filtro_estado }}{% endif %}"
-            class="btn btn-ghost btn-sm"><i class="bi bi-chevron-right"></i></a>
-        {% endif %}
-      </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="al-pager">
+    <span class="al-count">
+      A mostrar {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_filtrado }}
+    </span>
+    <div class="al-pages">
+      {% if page_obj.has_previous %}
+        <a class="al-pg" href="?{{ qs_base }}{% if qs_base %}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a>
+      {% else %}<span class="al-pg dis"><i class="bi bi-chevron-left"></i></span>{% endif %}
+
+      {% for p in page_range %}
+        {% if p == ellipsis %}<span class="al-pg dis">…</span>
+        {% elif p == page_obj.number %}<span class="al-pg active">{{ p }}</span>
+        {% else %}<a class="al-pg" href="?{{ qs_base }}{% if qs_base %}&{% endif %}page={{ p }}">{{ p }}</a>{% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="al-pg" href="?{{ qs_base }}{% if qs_base %}&{% endif %}page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a>
+      {% else %}<span class="al-pg dis"><i class="bi bi-chevron-right"></i></span>{% endif %}
     </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="al-vazio">
+    <i class="bi bi-person-x"></i>
+    <h5>Nenhum aluno encontrado</h5>
+    <p>{% if turmas_resumo %}Experimente alterar ou limpar os filtros.{% else %}Ainda não tem turmas atribuídas neste ano lectivo.{% endif %}</p>
+  </div>
   {% endif %}
 </div>
+{% endblock content %}
 
+{% block modals %}
+<div class="al-modal" id="alModal" aria-hidden="true">
+  <div class="al-modal-box" role="dialog" aria-modal="true" aria-labelledby="mNome">
+    <div class="al-m-hdr">
+      <div class="al-m-av" id="mAv"></div>
+      <div>
+        <div class="al-m-nome" id="mNome"></div>
+        <div class="al-m-sub" id="mTurma"></div>
+      </div>
+      <button class="al-m-close" id="mClose" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="al-m-body">
+      <div class="al-m-sec"><i class="bi bi-person-vcard"></i> Identificação</div>
+      <div class="al-m-grid">
+        <div class="al-m-item"><span>Nº Processo</span><strong id="mProc"></strong></div>
+        <div class="al-m-item"><span>Nº Matrícula</span><strong id="mEst"></strong></div>
+        <div class="al-m-item"><span>Bilhete de Identidade</span><strong id="mBi"></strong></div>
+        <div class="al-m-item"><span>Estado</span><strong id="mEstado"></strong></div>
+        <div class="al-m-item"><span>Data de nascimento</span><strong id="mNasc"></strong></div>
+        <div class="al-m-item"><span>Género</span><strong id="mGen"></strong></div>
+      </div>
+
+      <div class="al-m-sec"><i class="bi bi-telephone"></i> Contacto e residência</div>
+      <div class="al-m-grid">
+        <div class="al-m-item"><span>Telefone</span><strong id="mTel"></strong></div>
+        <div class="al-m-item"><span>E-mail</span><strong id="mEmail"></strong></div>
+        <div class="al-m-item"><span>Naturalidade</span><strong id="mNat"></strong></div>
+        <div class="al-m-item"><span>Residência</span><strong id="mMor"></strong></div>
+      </div>
+
+      <div class="al-m-sec"><i class="bi bi-people"></i> Filiação</div>
+      <div class="al-m-grid">
+        <div class="al-m-item"><span>Pai</span><strong id="mPai"></strong></div>
+        <div class="al-m-item"><span>Mãe</span><strong id="mMae"></strong></div>
+      </div>
+
+      <div class="al-m-sec"><i class="bi bi-heart-pulse"></i> Necessidades especiais</div>
+      <div class="al-m-grid">
+        <div class="al-m-item al-m-full"><strong id="mNec"></strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock modals %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // Filtros por select aplicam-se automaticamente
+  document.querySelectorAll('#formFiltros select[data-auto]').forEach(s =>
+    s.addEventListener('change', () => document.getElementById('formFiltros').submit()));
+
+  // Modal de detalhe do aluno
+  const modal = document.getElementById('alModal');
+  const $ = id => document.getElementById(id);
+  const map = { mProc:'processo', mEst:'estudante', mBi:'bi', mEstado:'estado', mNasc:'nasc',
+                mGen:'genero', mTel:'tel', mEmail:'email', mNat:'natural', mMor:'morada',
+                mPai:'pai', mMae:'mae', mNec:'nec' };
+
+  function abrir(row) {
+    const d = row.dataset;
+    $('mNome').textContent  = d.nome;
+    $('mTurma').textContent = d.turma;
+    const av = $('mAv');
+    av.innerHTML = '';
+    if (d.foto) { const img = document.createElement('img'); img.src = d.foto; img.alt = ''; av.appendChild(img); }
+    else av.textContent = d.iniciais;
+    Object.entries(map).forEach(([id, key]) => { $(id).textContent = d[key]; });
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  function fechar() { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
+
+  document.querySelectorAll('.al-row').forEach(r => r.addEventListener('click', () => abrir(r)));
+  $('mClose').addEventListener('click', fechar);
+  modal.addEventListener('click', e => { if (e.target === modal) fechar(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
+})();
+</script>
 {% endblock %}
