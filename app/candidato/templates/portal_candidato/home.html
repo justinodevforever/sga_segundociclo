@@ -1,0 +1,76 @@
+{% extends "portal_candidato/base.html" %}
+{% block content %}
+<main>
+<div class="hero">
+  <div class="wrap">
+    {% if ano %}<span class="badge">Candidaturas {{ ano.designacao }}{% if aberta %} abertas{% endif %}</span>{% endif %}
+    <h1>Acompanhe a sua candidatura em tempo real</h1>
+    <p>Introduza o seu BI e data de nascimento para ver em que fase está o seu processo de admissão.</p>
+    <button class="btn btn-sky btn-lg" type="button" onclick="document.getElementById('dlg').showModal()">Consultar candidatura</button>
+    <p class="sub">Ainda não se candidatou? <a href="{% url 'candidato:pre_inscricao' %}">Faça a pré-inscrição</a></p>
+  </div>
+</div>
+
+<section id="como-fazer">
+  <div class="wrap">
+    <h2>Como fazer a pré-inscrição</h2>
+    <p class="lead">O processo leva cerca de 5 minutos. Tenha o seu Bilhete de Identidade à mão.</p>
+    <div class="grid g4">
+      <div class="card step-card"><div class="n">1</div><h3>Preencha o formulário</h3><p>Quatro passos: dados pessoais, filiação e BI, contactos e curso pretendido.</p></div>
+      <div class="card step-card"><div class="n">2</div><h3>Guarde o protocolo</h3><p>No final recebe um código. A sua pré-inscrição fica com o estado pendente.</p></div>
+      <div class="card step-card"><div class="n">3</div><h3>Entregue os documentos</h3><p>Dirija-se à secretaria para validar a pré-inscrição e passar a candidatura à análise.</p></div>
+      <div class="card step-card"><div class="n">4</div><h3>Veja o resultado</h3><p>Acompanhe aqui a análise e a nota de admissão assim que forem publicadas.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap grid g2">
+    <div>
+      <h2>Documentos a levar à secretaria</h2>
+      <p class="lead">Para validar a sua pré-inscrição, apresente os originais e uma cópia de cada.</p>
+    </div>
+    <div class="card">
+      <ul class="docs">
+        <li>Bilhete de Identidade (original e fotocópia)</li>
+        <li>Certificado de habilitações da classe anterior</li>
+        <li>2 fotografias tipo passe</li>
+        <li>Comprovativo de pagamento, quando aplicável</li>
+        <li>Atestado médico, se tiver necessidades especiais</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap" style="max-width:820px">
+    <h2>Perguntas frequentes</h2>
+    <p class="lead">Respostas rápidas às dúvidas mais comuns.</p>
+    <details><summary>O que é a pré-inscrição?</summary><p>É o registo online dos seus dados e do curso pretendido. Fica com o estado "Pendente" até a secretaria validar os documentos.</p></details>
+    <details><summary>Como sei se a minha candidatura foi aceite?</summary><p>Use o botão "Consultar candidatura" na página inicial. O estado actualiza automaticamente: Pendente, Em análise e, por fim, Aprovada ou Reprovada.</p></details>
+    <details><summary>Posso candidatar-me a mais de um curso?</summary><p>Sim. Faça uma pré-inscrição por curso, usando sempre o mesmo BI. Todas aparecem na consulta.</p></details>
+    <details><summary>Errei um dado no formulário. O que faço?</summary><p>Contacte a secretaria com o seu protocolo e o BI. Os dados são corrigidos durante a validação dos documentos.</p></details>
+    <details><summary>A consulta diz que não encontrou a candidatura.</summary><p>Confirme o BI (9 dígitos, 2 letras, 3 dígitos) e a data de nascimento exactamente como indicou na pré-inscrição.</p></details>
+    <details><summary>As pré-inscrições estão fechadas. E agora?</summary><p>A escola abre e fecha o período de inscrições por ano lectivo. Volte a esta página ou contacte a secretaria.</p></details>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap"><div class="cta">
+    <h2>Pronto para começar?</h2>
+    <p>Faça a sua pré-inscrição agora e garanta o seu lugar no processo de admissão.</p>
+    <a class="btn btn-sky btn-lg" href="{% url 'candidato:pre_inscricao' %}">Fazer pré-inscrição</a>
+  </div></div>
+</section>
+</main>
+
+<dialog id="dlg">
+  <h2 style="margin-bottom:4px">Consultar candidatura</h2>
+  <p class="help" style="margin:0 0 20px">Use os dados da pré-inscrição.</p>
+  <form method="post" action="{% url 'candidato:consultar' %}">{% csrf_token %}
+    <div class="field"><label for="id_bi">Nº do BI</label><input class="inp" id="id_bi" name="bi" required maxlength="20" placeholder="004567890LA041" style="text-transform:uppercase"></div>
+    <div class="field"><label for="id_dn">Data de nascimento</label><input class="inp" id="id_dn" type="date" name="data_nascimento" required></div>
+    <div class="actions"><button class="btn btn-ghost" type="button" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn btn-navy" type="submit">Ver progresso</button></div>
+  </form>
+</dialog>
+{% endblock %}

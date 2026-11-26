@@ -1,0 +1,47 @@
+{% extends "portal_candidato/base.html" %}
+{% block title %}Progresso da candidatura{% endblock %}
+{% block content %}
+<main class="page"><div class="wrap" style="max-width:760px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:22px">
+    <div><h2 style="margin:0">Olá, {{ candidato.nome_completo|truncatewords:2 }}</h2>
+    <span class="live"><i></i> Actualização automática · <span id="ts">agora</span></span></div>
+    <a class="btn btn-ghost" href="{% url 'candidato:sair' %}">Sair</a>
+  </div>
+  {% for i in inscricoes %}
+  <article class="panel" style="margin-bottom:20px" data-id="{{ i.id }}">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div><h3 style="margin:0;color:var(--navy-800)">{{ i.curso }}</h3>
+        <div class="meta"><span>{{ i.periodo }}</span><span>{{ i.ano_lectivo }}</span><span>Submetida em {{ i.data }}</span><span>Protocolo <b>{{ i.protocolo }}</b></span></div></div>
+      <span class="pill {{ i.status }}" data-role="pill">{{ i.status_label }}</span>
+    </div>
+    <ol class="tl" data-passo="{{ i.passo }}">
+      <li><span class="dot">1</span><h4>{{ etapas.0 }}</h4><p>Os seus dados foram registados.</p></li>
+      <li><span class="dot">2</span><h4>{{ etapas.1 }}</h4><p>A secretaria valida os documentos e avalia a candidatura.</p></li>
+      <li><span class="dot">3</span><h4>{{ etapas.2 }}</h4><p data-role="res">{% if i.passo == 3 %}Candidatura {{ i.status_label|lower }}.{% if i.nota %} Nota de admissão: <b>{{ i.nota }}</b>{% endif %}{% else %}Ainda não disponível.{% endif %}</p></li>
+    </ol>
+  </article>
+  {% endfor %}
+</div></main>
+{% endblock %}
+{% block scripts %}
+<script>
+const URL="{% url 'candidato:api_progresso' %}";
+function pinta(ol,p){[...ol.children].forEach((li,k)=>{li.className=k+1<p?'done':(k+1===p?'cur':'')});}
+document.querySelectorAll('.tl').forEach(ol=>pinta(ol,+ol.dataset.passo));
+async function tick(){
+  try{
+    const r=await fetch(URL,{headers:{Accept:'application/json'}}); if(!r.ok) return;
+    const {inscricoes}=await r.json();
+    inscricoes.forEach(i=>{
+      const a=document.querySelector(`[data-id="${i.id}"]`); if(!a) return;
+      const pill=a.querySelector('[data-role=pill]'); pill.textContent=i.status_label; pill.className='pill '+i.status;
+      pinta(a.querySelector('.tl'),i.passo);
+      const res=a.querySelector('[data-role=res]');
+      res.textContent=i.passo===3?('Candidatura '+i.status_label.toLowerCase()+'.'+(i.nota?' Nota de admissão: '+i.nota:'')):'Ainda não disponível.';
+    });
+    document.getElementById('ts').textContent=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){}
+}
+setInterval(()=>{if(!document.hidden)tick()},20000);
+</script>
+{% endblock %}

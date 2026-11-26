@@ -1,0 +1,9 @@
+{% extends "portal_candidato/base.html" %}
+{% block title %}Pré-inscrições encerradas{% endblock %}
+{% block content %}
+<main class="page"><div class="wrap" style="max-width:560px"><div class="panel" style="text-align:center">
+  <h2>As pré-inscrições estão encerradas</h2>
+  <p class="lead" style="margin:0 auto 24px">De momento não estamos a receber novas candidaturas. Volte mais tarde ou contacte a secretaria.</p>
+  <a class="btn btn-navy" href="{% url 'candidato:home' %}">Voltar ao início</a>
+</div></div></main>
+{% endblock %}

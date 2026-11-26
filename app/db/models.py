@@ -262,6 +262,9 @@ class TenantConfiguracao(models.Model):
         AnoLectivo, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="+", verbose_name=_("Ano Lectivo Activo"),
     )
+    
+    nome_director = models.CharField(max_length=100, null=True)
+    nome_sub_director = models.CharField(max_length=100, null=True)
     endereco = models.TextField(null=True)
     nome = models.CharField(max_length=400, null=True)
     telefone = models.CharField(max_length=400, null=True)
@@ -750,7 +753,15 @@ class Inscricao( TimestampMixin):
     def __str__(self):
         return f"{self.candidato} — {self.ano_lectivo}"
 
-
+class NotaAdmissao(models.Model):
+    
+    inscricao = models.ForeignKey(Inscricao, on_delete=models.CASCADE, related_name="nota_admissao")
+    nota      = models.DecimalField(default=0)
+    
+    
+    def __str__(self):
+        return self.inscricao.candidato.nome_completo
+    
 class Matricula( TimestampMixin):
 
     class TipoMatricula(models.TextChoices):

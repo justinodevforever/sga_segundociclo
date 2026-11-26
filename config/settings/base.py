@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'app.director',
     'app.financa',
     'app.estudante',
+    'app.candidato',
 ]
 
 MIDDLEWARE = [
@@ -69,6 +70,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+
+# DATABASES = {
+#     "default": env.db(
+#         "DATABASE_URL",
+#         default="postgresql://default:6CndmGSUZ3ie@ep-morning-shape-a4r3edqd-pooler.us-east-1.aws.neon.tech/sga_segundociclo?sslmode=require&channel_binding=require",
+#     )
+# }
 
 DATABASES = {
     'default': {

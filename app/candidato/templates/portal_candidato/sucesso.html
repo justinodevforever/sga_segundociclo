@@ -1,0 +1,16 @@
+{% extends "portal_candidato/base.html" %}
+{% block title %}Pré-inscrição concluída{% endblock %}
+{% block content %}
+<main class="page"><div class="wrap" style="max-width:620px"><div class="panel" style="text-align:center">
+  <span class="pill pendente">Pendente</span>
+  <h2 style="margin-top:14px">Pré-inscrição recebida, {{ candidato.nome_completo|truncatewords:2 }}</h2>
+  <p class="lead" style="margin:0 auto 22px">Guarde o seu protocolo. Ele identifica esta candidatura na secretaria.</p>
+  <div style="font-size:2.2rem;font-weight:800;letter-spacing:.14em;color:var(--navy-800);background:var(--sky-100);border-radius:14px;padding:18px">{{ insc.protocolo }}</div>
+  <p class="meta" style="justify-content:center;margin:18px 0">{{ insc.curso }} · {{ insc.periodo }} · {{ insc.ano_lectivo }}</p>
+  <p class="help" style="margin-bottom:24px">Próximo passo: leve os documentos à secretaria para validar a pré-inscrição.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a class="btn btn-navy" href="{% url 'candidato:acompanhar' %}">Acompanhar candidatura</a>
+    <button class="btn btn-ghost" onclick="window.print()">Imprimir comprovativo</button>
+  </div>
+</div></div></main>
+{% endblock %}

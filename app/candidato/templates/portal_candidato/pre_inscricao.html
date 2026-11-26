@@ -1,0 +1,66 @@
+{% extends "portal_candidato/base.html" %}
+{% block title %}Pré-inscrição{% endblock %}
+{% block content %}
+<main class="page"><div class="wrap" style="max-width:780px">
+  <h2>Pré-inscrição {% if ano %}{{ ano.designacao }}{% endif %}</h2>
+  <p class="lead" style="margin-bottom:22px">Preencha os quatro passos. Pode voltar atrás sem perder os dados.</p>
+  <div class="panel">
+    <ol class="stepper" id="stepper" aria-label="Progresso">
+      {% for s in form.steps %}<li data-i="{{ forloop.counter0 }}"><div class="bar"></div><span>{{ s.titulo }}</span></li>{% endfor %}
+    </ol>
+    {% if form.non_field_errors %}<div class="alert" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+    <form method="post" id="pf" novalidate>{% csrf_token %}
+      {% for s in form.steps %}
+      <fieldset class="step" data-has-error="{{ s.tem_erro|yesno:'1,0' }}" style="border:0;padding:0;margin:0">
+        <legend style="font-weight:800;font-size:1.2rem;color:var(--navy-800);margin-bottom:18px">{{ s.titulo }}</legend>
+        <div class="fgrid">
+          {% for f in s.campos %}
+          <div class="field {% if f.name == 'necessidades_especiais' or f.name == 'aceito' %}full{% endif %}">
+            {% if f.name == 'aceito' %}
+              <label class="chk" for="{{ f.id_for_label }}">{{ f }}<span>{{ f.label }}</span></label>
+            {% else %}
+              <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} *{% endif %}</label>{{ f }}
+            {% endif %}
+            {% if f.help_text %}<div class="help">{{ f.help_text }}</div>{% endif %}
+            {% for e in f.errors %}<div class="err">{{ e }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% endfor %}
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" id="prev">Voltar</button>
+        <button type="button" class="btn btn-navy" id="next">Continuar</button>
+        <button type="submit" class="btn btn-sky" id="send" hidden>Enviar pré-inscrição</button>
+      </div>
+    </form>
+  </div>
+</div></main>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const steps=[...document.querySelectorAll('.step')], dots=[...document.querySelectorAll('#stepper li')];
+  const prev=document.getElementById('prev'), next=document.getElementById('next'), send=document.getElementById('send');
+  let i=steps.findIndex(s=>s.dataset.hasError==='1'); if(i<0) i=0;
+  steps.forEach((s,k)=>{ if(s.dataset.hasError==='1') dots[k].classList.add('bad'); });
+  function show(n){
+    i=n;
+    steps.forEach((s,k)=>s.classList.toggle('on',k===n));
+    dots.forEach((d,k)=>{d.classList.toggle('done',k<n);d.classList.toggle('cur',k===n)});
+    prev.style.visibility=n===0?'hidden':'visible';
+    next.hidden=n===steps.length-1; send.hidden=!next.hidden;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function valid(){
+    const bad=[...steps[i].querySelectorAll('input,select,textarea')].find(el=>!el.checkValidity());
+    if(bad){bad.reportValidity();return false}return true;
+  }
+  next.onclick=()=>{ if(valid()) show(i+1) };
+  prev.onclick=()=>show(i-1);
+  document.querySelector('[name=bi]').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/\s/g,''));
+  document.getElementById('pf').addEventListener('submit',e=>{ if(!valid()) e.preventDefault(); else send.disabled=true; });
+  show(i);
+})();
+</script>
+{% endblock %}

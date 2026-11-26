@@ -1,0 +1,18 @@
+{% extends "portal_candidato/base.html" %}
+{% block title %}Consultar candidatura{% endblock %}
+{% block content %}
+<main class="page"><div class="wrap" style="max-width:520px">
+  <div class="panel">
+    <h2>Consultar candidatura</h2>
+    <p class="lead" style="margin-bottom:22px">Introduza o BI e a data de nascimento usados na pré-inscrição.</p>
+    {% if erro %}<div class="alert" role="alert">{{ erro }}</div>{% endif %}
+    <form method="post" novalidate>{% csrf_token %}
+      {% for f in form %}
+      <div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% for e in f.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+      {% endfor %}
+      <button class="btn btn-navy" style="width:100%" type="submit">Ver progresso</button>
+    </form>
+    <p class="help" style="text-align:center;margin-top:18px">Ainda não tem candidatura? <a href="{% url 'candidato:pre_inscricao' %}">Fazer pré-inscrição</a></p>
+  </div>
+</div></main>
+{% endblock %}
